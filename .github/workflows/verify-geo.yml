@@ -10,7 +10,7 @@ jobs:
   weryfikacja-geo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Pełna historia gita, nie domyślny płytki klon (fetch-depth: 1).
           # scripts/sitemap-lastmod.mjs liczy <lastmod> w sitemapie z `git log`
