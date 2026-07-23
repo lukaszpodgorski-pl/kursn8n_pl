@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="ŁP">
+  <rect width="32" height="32" fill="#111114"/>
+  <!-- motyw slash w kolorze marki -->
+  <path d="M21 5 L13 27" stroke="#378CCF" stroke-width="3" stroke-linecap="square"/>
+  <!-- monogram ŁP (IBM Plex Mono, fallback monospace) -->
+  <text x="5.5" y="22" font-family="'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="600" fill="#FAFAF7">Ł</text>
+  <text x="19" y="22" font-family="'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="600" fill="#FAFAF7">P</text>
+</svg>

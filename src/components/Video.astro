@@ -1,0 +1,114 @@
+---
+/**
+ * <Video /> — komponent do osadzania krótkich animacji wideo (zamiennik GIF-ów).
+ *
+ * Umieść plik w: src/components/Video.astro
+ *
+ * Użycie w treści (.mdx):
+ *   import Video from '../../components/Video.astro';
+ *
+ *   <Video
+ *     src="/media/jak-dziala-tokenizacja.webm"
+ *     fallback="/media/jak-dziala-tokenizacja.mp4"
+ *     alt="Animacja pokazująca podział zdania na tokeny"
+ *   />
+ *
+ * Konwencje:
+ * - src: WebM (VP9/AV1) — mniejszy plik, nowoczesne przeglądarki
+ * - fallback: MP4 (H.264) — starsze przeglądarki i Safari na starszych iOS
+ * - alt: obowiązkowy opis dla czytników ekranu (dostępność)
+ * - poster: opcjonalna klatka podglądu (ładna miniatura przed startem)
+ * - Domyślnie: autoplay + pętla + wyciszenie (zachowanie jak GIF),
+ *   ale z poszanowaniem prefers-reduced-motion.
+ */
+
+interface Props {
+  /** Ścieżka do pliku WebM (główne źródło) */
+  src: string;
+  /** Opcjonalny fallback MP4 dla starszych przeglądarek */
+  fallback?: string;
+  /** Opis animacji dla czytników ekranu — wymagany */
+  alt: string;
+  /** Opcjonalna klatka podglądu (jpg/webp) */
+  poster?: string;
+  /** Podpis pod wideo (widoczny dla wszystkich) */
+  caption?: string;
+  /** Szerokość maksymalna, np. "640px" (domyślnie 100%) */
+  maxWidth?: string;
+  /** Czy pokazywać kontrolki zamiast trybu "jak GIF" */
+  controls?: boolean;
+}
+
+const {
+  src,
+  fallback,
+  alt,
+  poster,
+  caption,
+  maxWidth = '100%',
+  controls = false,
+} = Astro.props;
+
+const webmType = src.endsWith('.webm') ? 'video/webm' : 'video/mp4';
+---
+
+<figure class="wiki-video" style={`max-width: ${maxWidth}`}>
+  <video
+    class="wiki-video__player"
+    autoplay={!controls}
+    loop={!controls}
+    muted={!controls}
+    playsinline
+    controls={controls}
+    preload="metadata"
+    poster={poster}
+    aria-label={alt}
+  >
+    <source src={src} type={webmType} />
+    {fallback && <source src={fallback} type="video/mp4" />}
+    <!-- Tekst zapasowy, gdy przeglądarka nie obsługuje <video> -->
+    <p>
+      Twoja przeglądarka nie obsługuje wideo.
+      <a href={fallback ?? src}>Pobierz animację</a>. Opis: {alt}
+    </p>
+  </video>
+  {caption && <figcaption class="wiki-video__caption">{caption}</figcaption>}
+</figure>
+
+<script>
+  // Poszanowanie ustawienia "ogranicz animacje" w systemie użytkownika:
+  // zatrzymujemy autoodtwarzanie i pokazujemy kontrolki.
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const apply = () => {
+    document.querySelectorAll<HTMLVideoElement>('.wiki-video__player').forEach((v) => {
+      if (reduced.matches && v.autoplay) {
+        v.pause();
+        v.removeAttribute('autoplay');
+        v.controls = true;
+      }
+    });
+  };
+  apply();
+  reduced.addEventListener('change', apply);
+</script>
+
+<style>
+  .wiki-video {
+    margin: 1.5rem auto;
+  }
+  .wiki-video__player {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    /* Delikatna ramka spójna z motywem Starlight (zmienne sl-*) */
+    border: 1px solid var(--sl-color-gray-5, #e5e7eb);
+    background: var(--sl-color-gray-6, #f7f7f8);
+  }
+  .wiki-video__caption {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-2, #6b7280);
+    text-align: center;
+  }
+</style>

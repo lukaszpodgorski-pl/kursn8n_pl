@@ -1,0 +1,467 @@
+---
+title: Instalacja i hosting n8n
+description: "Jak zainstalować i hostować n8n: n8n Cloud, Docker i Docker Compose krok po kroku, VPS i PaaS, Raspberry Pi, HTTPS i reverse proxy, Cloudflare Tunnel, klucz N8N_ENCRYPTION_KEY oraz aktualizacje. Praktycznie i po polsku."
+# Mechanizm `head:` opisany szczegółowo w modul-0-fundamenty.mdx (scalanie
+# z domyślnym head Starlight po kluczu `tag`, dokładnie jeden <title> trafia
+# do wyjścia). Poniżej: <title> oraz og:title/og:description przepisane 1:1
+# z public_html/content/modul-1-instalacja-hosting.head.php.
+head:
+  - tag: title
+    content: "Moduł 1: Instalacja i hosting n8n - Cloud, Docker, VPS, HTTPS i klucz szyfrowania | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Moduł 1: Instalacja i hosting n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "n8n Cloud, Docker i Docker Compose, VPS i PaaS, HTTPS i reverse proxy, Cloudflare Tunnel oraz klucz szyfrowania - kompletny przewodnik po hostingu n8n po polsku."
+# Data pierwszej publikacji na żywej stronie (head.php, LearningResource.datePublished).
+datePublished: 2026-05-21
+educationalLevel: Beginner
+teaches:
+  - Kiedy wybrać n8n Cloud, a kiedy self-hosting
+  - Instalację n8n przez Dockera i Docker Compose
+  - Wymagania systemowe oraz wybór między SQLite a PostgreSQL
+  - Jak wystawić n8n po HTTPS - reverse proxy, Let's Encrypt i Cloudflare Tunnel
+  - Rolę klucza N8N_ENCRYPTION_KEY i bezpieczne aktualizowanie instancji
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+  - name: Docker
+    sameAs: https://en.wikipedia.org/wiki/Docker_(software)
+mentions:
+  - name: PostgreSQL
+    sameAs: https://en.wikipedia.org/wiki/PostgreSQL
+  - name: Raspberry Pi
+    sameAs: https://en.wikipedia.org/wiki/Raspberry_Pi
+  - name: Let's Encrypt
+    sameAs: https://en.wikipedia.org/wiki/Let%27s_Encrypt
+  - name: Cloudflare Tunnel
+    sameAs: https://www.cloudflare.com/products/tunnel/
+faq:
+  - q: "Cloud czy self-hosting - od czego zacząć naukę?"
+    a: "Najszybszy start daje n8n Cloud (trial) albo lokalny Docker. Cloud ma zerową konfigurację i od razu działające OAuth, więc świetnie nadaje się do nauki. Gdy poczujesz się pewnie i będziesz chciał kontroli nad danymi oraz kosztami, przejdź na self-hosting przez Dockera."
+  - q: "Po restarcie zniknęły mi workflow i poświadczenia - dlaczego?"
+    a: "Najczęściej dlatego, że kontener uruchomiono bez wolumenu danych. Upewnij się, że masz `-v n8n_data:/home/node/.n8n` (lub odpowiedni wpis w Compose). Dane n8n - baza, poświadczenia, klucz szyfrowania - żyją w tym wolumenie, nie w samym kontenerze."
+  - q: "Czy potrzebuję własnej domeny i HTTPS?"
+    a: "Do nauki lokalnej nie. Ale gdy chcesz używać webhooków albo logowania OAuth do zewnętrznych usług, potrzebujesz publicznego adresu po HTTPS. Na VPS-ie zrobisz to przez reverse proxy z Let's Encrypt, a w domu najwygodniej przez Cloudflare Tunnel."
+  - q: "Co się stanie, jeśli zgubię N8N_ENCRYPTION_KEY?"
+    a: "Nie odszyfrujesz istniejących poświadczeń zapisanych w bazie - trzeba będzie wprowadzić je ponownie. Dlatego klucz traktuj jak hasło: przechowuj go bezpiecznie i backupuj razem z bazą danych. Na produkcji najlepiej ustawić własny klucz zmienną środowiskową, zanim uruchomisz instancję po raz pierwszy."
+  - q: "Jak bezpiecznie aktualizować n8n?"
+    a: "Najpierw backup (wolumen/baza + klucz), potem przeczytaj release notes pod kątem zmian łamiących zgodność, a następnie w Compose: `docker compose pull` i `docker compose up -d`. Na ważnych instancjach nie przeskakuj wielu wersji naraz i testuj po aktualizacji."
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Panel from '../../components/Panel.astro';
+import Takeaways from '../../components/Takeaways.astro';
+import TwoCol from '../../components/TwoCol.astro';
+
+<ModuleHero
+  tag="Moduł 1 · Poziom: początkujący"
+  readingTime="~20 min"
+  note="Docker · VPS · Cloud"
+/>
+
+Zanim zbudujesz pierwszy workflow, potrzebujesz działającej instancji n8n. W tym module
+pokażę Ci wszystkie realne ścieżki - od najszybszego n8n Cloud, przez Dockera na własnym
+serwerze, po VPS, Raspberry Pi i Cloudflare Tunnel. Skupię się na tym, **dlaczego** dana
+opcja ma sens, a nie tylko na klikaniu po kroku.
+
+## Wymagania systemowe
+
+n8n jest aplikacją Node.js i nie jest szczególnie wymagający, ale jest istotna różnica
+między "wystartuje" a "uciągnie produkcję". Poniżej rozdzielamy minimum do nauki od
+realnego minimum produkcyjnego - bo to dwa różne światy.
+
+| Wskaźnik | Wartość |
+| --- | --- |
+| RAM (nauka) | ~512 MB - 1 GB |
+| RAM (produkcja) | 2 GB+ |
+| CPU | 1-2 rdzenie |
+| Dysk | kilka GB+ |
+
+Wartości powyżej to praktyczne wskazówki, a nie sztywne wymaganie z dokumentacji. Sam
+silnik n8n jest lekki, ale apetyt na RAM rośnie wraz z liczbą równoległych wykonań,
+rozmiarem przetwarzanych danych (np. duże pliki, obszerne odpowiedzi API) i node'ami AI.
+Na słabej maszynie ciężki workflow potrafi przeciążyć pamięć i ubić proces - dlatego do
+produkcji warto mieć zapas.
+
+### Node.js
+
+Jeśli instalujesz n8n przez npm, potrzebujesz wcześniej zainstalowanego **Node.js w
+wersji od 20.19 do 24.x**. Jeśli używasz Dockera, nie musisz się tym przejmować - Node.js
+jest już w obrazie. To zresztą jeden z głównych powodów, dla których polecam Dockera:
+omijasz zależności i konflikty wersji na hoście.
+
+### Baza danych: SQLite czy PostgreSQL?
+
+n8n musi gdzieś trzymać Twoje workflow, wykonania i poświadczenia. Domyślnie używa
+**SQLite** - pliku w katalogu danych, bez stawiania osobnego serwera bazy. To świetne na
+start i do nauki. Do poważniejszych wdrożeń docs i społeczność rekomendują
+**PostgreSQL**: lepiej radzi sobie z większym obciążeniem, jest wymagany przy skalowaniu
+(tryb kolejkowy / queue mode) i ułatwia backupy.
+
+| Aspekt | SQLite (domyślnie) | PostgreSQL |
+| --- | --- | --- |
+| Konfiguracja | Zero - działa od razu | Trzeba postawić serwer bazy |
+| Dla kogo | Nauka, mała instancja, dom | Produkcja, większy ruch, zespół |
+| Skalowanie (queue mode) | Nieodpowiednie | Wymagane |
+| Backup | Kopia pliku / wolumenu | Standardowe narzędzia Postgresa |
+| Wydajność pod obciążeniem | Ograniczona | Dużo lepsza |
+
+:::tip[Praktyczna rada]
+Ucz się na SQLite (domyślnie, zero konfiguracji). Gdy zdecydujesz się na realne wdrożenie
+produkcyjne, od razu zaplanuj PostgreSQL - migracja jest możliwa, ale prościej zacząć od
+właściwej bazy, niż przepinać działającą instancję później.
+:::
+
+## n8n Cloud - najszybszy start
+
+Jeśli chcesz zobaczyć n8n w akcji w ciągu kilku minut i nie interesuje Cię administracja
+serwerem, n8n Cloud jest najprostszą drogą. To hostowana wersja prowadzona przez twórców
+n8n.
+
+<TwoCol>
+  <Panel variant="pros" title="Co dostajesz">
+    - Zero instalacji i utrzymania instancji
+    - Aktualizacje jednym kliknięciem do najnowszej wersji
+    - Monitoring dostępności po stronie n8n
+    - Zarządzane uwierzytelnianie OAuth (gotowe callbacki)
+    - HTTPS i publiczny adres bez konfiguracji
+  </Panel>
+  <Panel variant="cons" title="Czego się spodziewać">
+    - Płatny abonament zamiast własnego serwera
+    - Dane przechowywane u dostawcy (nie u Ciebie)
+    - Mniejsza kontrola nad środowiskiem niż self-host
+    - Usługa niedostępna w niektórych regionach (Rosja, Białoruś)
+  </Panel>
+</TwoCol>
+
+:::note[Kiedy wybrać Cloud]
+Gdy uczysz się n8n, szybko weryfikujesz pomysł albo nie chcesz brać na siebie
+aktualizacji, backupów i bezpieczeństwa. To również najszybszy sposób, by "od ręki"
+działały integracje OAuth (Google, Slack itd.), bo publiczny HTTPS i callbacki są
+skonfigurowane za Ciebie. Konto zakładasz na stronie n8n.io.
+:::
+
+## Docker i Docker Compose krok po kroku
+
+Docker to najpopularniejszy sposób self-hostingu n8n - i mój domyślny wybór w kursie.
+Dostajesz gotowy obraz z odpowiednim Node.js, izolację od reszty systemu oraz
+powtarzalność: ta sama komenda da ten sam efekt na laptopie, VPS-ie i Raspberry Pi.
+
+### Najprostszy start (jeden kontener, SQLite)
+
+Najpierw tworzymy **wolumen danych** - to nazwane miejsce na dysku, w którym Docker
+trzyma dane n8n niezależnie od kontenera. Dzięki temu możesz skasować i odtworzyć
+kontener (np. przy aktualizacji), a Twoje workflow, poświadczenia i klucz szyfrowania
+zostaną.
+
+```bash
+docker volume create n8n_data
+
+docker run -it --rm \
+ --name n8n \
+ -p 5678:5678 \
+ -e GENERIC_TIMEZONE="Europe/Warsaw" \
+ -e TZ="Europe/Warsaw" \
+ -e N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \
+ -e N8N_RUNNERS_ENABLED=true \
+ -v n8n_data:/home/node/.n8n \
+ docker.n8n.io/n8nio/n8n
+```
+
+Po uruchomieniu otwórz `http://localhost:5678`. Co tu się właściwie dzieje?
+
+- `-p 5678:5678` - udostępnia port n8n z kontenera na Twoim komputerze. _Port_ to
+  numerowane "drzwi", przez które program jest widoczny w sieci - n8n używa numeru 5678.
+- `-v n8n_data:/home/node/.n8n` - montuje wolumen do katalogu danych n8n. To kluczowe dla
+  **trwałości**: tu lądują baza SQLite, poświadczenia i klucz szyfrowania.
+- `-e GENERIC_TIMEZONE` / `-e TZ` - strefa czasowa (ważna dla node'ów harmonogramu, np.
+  "codziennie o 7:00").
+- `--rm` - usuwa kontener po zatrzymaniu (dane i tak przeżyją w wolumenie). Do trwałego
+  działania w tle używa się raczej `-d` zamiast `-it --rm`.
+
+:::caution[Nie pomiń wolumenu]
+Jeśli uruchomisz kontener bez `-v n8n_data:/home/node/.n8n`, wszystkie dane (workflow,
+poświadczenia, klucz szyfrowania) znikną wraz z kontenerem. To najczęstszy błąd
+początkujących: "zniknęły mi workflow po restarcie". Wolumen = trwałość.
+:::
+
+### Docker Compose - wygodniej i pod produkcję
+
+Pojedyncza długa komenda `docker run` jest okej do testu, ale w praktyce lepiej opisać
+całą konfigurację w pliku `docker-compose.yml`. Zyskujesz czytelność, łatwe aktualizacje
+i miejsce na dołożenie kolejnych usług (np. PostgreSQL czy reverse proxy). Uruchamiasz
+wszystko jedną komendą:
+
+```bash
+docker compose up -d
+```
+
+Oficjalne przewodniki "server setups" w docs n8n pokazują gotowe konfiguracje Compose
+(np. z Traefikiem jako reverse proxy, automatycznym SSL od Let's Encrypt oraz wolumenami
+`n8n_data` i `traefik_data`). To dobry szablon na pełne wdrożenie z własną domeną -
+wrócę do tego w sekcji o HTTPS.
+
+:::note[Inna droga: npm]
+Można też zainstalować n8n bez Dockera: `npx n8n` (uruchamia bez instalacji) lub
+globalnie `npm install n8n -g`, a potem komenda `n8n`. _npm_ to menedżer pakietów Node.js
+(narzędzie, które pobiera i instaluje gotowe programy), a _npx_ uruchamia taki program
+bez instalowania go na stałe. Wymaga to wcześniejszego Node.js (20.19-24.x). To wygodne
+do szybkiego testu lokalnego, ale do dłuższego self-hostingu Docker jest stabilniejszy i
+łatwiejszy w utrzymaniu.
+:::
+
+## Self-hosting na Raspberry Pi i mini PC
+
+n8n da się uruchomić w domu na małym, energooszczędnym sprzęcie - to popularne
+rozwiązanie dla automatyzacji domowych i osobistych, gdzie zależy Ci na pełnej kontroli i
+braku opłat abonamentowych.
+
+Raspberry Pi (najlepiej z większą ilością RAM-u) albo tani mini PC bez problemu udźwigną
+n8n do prywatnych workflow. Najprościej postawić n8n tak jak na każdej innej maszynie -
+przez Dockera (obraz wspiera architekturę ARM). Pamiętaj jednak o realiach domowego
+serwera:
+
+- **Pamięć i dysk** - wybierz wariant z większym RAM-em; jako nośnik wolimy dobry
+  SSD/dysk niż słabą kartę microSD (mniej awarii, lepsza wydajność bazy).
+- **Dostępność z zewnątrz** - w domu zwykle nie masz publicznego, stałego IP ani
+  otwartych portów. Tu najlepiej sprawdza się **Cloudflare Tunnel** (patrz sekcja "HTTPS,
+  domena, reverse proxy i Cloudflare Tunnel" niżej), który udostępnia n8n po HTTPS bez
+  przekierowań portów.
+- **Backup** - domowy sprzęt potrafi paść (zasilanie, karta). Regularnie kopiuj wolumen
+  danych i klucz szyfrowania.
+
+:::tip[Pełny poradnik osobno]
+Szczegóły doboru sprzętu i konfiguracji domowej rozkładam w dedykowanym materiale o
+hostingu - zobacz [porównanie hostingów n8n](/porownanie-n8n-hostingow), gdzie zestawiam
+m.in. opcje domowe z chmurą i VPS.
+:::
+
+## VPS i PaaS - gdzie postawić n8n w sieci
+
+Gdy chcesz, by n8n działało 24/7 z publicznym adresem i sensownym uptime, najczęściej
+wynajmujesz VPS (własny serwer w chmurze) albo korzystasz z platformy PaaS (która część
+roboty bierze na siebie). Wybór to kompromis między ceną, kontrolą a wygodą.
+
+<CardGrid>
+  <ConceptCard icon="fa-server" title="VPS klasyczny">
+    Pełna kontrola: Hetzner, cyber_Folks, Hostinger. Sam stawiasz Dockera, domenę i HTTPS
+    - najtaniej za moc, ale wymaga administracji.
+  </ConceptCard>
+  <ConceptCard icon="fa-cloud" title="PaaS">
+    Railway i podobne: deploy n8n "na klik", mniej grzebania w serwerze. Wygodniej,
+    zwykle drożej za tę samą moc.
+  </ConceptCard>
+  <ConceptCard icon="fa-flask" title="Mikrus i tanie VPS">
+    Bardzo tanie, polskie maluchy do nauki i lekkich automatyzacji. Uwaga na zasoby - mało
+    RAM-u przy cięższych workflow.
+  </ConceptCard>
+</CardGrid>
+
+Każda z tych opcji ma inne mocne i słabe strony, inne ceny i inny poziom "zrób to sam".
+Zamiast streszczać je tu po łebkach, odsyłam do pełnego, regularnie aktualizowanego
+materiału.
+
+:::tip[Pełny poradnik: Porównanie hostingów n8n]
+Przygotowałem osobny, szczegółowy poradnik, w którym zestawiam konkretne opcje - m.in.
+**cyber_Folks, Hostinger, Hetzner, Railway i Mikrus** - pod kątem ceny, wydajności,
+łatwości wdrożenia i kontroli nad danymi. To najlepsze miejsce, by wybrać hosting pod
+swój przypadek.
+
+[→ Przejdź do porównania hostingów n8n (kompletny poradnik)](/porownanie-n8n-hostingow)
+:::
+
+## HTTPS, domena, reverse proxy i Cloudflare Tunnel
+
+Self-hostowane n8n prawie zawsze chcesz wystawić po HTTPS, na własnej domenie. To nie
+jest fanaberia - bez publicznego, bezpiecznego adresu nie zadziałają poprawnie webhooki
+ani logowanie OAuth do wielu usług.
+
+:::note[Po ludzku - słowa z tej sekcji]
+
+- **HTTPS** - "bezpieczna" wersja adresu strony (kłódka w przeglądarce). Ruch jest
+  szyfrowany, więc nikt po drodze nie podejrzy przesyłanych danych.
+- **Certyfikat SSL/TLS** - cyfrowy "dowód tożsamości" serwera, który włącza tę kłódkę i
+  szyfrowanie. Bez niego przeglądarka pokazuje ostrzeżenie "połączenie niezabezpieczone".
+- **Let's Encrypt** - instytucja, która wydaje takie certyfikaty za darmo i automatycznie.
+  Stąd "darmowy HTTPS".
+- **Reverse proxy** - "recepcjonista" serwera: program (np. Traefik, Caddy lub NGINX),
+  który stoi z przodu, odbiera ruch z internetu po HTTPS i przekazuje go do ukrytego w
+  środku n8n. Dzięki temu n8n nie jest wystawione wprost na świat.
+
+:::
+
+### Dlaczego OAuth wymaga publicznego HTTPS
+
+Gdy łączysz n8n z usługą przez OAuth (Google, Slack, GitHub itd.), dostawca po
+zalogowaniu odsyła użytkownika na **adres zwrotny (callback)**. Ten adres musi być
+publicznie dostępny i zwykle musi być po HTTPS - `http://localhost` nie zadziała, bo
+dostawca nie ma jak tam wrócić. Tak samo webhooki: zewnętrzna usługa musi móc "zapukać"
+do Twojego n8n z internetu.
+
+:::caution[WEBHOOK_URL za reverse proxy]
+Gdy n8n stoi za reverse proxy, wewnętrznie słucha na porcie 5678, a do świata jest
+wystawione na 443 (HTTPS). n8n nie zgadnie swojego publicznego adresu - trzeba mu go
+podać zmienną `WEBHOOK_URL` (np. `https://n8n.example.com/`), żeby pokazywał poprawne
+adresy webhooków w edytorze i rejestrował je u zewnętrznych usług. Przy proxy ustawia się
+też `N8N_PROXY_HOPS`.
+:::
+
+### Ścieżka A: VPS + domena + Let's Encrypt
+
+Klasyczne wdrożenie produkcyjne. Masz VPS z publicznym IP, kierujesz na niego subdomenę
+(np. `n8n.twojadomena.pl`), a przed n8n stawiasz **reverse proxy**, które obsługuje HTTPS
+i certyfikat. Najczęstsze wybory to **Traefik** lub **Caddy** (automatyczny, darmowy
+certyfikat od Let's Encrypt) albo NGINX. W konfiguracji ustawiasz wtedy m.in.:
+
+- `N8N_HOST` - domena, pod którą działa n8n (np. `n8n.twojadomena.pl`).
+- `N8N_PROTOCOL=https` - protokół, którego n8n używa do budowania adresów.
+- `WEBHOOK_URL` - pełny publiczny adres bazowy webhooków.
+
+Reverse proxy (np. Traefik) zajmie się wystawieniem TLS i automatycznym odnawianiem
+certyfikatu - gotowe szablony Docker Compose w docs n8n robią to za Ciebie.
+
+### Ścieżka B: lokalnie + Cloudflare Tunnel
+
+Gdy n8n stoi w domu (Raspberry Pi, mini PC) i nie masz publicznego IP ani nie chcesz
+otwierać portów na routerze, świetnie sprawdza się **Cloudflare Tunnel**. Tunel tworzy
+szyfrowane połączenie wychodzące z Twojej maszyny do sieci Cloudflare i udostępnia n8n
+pod publiczną subdomeną po HTTPS - bez przekierowań portów i bez wystawiania IP. Dzięki
+temu OAuth i webhooki działają tak, jakbyś miał pełnoprawny serwer w sieci.
+
+:::note[Którą ścieżkę wybrać]
+Masz VPS i własną domenę? Idź ścieżką A (reverse proxy + Let's Encrypt) - to standard
+produkcyjny. Hostujesz w domu lub chcesz uniknąć zabawy z portami i certyfikatami?
+Cloudflare Tunnel (ścieżka B) jest najwygodniejszy. W obu przypadkach cel jest ten sam:
+publiczny, bezpieczny adres HTTPS dla Twojego n8n.
+:::
+
+## Klucz N8N_ENCRYPTION_KEY i zmienne środowiskowe
+
+To prawdopodobnie najważniejsza sekcja całego modułu z perspektywy bezpieczeństwa i
+odzyskiwania danych. Zrozum ją zanim wpiszesz pierwsze poświadczenie do produkcyjnej
+instancji.
+
+### Co robi klucz szyfrowania
+
+n8n **szyfruje Twoje poświadczenia** (klucze API, tokeny OAuth, hasła) przed zapisaniem
+ich do bazy. Do tego szyfrowania używa właśnie `N8N_ENCRYPTION_KEY`. Przy pierwszym
+uruchomieniu, jeśli nie podasz własnego klucza, n8n **wygeneruje losowy klucz
+automatycznie** i zapisze go w katalogu danych `~/.n8n` (w Dockerze: `/home/node/.n8n`,
+czyli w Twoim wolumenie).
+
+:::caution[Utrata klucza = utrata poświadczeń]
+Klucz szyfrowania i zaszyfrowane poświadczenia są ze sobą powiązane. Jeśli **stracisz
+klucz** (np. odtworzysz bazę z backupu na nowej instancji, ale bez tego samego klucza),
+n8n **nie odszyfruje istniejących poświadczeń** - będziesz musiał wprowadzić je od nowa.
+Dlatego backup bazy bez backupu klucza jest niekompletny.
+:::
+
+### Jak ustawić własny klucz
+
+Zamiast polegać na losowym kluczu z pliku, na produkcji warto ustawić własny, **zanim**
+uruchomisz n8n po raz pierwszy. Wygenerujesz mocny, losowy klucz np. tak (komenda
+`openssl` jest dostępna na Linux i macOS, a na Windows w "Git Bash"):
+
+```bash
+openssl rand -hex 32
+```
+
+Wynik podajesz n8n jako zmienną środowiskową - w Dockerze przez `-e` lub w pliku
+Compose, na npm przez eksport zmiennej:
+
+```bash
+export N8N_ENCRYPTION_KEY=<TWÓJ_WYGENEROWANY_KLUCZ>
+```
+
+:::tip[Gdzie trzymać klucz]
+
+- Przechowuj klucz **poza repozytorium kodu** - w menedżerze haseł lub sejfie sekretów,
+  nigdy w publicznym Gitcie.
+- Zrób jego **kopię zapasową razem z backupem bazy** - to nierozłączna para.
+- W trybie kolejkowym (queue mode) **ten sam klucz musisz podać wszystkim workerom**,
+  inaczej nie odszyfrują poświadczeń.
+
+:::
+
+### Inne ważne zmienne środowiskowe
+
+n8n konfiguruje się głównie przez zmienne środowiskowe. Poza kluczem warto znać kilka
+podstawowych:
+
+| Zmienna | Do czego służy |
+| --- | --- |
+| `N8N_ENCRYPTION_KEY` | Klucz szyfrujący poświadczenia w bazie (opisany wyżej). |
+| `DB_TYPE` | Typ bazy danych - domyślnie SQLite; dla Postgresa `postgresdb`. |
+| `DB_POSTGRESDB_HOST` i pokrewne | Host, port, nazwa bazy, użytkownik i hasło połączenia z PostgreSQL. |
+| `N8N_HOST` | Domena, pod którą działa n8n. |
+| `N8N_PROTOCOL` | Protokół (np. `https`) używany do budowania adresów. |
+| `WEBHOOK_URL` | Publiczny adres bazowy webhooków (ważne za reverse proxy). |
+| `GENERIC_TIMEZONE` / `TZ` | Strefa czasowa - wpływa na node'y harmonogramu. |
+
+## Aktualizacje i utrzymanie
+
+n8n rozwija się szybko - nowe node'y, poprawki i funkcje pojawiają się często.
+Aktualizowanie jest proste, ale warto robić to świadomie, żeby uniknąć niespodzianek po
+zmianie wersji.
+
+### Aktualizacja w Docker Compose
+
+Jeśli używasz Compose, aktualizacja to pobranie nowego obrazu i odtworzenie kontenera
+(dane zostają w wolumenie):
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+### Aktualizacja pojedynczego kontenera (docker run)
+
+Przy klasycznym `docker run` pobierasz nowy obraz, zatrzymujesz i usuwasz stary kontener,
+a potem uruchamiasz nowy (na tym samym wolumenie):
+
+```bash
+docker pull docker.n8n.io/n8nio/n8n
+docker stop n8n
+docker rm n8n
+# następnie ponownie uruchom kontener tą samą komendą docker run z -v n8n_data:/home/node/.n8n
+```
+
+Możesz też przypiąć konkretną wersję zamiast najnowszej, podając tag, np.
+`docker.n8n.io/n8nio/n8n:1.81.0` - przydatne, gdy chcesz kontrolować, na co dokładnie
+aktualizujesz.
+
+:::caution[Zanim zaktualizujesz produkcję]
+
+- **Zrób backup** - bazy danych (lub wolumenu) ORAZ klucza szyfrowania, zanim podmienisz
+  wersję.
+- **Przeczytaj release notes** - n8n bywa, że wprowadza zmiany łamiące zgodność
+  (breaking changes) między większymi wersjami.
+- **Nie przeskakuj o wiele wersji naraz** na ważnej instancji - aktualizuj rozsądnymi
+  krokami i testuj.
+
+:::
+
+:::note[Rytm utrzymania]
+Self-hosting oznacza, że aktualizacje, backupy i bezpieczeństwo są po Twojej stronie.
+Ustal sobie prosty rytm: regularny backup wolumenu i klucza, sprawdzanie release notes
+przed update i aktualizacja w okienku, w którym ewentualny przestój nie zaboli. To kilka
+minut, które ratuje przed dużymi problemami.
+:::
+
+<Takeaways>
+  - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj 2 GB+ RAM i PostgreSQL.
+  - n8n Cloud = najszybszy start bez administracji; self-host = kontrola i niższy koszt długofalowy.
+  - Docker to domyślny self-host: pamiętaj o wolumenie `n8n_data` - bez niego tracisz dane.
+  - OAuth i webhooki potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel.
+  - Za reverse proxy ustaw `WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
+  - `N8N_ENCRYPTION_KEY` szyfruje poświadczenia - utrata klucza = utrata poświadczeń. Backupuj go razem z bazą.
+  - Aktualizuj świadomie: backup, release notes, `docker compose pull && up -d`.
+</Takeaways>
+
+Następny krok: [Moduł 2 - Interfejs i pierwszy workflow](/modul-2-interfejs-pierwszy-workflow)

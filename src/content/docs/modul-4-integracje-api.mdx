@@ -1,0 +1,377 @@
+---
+title: Integracje i API w n8n
+description: "Integracje i API w n8n po polsku: gotowe node'y aplikacji (Resource → Operation), uwierzytelnianie API key vs OAuth2, uniwersalny HTTP Request, odbieranie i wysyłanie webhooków oraz paginacja, rate limity i ponawianie zapytań."
+head:
+  - tag: title
+    content: "Moduł 4: Integracje i API w n8n - node'y aplikacji, credentials, HTTP Request, webhooki | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Moduł 4: Integracje i API w n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Gotowe node'y aplikacji, uwierzytelnianie API key vs OAuth2, HTTP Request, webhooki oraz paginacja i rate limity - praktycznie i po polsku."
+datePublished: 2026-05-21
+educationalLevel: Intermediate
+teaches:
+  - "Jak działają node'y aplikacji (Resource → Operation) i kiedy sięgnąć po HTTP Request"
+  - Konfiguracja uwierzytelniania - API key i OAuth2 w n8n
+  - "Budowanie zapytań node'em HTTP Request: metody, nagłówki, body, autoryzacja"
+  - Odbieranie i wysyłanie zdarzeń przez webhooki
+  - Obsługa paginacji, rate limitów (429) i ponawiania zapytań
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+  - name: OAuth
+    sameAs: https://en.wikipedia.org/wiki/OAuth
+  - name: Webhook
+    sameAs: https://en.wikipedia.org/wiki/Webhook
+mentions:
+  - name: Slack
+    sameAs: https://slack.com/
+  - name: Notion
+    sameAs: https://www.notion.so/
+  - name: Airtable
+    sameAs: https://www.airtable.com/
+faq:
+  - q: "Co zrobić, gdy usługa nie ma gotowego node'a w n8n?"
+    a: "Użyj node'a HTTP Request. Jeśli usługa ma dokumentację API, niemal zawsze obsłużysz ją ręcznie: ustawiasz metodę, URL, nagłówki i body, a autoryzację podpinasz przez \"Generic Credential Type\". Najszybciej zacząć od opcji \"Import cURL\" i wklejenia gotowego polecenia z dokumentacji."
+  - q: "API key czy OAuth2 - co wybrać?"
+    a: "Jeśli usługa daje wybór: OAuth2 jest bezpieczniejszy, bo ma ograniczony zakres i łatwo cofnąć dostęp, ale wymaga publicznego HTTPS i callbacku. API key jest prostszy do skonfigurowania i dobry do własnych/wewnętrznych API oraz szybkich testów. Często usługa narzuca jeden typ - wtedy decyzji nie ma."
+  - q: "Mój webhook nie reaguje - dlaczego?"
+    a: "Najczęstsze przyczyny: użyłeś Test URL zamiast Production URL, workflow nie jest aktywny (przełącznik \"Active\"), niezgodna metoda HTTP (np. wysyłasz GET, a node nasłuchuje POST) albo blokuje Cię uwierzytelnianie webhooka. Przy self-hostingu sprawdź też, czy instancja jest publicznie dostępna pod HTTPS."
+  - q: "Dostaję błąd HTTP 429 - co to znaczy i jak to naprawić?"
+    a: "To \"Too Many Requests\" - przekroczyłeś rate limit API. Zmniejsz tempo: podziel dane node'em Loop Over Items, dodaj node Wait między partiami, a w ustawieniach node'a włącz Retry On Fail z odstępem. Sprawdź też w dokumentacji API, jaki jest limit zapytań na minutę."
+  - q: "Jak pobrać wszystkie wyniki, a nie tylko pierwszą stronę?"
+    a: "W gotowych node'ach aplikacji najczęściej wystarczy włączyć przełącznik \"Return All\". W node HTTP Request użyj sekcji Pagination - ustaw tryb (parametr strony/cursor lub \"next URL\"), warunek zakończenia i wartość pobieraną z poprzedniej odpowiedzi. n8n sam dopyta kolejne strony i scali dane."
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Moduł 4 · Poziom: średnio zaawansowany"
+  readingTime="~20 min"
+  note="Wymaga: Moduły 0-3"
+/>
+
+Tu n8n pokazuje swoją prawdziwą moc: spinanie aplikacji ze sobą. Nauczysz się używać gotowych
+node'ów aplikacji, prawidłowo łączyć konta przez credentials (API key i OAuth2), sięgać po dowolne
+API node'em HTTP Request oraz odbierać i wysyłać zdarzenia przez webhooki - z uwzględnieniem
+paginacji i limitów zapytań.
+
+## Node'y aplikacji - gotowe integracje
+
+Większość popularnych usług ma w n8n dedykowany node aplikacji (app node). To gotowy "adapter":
+zamiast samodzielnie konstruować zapytania HTTP, wybierasz z list rozwijanych, co chcesz zrobić.
+Pod spodem node i tak rozmawia z API usługi - ale całą czarną robotę (adresy endpointów, format
+danych, nagłówki) ma już zaszytą.
+
+:::note[Po ludzku - API, endpoint, REST]
+
+- **API** - "okienko", przez które jeden program rozmawia z drugim. Aplikacja udostępnia API, żeby
+  inne narzędzia (jak n8n) mogły pobierać z niej dane i zlecać akcje.
+- **Endpoint** - konkretny adres tego okienka, np. "dodaj kontakt" albo "pobierz zamówienia". Jedno
+  API ma zwykle wiele endpointów.
+- **REST** - najpopularniejszy styl API: zwykłe adresy URL plus metody HTTP (pobierz, dodaj, zmień,
+  usuń). Jeśli usługa ma "REST API", obsłużysz ją node'em HTTP Request.
+
+:::
+
+### Struktura node'a aplikacji: Resource → Operation
+
+Niemal wszystkie node'y aplikacji w n8n działają według tego samego schematu dwóch list:
+
+- **Resource (zasób)** - _co_ obsługujesz w danej usłudze: arkusz, wiadomość, plik, kontakt, rekord, kanał.
+- **Operation (operacja)** - _jaką akcję_ wykonujesz na tym zasobie: `Create`, `Get`, `Get Many`, `Update`, `Delete`, `Append` itp.
+
+Przykład: w node Google Sheets wybierasz **Resource:** `Sheet Within Document` i **Operation:**
+`Append Row`. W node Slack - **Resource:** `Message` i **Operation:** `Send`. Gdy zapamiętasz ten
+wzorzec, nowy node aplikacji obsłużysz w kilka sekund, nawet jeśli widzisz go pierwszy raz.
+
+:::note[Trigger node vs action node]
+Wiele aplikacji ma dwie wersje node'a. **Trigger** (np. "Gmail Trigger") _rozpoczyna_ workflow, gdy
+w usłudze coś się wydarzy. **Node akcji** (np. "Gmail") _wykonuje coś_ w środku przepływu. W
+kanwie szukaj ich oddzielnie - trigger ma w nazwie dopisek "Trigger".
+:::
+
+### Przykłady popularnych integracji
+
+<CardGrid>
+  <ConceptCard icon="fa-google" family="fab" title="Google Workspace">
+    Sheets, Drive, Gmail, Calendar, Docs. Np. nowy wiersz w arkuszu, wysyłka maila, tworzenie
+    wydarzeń w kalendarzu.
+  </ConceptCard>
+  <ConceptCard icon="fa-slack" family="fab" title="Slack">
+    Resource `Message` / `Channel` / `User`. Wysyłanie powiadomień, alertów i raportów na kanał
+    lub do osoby.
+  </ConceptCard>
+  <ConceptCard icon="fa-book" title="Notion">
+    Resource `Database Page` / `Page` / `Block`. Dodawanie i aktualizacja stron w bazie danych
+    Notion.
+  </ConceptCard>
+  <ConceptCard icon="fa-table" title="Airtable">
+    Resource `Record` z operacjami `Create` / `Search` / `Update`. Lekka baza danych dla
+    automatyzacji.
+  </ConceptCard>
+  <ConceptCard icon="fa-telegram" family="fab" title="Telegram / Discord">
+    Boty i powiadomienia. Wysyłanie wiadomości, odbieranie komend, obsługa kanałów społeczności.
+  </ConceptCard>
+  <ConceptCard icon="fa-database" title="Bazy danych i CRM">
+    Postgres, MySQL, HubSpot, Pipedrive, AWS S3. Zapis, odczyt i synchronizacja danych firmowych.
+  </ConceptCard>
+</CardGrid>
+
+:::tip[Kiedy node aplikacji, a kiedy HTTP Request]
+Jeśli usługa ma gotowy node - zacznij od niego. Jest szybszy, czytelniejszy i mniej podatny na
+błędy. Po HTTP Request (sekcja 3) sięgaj dopiero, gdy node nie istnieje albo nie wystawia akcji,
+której potrzebujesz.
+:::
+
+## Uwierzytelnianie: API key vs OAuth2
+
+Żeby node mógł działać w Twoim imieniu, musi się zalogować do usługi. W n8n robisz to raz -
+zapisując **credentials** (poświadczenia) - a potem wybierasz je w node'ie. Najczęstsze dwa typy to
+klucz API oraz OAuth2. Różnią się sposobem, w jaki usługa Cię "rozpoznaje".
+
+### Jak działają credentials w n8n
+
+Credentials to osobny, wielokrotnego użytku obiekt. Tworzysz je w sekcji **Credentials** lub
+bezpośrednio z poziomu node'a (pole "Credential to connect with" → "Create New"). Jedne
+poświadczenia możesz podpiąć pod wiele node'ów i workflow, a w wersjach zespołowych - udostępnić
+innym użytkownikom bez pokazywania im samego sekretu.
+
+#### API key - prosty sekret
+
+Generujesz klucz (token) w panelu usługi i wklejasz go do credentiala w n8n. Przy każdym zapytaniu
+n8n dołącza ten klucz - zwykle w nagłówku (np. `Authorization: Bearer …` lub `X-API-Key`) albo w
+parametrze zapytania. Prosto, ale klucz działa do odwołania i daje pełen zakres uprawnień, jakie ma
+konto.
+
+#### OAuth2 - autoryzacja przez zgodę
+
+Tu nie wklejasz hasła. Klikasz **"Connect my account"**, n8n przekierowuje Cię do usługi, ta pyta
+"czy zgadzasz się, by n8n miał dostęp do X?", a po Twojej zgodzie odsyła użytkownika z powrotem na
+**adres callback** n8n wraz z kodem. n8n wymienia ten kod na **access token** (krótkożyciowy) i
+**refresh token** (do automatycznego odświeżania). Dzięki temu dostęp jest ograniczony do wybranych
+_scope'ów_ i można go cofnąć po stronie usługi.
+
+| Cecha | API key | OAuth2 |
+| --- | --- | --- |
+| Konfiguracja | Wklej klucz - szybko | Klik "Connect", zgoda w przeglądarce |
+| Zakres uprawnień | Zwykle pełny (jak konto) | Ograniczony do wybranych scope'ów |
+| Wygasanie | Działa do odwołania | Access token krótkożyciowy, odświeżany refresh tokenem |
+| Callback / HTTPS | Niepotrzebny | Wymaga publicznego adresu callback (HTTPS) |
+| Wycofanie dostępu | Trzeba unieważnić klucz w usłudze | Cofasz zgodę w panelu usługi |
+| Typowo używane przez | Notion, Airtable, wiele prostych API | Google, Microsoft, Slack, GitHub |
+| Najlepsze do… | Szybki start, własne / wewnętrzne API | Konta użytkowników, ograniczony i odwoływalny dostęp |
+
+### Gdzie n8n trzyma credentials
+
+Poświadczenia są przechowywane w bazie n8n w postaci **zaszyfrowanej**. Do szyfrowania służy
+**encryption key** - n8n generuje go przy pierwszym uruchomieniu (lub ustawiasz go zmienną
+`N8N_ENCRYPTION_KEY`). Bez tego klucza zaszyfrowane credentials są bezużyteczne, dlatego przy
+self-hostingu musisz go zachować i mieć w backupie - inaczej po migracji stracisz dostęp do
+wszystkich połączeń.
+
+:::caution[OAuth2 wymaga publicznego HTTPS]
+Przepływ OAuth2 odsyła użytkownika na adres callback Twojej instancji n8n, a usługi (Google,
+Microsoft, Slack) akceptują tylko publiczne adresy `https://`. Na `localhost` bez tunelu OAuth
+zwykle nie zadziała. Jeśli self-hostujesz, zadbaj o domenę, certyfikat i poprawnie ustawiony
+`WEBHOOK_URL` - zasady konfiguracji rozkładam w
+[Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+:::
+
+:::tip[Dobre praktyki dla credentials]
+
+- Nadawaj kontom serwisowym **minimalny zakres** uprawnień (zasada najmniejszych przywilejów).
+- Nie wklejaj kluczy do pól node'a "na sztywno" - zawsze używaj obiektu credentials.
+- Trzymaj `N8N_ENCRYPTION_KEY` w bezpiecznym miejscu i w backupie.
+- Regularnie rotuj klucze API i cofaj zgody OAuth, których już nie używasz.
+
+:::
+
+## HTTP Request - uniwersalny klucz do każdego API
+
+Gdy usługa nie ma gotowego node'a (albo node nie wystawia danej akcji), sięgasz po node **HTTP
+Request**. To uniwersalny klient HTTP: potrafi odpytać dowolne REST/HTTP API. Jeśli usługa ma
+dokumentację API, zwykle da się ją obsłużyć właśnie tym node'em.
+
+### Najważniejsze pola node'a
+
+- **Method** - metoda HTTP: `GET` (pobierz), `POST` (utwórz/wyślij), `PUT`/`PATCH` (aktualizuj), `DELETE` (usuń) i inne.
+- **URL** - adres endpointu. Możesz wstawiać dane z poprzednich node'ów wyrażeniami `{{ }}`.
+- **Query Parameters** - parametry doklejane do URL po znaku `?` (np. filtry, strony, sortowanie).
+- **Headers** - nagłówki, np. `Content-Type`, `Accept`, niestandardowe nagłówki API.
+- **Body** - treść żądania dla POST/PUT/PATCH. Do wyboru m.in. `JSON`, `Form-Urlencoded`, `Form-Data` (multipart, np. pliki) czy `Raw`.
+- **Authentication** - sposób logowania: _None_, _Predefined Credential Type_ (gotowe credentiale danej usługi) albo _Generic Credential Type_ (Basic / Header / Query / OAuth2). Dzięki temu nie wpisujesz kluczy ręcznie w nagłówki.
+
+### Przykład: POST z body JSON i autoryzacją w nagłówku
+
+```http
+POST https://api.przyklad.pl/v1/zadania
+
+Headers:
+  Content-Type: application/json
+  Accept: application/json
+  # Authorization dołączany automatycznie przez credentials
+
+Query Parameters:
+  notify=true
+
+Body (JSON):
+{
+  "tytul": "{{ $json.temat }}",
+  "priorytet": "wysoki",
+  "przypisany_do": "{{ $json.email }}"
+}
+```
+
+:::tip[Skróty, które oszczędzają czas]
+
+- **Import cURL** - w node HTTP Request jest opcja "Import cURL". Wklej polecenie `curl` z
+  dokumentacji API, a n8n samo uzupełni metodę, URL, nagłówki i body.
+- **Wyrażenia w każdym polu** - URL, nagłówki i body możesz budować dynamicznie z danych z
+  poprzednich kroków (więcej w [Module 3: Praca z danymi](/modul-3-praca-z-danymi)).
+- **Autoryzacja przez credentials** - zamiast wpisywać token w nagłówek, użyj "Generic Credential
+  Type → Header Auth". Klucz zostaje zaszyfrowany, a nie widoczny w workflow.
+
+:::
+
+#### Kiedy HTTP Request zamiast gotowego node'a
+
+- Usługa nie ma node'a w n8n (np. niszowe albo wewnętrzne firmowe API).
+- Node istnieje, ale brakuje w nim konkretnej operacji lub nowego pola z API.
+- Chcesz korzystać z najnowszej wersji API, zanim node zostanie zaktualizowany.
+- Potrzebujesz pełnej kontroli nad nagłówkami, body i obsługą paginacji.
+
+## Webhooki: odbieranie i wysyłanie
+
+Webhook to sposób, w jaki systemy mówią sobie nawzajem "właśnie coś się stało" - natychmiast, bez
+odpytywania w pętli. W n8n występuje to w dwie strony: **odbierasz** zdarzenia node'em Webhook oraz
+**wysyłasz** zdarzenia do cudzego webhooka node'em HTTP Request.
+
+<Flow
+  title="webhook-odbior"
+  alt="Schemat przepływu webhooka: system zewnętrzny wysyła zdarzenie, Webhook uruchamia workflow, przetwarzanie, odpowiedź"
+  caption="Webhook nasłuchuje na publicznym adresie, uruchamia workflow i może odesłać własną odpowiedź wywołującemu."
+>
+  <FlowNode icon="fa-bolt" label="System zewn." sub="wysyła zdarzenie" from="#64748b" to="#475569" />
+  <FlowNode icon="fa-satellite-dish" label="Webhook" sub="czeka na POST" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-gears" label="Przetwórz" sub="logika workflow" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-reply" label="Respond" sub="zwróć JSON 200" from="#16a34a" to="#15803d" />
+</Flow>
+
+### Odbieranie: node Webhook
+
+Node **Webhook** to trigger - czeka na przychodzące żądanie HTTP pod własnym, publicznym adresem
+URL i uruchamia workflow. Najważniejsze ustawienia:
+
+- **HTTP Method** - na jaką metodę nasłuchuje (najczęściej `POST` lub `GET`).
+- **Path** - ścieżka tworząca unikalny adres webhooka.
+- **Authentication** - zabezpieczenie endpointu (np. Header Auth, Basic Auth), by nie każdy mógł go wywołać.
+- **Respond** - kiedy i jak odpowiedzieć wywołującemu: _Immediately_ (od razu), _When Last Node Finishes_ (po zakończeniu workflow) albo _Using 'Respond to Webhook' Node_ (pełna kontrola nad odpowiedzią).
+
+:::caution[Test URL vs Production URL]
+Webhook ma **dwa adresy**. **Test URL** działa tylko gdy klikniesz "Listen for test event" w
+edytorze - służy do budowania i podglądu danych. **Production URL** działa stale, ale dopiero gdy
+workflow jest **aktywny** (przełącznik "Active"). Częsty błąd początkujących: wpisanie zewnętrznej
+usłudze adresu testowego albo zapomnienie o aktywacji workflow w produkcji.
+:::
+
+#### Odpowiadanie: node Respond to Webhook
+
+Gdy w node Webhook ustawisz Respond na _Using 'Respond to Webhook' Node_, na końcu workflow dodajesz
+node **Respond to Webhook**. Pozwala on zwrócić dokładnie taką odpowiedź, jakiej oczekuje system
+wywołujący - m.in. `JSON`, `Text`, dane binarne, przekierowanie (redirect) albo brak treści.
+Ustawisz też **kod odpowiedzi** (np. 200, 201, 400) i własne nagłówki. To kluczowe, gdy budujesz
+mały endpoint API albo obsługujesz formularz oczekujący konkretnej odpowiedzi.
+
+### Wysyłanie zdarzeń do cudzego webhooka
+
+Druga strona medalu: to _Ty_ powiadamiasz inny system. Nie ma do tego osobnego node'a - używasz
+**HTTP Request** (sekcja 3), kierując `POST` na adres webhooka odbiorcy (np. Slack Incoming
+Webhook, Discord, własna aplikacja).
+
+1. **Zdobądź adres webhooka odbiorcy** - Skopiuj URL z panelu usługi docelowej (np. "Incoming Webhook" w Slacku) - to adres, na który wyślesz żądanie.
+2. **Dodaj node HTTP Request** - Ustaw **Method: POST** i wklej skopiowany URL w pole adresu.
+3. **Zbuduj body w formacie odbiorcy** - Wybierz Body → JSON i przygotuj strukturę, jakiej oczekuje usługa (np. `{ "text": "{{ $json.wiadomosc }}" }` dla Slacka).
+4. **Przetestuj i podłącz do triggera** - Uruchom node, sprawdź odpowiedź (kod 200/204), a potem podepnij go za właściwym triggerem, by zdarzenie wysyłało się automatycznie.
+
+:::note[Webhook (odbiór) vs Polling (odpytywanie)]
+Webhook reaguje natychmiast i nie obciąża API zbędnymi zapytaniami - usługa sama puka, gdy coś się
+wydarzy. Polling (trigger sprawdzający co X minut) używasz, gdy usługa _nie_ oferuje webhooków.
+Jeśli masz wybór, webhook jest zwykle szybszy i tańszy w wykonaniach.
+:::
+
+## Paginacja, limity zapytań i ponawianie
+
+Prawdziwe API rzadko oddają wszystko naraz. Wyniki dzielą na strony, narzucają limity liczby
+zapytań i bywają chwilowo niedostępne. Solidna integracja musi to obsłużyć - inaczej pobierzesz
+tylko pierwszą stronę albo dostaniesz błąd `429`.
+
+### Paginacja - pobieranie wielu stron
+
+Gdy lista wyników jest długa, API zwraca ją w kawałkach (stronach). Trzeba odpytać kolejne strony,
+aż skończą się dane. Najczęstsze schematy:
+
+- **Offset / limit** - przesuwasz wskaźnik startu (`?offset=100&limit=100`) aż przestaną wracać wyniki.
+- **Page / per_page** - zwiększasz numer strony (`?page=2`), aż dostaniesz pustą stronę.
+- **Cursor / next token** - odpowiedź zawiera "wskaźnik" do następnej porcji (`nextCursor`), który przekazujesz w kolejnym żądaniu, aż przestanie przychodzić.
+
+W node **HTTP Request** nie musisz budować pętli ręcznie - w opcjach jest **Pagination**.
+Ustawiasz w niej tryb (np. "Update a Parameter in Each Request" lub "Response Contains Next URL"),
+warunek zakończenia oraz parametr/wartość pobieraną z poprzedniej odpowiedzi. Node sam dopytuje
+kolejne strony i scala wyniki. Gotowe node'y aplikacji często mają to jeszcze prościej - przełącznik
+`Return All` zamiast ręcznego limitu.
+
+:::caution[Uważaj na rate limity (limity zapytań)]
+Niemal każde API ogranicza liczbę zapytań na sekundę/minutę. Przekroczenie zwraca kod **HTTP 429
+"Too Many Requests"**. Pętla paginacji albo przetwarzanie dużej listy itemów potrafią błyskawicznie
+wyczerpać limit. Zanim zbudujesz integrację na produkcję, sprawdź w dokumentacji API, jaki jest
+limit i jak długo trwa "blokada".
+:::
+
+### Ponawianie, opóźnienia i batchowanie
+
+Gdy trafisz na limit lub chwilową awarię, n8n daje kilka mechanizmów, by sobie z tym poradzić:
+
+<CardGrid>
+  <ConceptCard icon="fa-rotate-right" title="Retry On Fail">
+    W ustawieniach node'a (Settings) włączasz automatyczne ponawianie po błędzie - z liczbą prób i
+    odstępem między nimi. Idealne przy `429` i krótkich awariach.
+  </ConceptCard>
+  <ConceptCard icon="fa-layer-group" title="Batchowanie">
+    Node **Loop Over Items** (Split in Batches) dzieli listę na mniejsze paczki, byś nie wysyłał
+    setek zapytań naraz i mieścił się w limicie.
+  </ConceptCard>
+  <ConceptCard icon="fa-hourglass-half" title="Opóźnienia">
+    Node **Wait** dodaje pauzę między partiami zapytań - rozkłada ruch w czasie, by nie uderzać w
+    API zbyt gęsto.
+  </ConceptCard>
+  <ConceptCard icon="fa-gauge-high" title="Batch interval w HTTP Request">
+    W opcjach node'a HTTP Request ustawisz wielkość partii i odstęp (batching), by samodzielnie
+    spowolnić serię żądań.
+  </ConceptCard>
+</CardGrid>
+
+:::tip[Przepis na odporną integrację]
+Łącz mechanizmy: **paginacja** pobiera komplet danych, **Loop Over Items + Wait** rozkłada zapytania
+w czasie, a **Retry On Fail** łapie sporadyczne błędy. Taki workflow przetrwa chwilowe limity i nie
+zgubi danych po drodze. Obsługę błędów na poważnie (Error Trigger, Stop and Error) rozwijamy w
+[Module 7: Produkcja](/modul-7-produkcja).
+:::
+
+<Takeaways>
+  - Node'y aplikacji działają według schematu **Resource → Operation** - opanuj go raz i obsłużysz każdy nowy node.
+  - Credentials tworzysz raz i podpinasz wielokrotnie; n8n trzyma je zaszyfrowane (encryption key).
+  - **API key** = szybki sekret o pełnym zakresie; **OAuth2** = ograniczona, odwoływalna zgoda wymagająca publicznego HTTPS i callbacku.
+  - **HTTP Request** obsłuży każde API, gdy brakuje gotowego node'a - z metodami, nagłówkami, body i autoryzacją przez credentials.
+  - Webhook node odbiera zdarzenia (test vs production URL, odpowiedź przez Respond to Webhook); HTTP Request wysyła zdarzenia do cudzych webhooków.
+  - Na produkcji obsłuż **paginację**, **rate limity (429)** i błędy - łącząc Pagination, Loop Over Items, Wait oraz Retry On Fail.
+</Takeaways>

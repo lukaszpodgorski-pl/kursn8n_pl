@@ -1,0 +1,6 @@
+# Globalny fallback - właściciel projektu recenzuje wszystko domyślnie.
+* @lukaszpodgorski-pl
+
+# Ownerzy tematyczni per moduł (dodawaj w miarę dołączania redaktorów), np.:
+# /src/content/docs/modul-6-ai-agenci.mdx @redaktor-ai
+# /src/content/docs/porownanie-n8n-hostingow.mdx @redaktor-hostingow

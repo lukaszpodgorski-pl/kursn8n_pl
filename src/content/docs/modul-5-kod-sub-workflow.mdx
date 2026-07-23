@@ -1,0 +1,436 @@
+---
+title: Kod i sub-workflow w n8n
+description: "Kod i sub-workflow w n8n po polsku: Code Node w JavaScript i Python (Run Once for All Items vs Run Once for Each Item), zmienne wbudowane ($input, $json, $now), dane statyczne workflow (getWorkflowStaticData), modularność przez Execute Workflow oraz obsługa błędów (Error Trigger, Continue On Fail, retry, Stop And Error)."
+# head: nadpisuje WYŁĄCZNIE <title>/og:title/og:description (patrz modul-0-fundamenty.mdx
+# po pelne wyjasnienie mechanizmu). Tresc przepisana 1:1 z modul-5-kod-sub-workflow.head.php.
+head:
+  - tag: title
+    content: "Moduł 5: Kod i sub-workflow w n8n - Code Node (JS/Python), static data, Execute Workflow, obsługa błędów | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Moduł 5: Kod i sub-workflow w n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Code Node (JS/Python), zmienne wbudowane, dane statyczne, sub-workflow (Execute Workflow) i obsługa błędów - praktycznie i po polsku."
+datePublished: 2026-05-21
+educationalLevel: Intermediate
+teaches:
+  - Code Node w JavaScript i Python - dwa tryby uruchamiania
+  - Wbudowane zmienne i metody n8n ($input, $json, $now, $jmespath)
+  - Dane statyczne workflow (getWorkflowStaticData)
+  - Modularność przez sub-workflow (Execute Workflow)
+  - Obsługa błędów - Error Trigger, retry, Stop And Error
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: JavaScript
+    sameAs: https://en.wikipedia.org/wiki/JavaScript
+  - name: Python
+    sameAs: https://en.wikipedia.org/wiki/Python_(programming_language)
+faq:
+  - q: "Który tryb Code Node wybrać - \"All Items\" czy \"Each Item\"?"
+    a: "Jeśli przekształcasz każdy rekord niezależnie (zmiana pól, formatowanie) - wybierz Run Once for Each Item: kod jest krótszy, a bieżący item masz w $json. Jeśli musisz widzieć cały zbiór naraz (suma, sortowanie, łączenie, deduplikacja) albo zmieniasz liczbę itemów - wybierz Run Once for All Items i pracuj na $input.all()."
+  - q: "Czy mogę zainstalować pakiet npm w Code Node?"
+    a: "W n8n Cloud nie - dostępne są tylko wbudowane moduły dopuszczone przez n8n (jak crypto). Na instancji self-hosted możesz włączyć moduły zmiennymi środowiskowymi NODE_FUNCTION_ALLOW_BUILTIN (wbudowane Node.js) oraz NODE_FUNCTION_ALLOW_EXTERNAL (pakiety npm zainstalowane obok n8n). Wiele typowych potrzeb (daty, zapytania JSON) pokrywają jednak wbudowane $now/Luxon i $jmespath."
+  - q: "Dlaczego moje static data nie zapamiętuje wartości podczas testów?"
+    a: "Bo dane statyczne utrwalają się tylko po udanym wykonaniu produkcyjnym (np. uruchomienie przez trigger w aktywnym workflow). Ręczne uruchomienia z edytora nie zapisują zmian - dlatego klikając \"Test\" w kółko, nie zobaczysz przyrastającej pamięci. Włącz workflow i sprawdź na realnym wykonaniu."
+  - q: "Kiedy wydzielić logikę do sub-workflow?"
+    a: "Gdy ten sam fragment powtarza się w kilku workflow, gdy kanwa robi się za duża do ogarnięcia, albo gdy chcesz mieć jeden testowalny \"klocek\" (np. \"wyślij powiadomienie\"). Dla małej logiki używanej raz sub-workflow zwykle nie warto - dodaje tylko warstwę pośrednią."
+  - q: "Jaka jest różnica między \"Continue On Fail\" a Stop And Error?"
+    a: "\"Continue\" (dawniej \"Continue On Fail\") sprawia, że workflow leci dalej mimo błędu node'a - używasz go, gdy pojedyncza porażka nie powinna zatrzymać całości. Stop And Error robi odwrotnie: celowo rzuca błąd i przerywa wykonanie, gdy dane nie spełniają warunku - to świadome, kontrolowane zatrzymanie zamiast cichego przepuszczenia złych danych."
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Panel from '../../components/Panel.astro';
+import Takeaways from '../../components/Takeaways.astro';
+import TwoCol from '../../components/TwoCol.astro';
+
+<ModuleHero
+  tag="Moduł 5 · Poziom: średnio zaawansowany"
+  readingTime="~22 min"
+  note="Wymaga: Moduły 0-4"
+/>
+
+Tu zaczyna się "wysoki sufit" n8n. Gdy gotowe node'y nie wystarczają, sięgasz po Code Node
+(JavaScript lub Python), pamiętasz stan między uruchomieniami dzięki danym statycznym, dzielisz
+logikę na modularne sub-workflow i - co najważniejsze w produkcji - robisz automaty odporne na
+błędy. Ten moduł łączy programowanie z dyscypliną niezawodności.
+
+## Code Node: JavaScript i Python
+
+Code Node to "okno na kod" w środku wizualnego workflow. Pozwala wykonać własny skrypt w
+**JavaScript** lub **Python**, gdy żaden gotowy node nie robi dokładnie tego, czego potrzebujesz.
+Otrzymuje dane wejściowe jako listę itemów i musi zwrócić dane w tym samym formacie - żeby
+kolejne node'y mogły z nich korzystać.
+
+### Dwa tryby uruchamiania (kluczowa decyzja)
+
+Zaraz po dodaniu node'a wybierasz w polu **Mode** jeden z dwóch trybów. To _nie kosmetyka_ -
+zmienia, ile razy uruchamia się Twój kod i jak dostajesz dane.
+
+<TwoCol>
+  <Panel variant="neutral" title="Run Once for All Items">
+    Kod wykonuje się **raz** dla całej paczki danych. Dostajesz wszystkie itemy naraz przez
+    `$input.all()` i sam zwracasz tablicę itemów. Idealne do: agregacji, sortowania, łączenia,
+    liczenia sum, deduplikacji - gdy musisz "widzieć" cały zbiór.
+  </Panel>
+  <Panel variant="neutral" title="Run Once for Each Item">
+    Kod wykonuje się **osobno dla każdego itemu**. Bieżący item masz wprost w `$json`, a zwracasz
+    pojedynczy obiekt. Idealne do: prostych przekształceń pól item po itemie - kod jest krótszy i
+    czytelniejszy.
+  </Panel>
+</TwoCol>
+
+### Format zwracanych danych
+
+n8n wymaga, by dane między node'ami miały postać **listy itemów**, a każdy item to obiekt z
+kluczem `json`. To dlatego nie zwracasz "gołego" stringa czy liczby - zawsze opakowujesz dane w
+`{ json: { ... } }`.
+
+#### Run Once for All Items (JavaScript)
+
+```javascript
+// Pobranie wszystkich itemów naraz
+const items = $input.all();
+
+// Liczymy łączną wartość zamówień
+let suma = 0;
+for (const item of items) {
+  suma += item.json.kwota;
+}
+
+// Zwróć JEDEN item z podsumowaniem (tablica itemów)
+return [
+  {
+    json: {
+      liczbaZamowien: items.length,
+      sumaPLN: suma
+    }
+  }
+];
+```
+
+#### Run Once for Each Item (JavaScript)
+
+```javascript
+// $json to bieżący item - bez pętli
+const imie = $json.firstName;
+const nazwisko = $json.lastName;
+
+// Zwróć pojedynczy obiekt (n8n sam zbuduje listę)
+return {
+  json: {
+    pelneImie: `${imie} ${nazwisko}`,
+    email: $json.email.toLowerCase()
+  }
+};
+```
+
+:::tip[Reguła kciuka]
+Jeśli przekształcasz pola "w miejscu", pojedynczo - wybierz **Run Once for Each Item** (mniej
+kodu, mniej błędów). Jeśli musisz coś policzyć ze wszystkich rekordów naraz albo zmienić ich
+liczbę (np. 100 → 1, albo 1 → 100) - wybierz **Run Once for All Items**.
+:::
+
+### A Python?
+
+Code Node obsługuje też Python (uruchamiany w przeglądarce przez Pyodide). Logika jest taka sama,
+ale zmienne wbudowane mają prefiks **podkreślenia** zamiast dolara: `_input.all()` zamiast
+`$input.all()`, a bieżący item to `_json`. Zwracasz słownik z kluczem `"json"`.
+
+```python
+# Run Once for Each Item - Python
+return {
+  "json": {
+    "pelneImie": _json["firstName"] + " " + _json["lastName"]
+  }
+}
+```
+
+:::caution[Ograniczenia - przeczytaj zanim napiszesz pół biblioteki]
+
+- **Brak swobodnego npm w n8n Cloud.** W chmurze nie zainstalujesz dowolnego pakietu npm
+  (_pakiet_, inaczej biblioteka, to gotowa paczka cudzego kodu, którą dokładasz do swojego) -
+  dostępne są tylko wbudowane moduły dozwolone przez n8n (m.in. `crypto`). Najwygodniejsze
+  biblioteki dat (Luxon) i zapytań (JMESPath) masz i tak dostępne jako wbudowane zmienne - patrz
+  sekcja "Metody i zmienne wbudowane" niżej.
+- **Self-hosted = więcej swobody.** Na własnej instancji możesz dopuścić moduły zmiennymi
+  środowiskowymi: `NODE_FUNCTION_ALLOW_BUILTIN` (moduły wbudowane Node.js) i
+  `NODE_FUNCTION_ALLOW_EXTERNAL` (pakiety npm zainstalowane obok n8n).
+- **Python działa przez Pyodide** - nie każdy pakiet PyPI zadziała, a pierwszy start bywa
+  wolniejszy.
+- **Bez async/await od ręki w trybie "Each Item"** (_async/await_ to sposób obsługi operacji,
+  które trwają w czasie, np. pobrania czegoś z sieci) dla wywołań sieciowych lepiej użyć
+  dedykowanego node'a HTTP Request - kod ma być logiką, nie zastępować integracji.
+
+:::
+
+## Kiedy kod, a kiedy node'y
+
+Złota zasada n8n: **najpierw node'y, kod dopiero gdy naprawdę trzeba**. Code Node jest potężny,
+ale każdy fragment kodu to coś, co musisz utrzymać, przetestować i wytłumaczyć następnej osobie.
+Wizualny node mówi sam za siebie; pętla w JavaScript - już niekoniecznie.
+
+### Dlaczego domyślnie node'y
+
+Wizualne node'y są _samodokumentujące_ - widać na kanwie, co się dzieje. Są też testowane przez
+n8n, mają obsługę paginacji, ponawiania i błędów "w pakiecie". Kod tego wszystkiego nie dostaje za
+darmo: to Ty odpowiadasz za każdy edge case (przypadek brzegowy - nietypową sytuację na granicy,
+którą łatwo przeoczyć).
+
+<TwoCol>
+  <Panel variant="pros" title="Sięgnij po Code Node, gdy…">
+    - Logika jest zbyt złożona na łańcuch node'ów Set/IF/Filter
+    - Musisz przekształcić strukturę danych nietypowo (zagnieżdżenia, grupowanie)
+    - Potrzebujesz obliczeń, których nie ma wśród funkcji wyrażeń
+    - Łączysz/agregujesz wiele itemów w jeden wynik (lub odwrotnie)
+    - Robisz to raz, w jednym miejscu - zamiast pięciu node'ów obok siebie
+  </Panel>
+  <Panel variant="cons" title="Zostań przy node'ach, gdy…">
+    - Istnieje gotowy node robiący dokładnie to (Set, IF, Filter, Merge, Sort)
+    - Chcesz wywołać API - użyj HTTP Request, nie `fetch` w kodzie
+    - Workflow ma czytać ktoś nietechniczny
+    - Wystarczy proste wyrażenie `{{ }}` w polu node'a
+    - "Kusi Cię" przepisanie połowy workflow na jeden wielki skrypt
+  </Panel>
+</TwoCol>
+
+:::tip[Praktyczna heurystyka]
+Jeśli to samo da się zrobić node'em **Edit Fields (Set)** albo prostym wyrażeniem - zrób to tak.
+Code Node trzymaj na to, co wnosi realną wartość: złożone transformacje, agregacje i logikę,
+której node'y po prostu nie mają. Mniej kodu = mniej rzeczy, które mogą się zepsuć o 3:00 w nocy.
+:::
+
+## Metody i zmienne wbudowane
+
+n8n daje Ci zestaw zmiennych i metod dostępnych zarówno w Code Node, jak i w wyrażeniach
+`{{ }}`. Znajomość tych kilku skraca kod o połowę i pozwala odwoływać się do danych z
+dowolnego miejsca workflow.
+
+| Zmienna / metoda | Do czego służy |
+| --- | --- |
+| `$input.all()` | Wszystkie itemy wejściowe bieżącego node'a (tablica). Podstawa trybu "Run Once for All Items". |
+| `$input.first()` / `$input.last()` | Pierwszy / ostatni item z wejścia - gdy interesuje Cię tylko jeden. |
+| `$input.item` | Bieżący item w trybie "Run Once for Each Item". |
+| `$json` | Skrót do danych bieżącego itemu (czyli `$input.item.json`). Najczęściej używana zmienna. |
+| `$node["Nazwa"].json` / `$('Nazwa')` | Dane z konkretnego, wcześniejszego node'a po jego nazwie. Pozwala sięgnąć "w bok", nie tylko do poprzednika. |
+| `$now` | Aktualna data i czas jako obiekt Luxon DateTime (wygodne formatowanie i arytmetyka dat). |
+| `$today` | Dzisiejsza data (początek dnia) jako Luxon DateTime. |
+| `$workflow` | Metadane workflow: m.in. `$workflow.id`, `$workflow.name`, `$workflow.active`. |
+| `$execution` | Kontekst wykonania: m.in. `$execution.id` oraz `$execution.mode` (np. `manual` / `trigger`). |
+| `$vars` | Zmienne środowiskowe instancji (Variables) - wartości współdzielone, np. adres API per środowisko. |
+| `$jmespath(obj, "...")` | Zapytanie po danych JSON składnią JMESPath - wygodne wyciąganie zagnieżdżonych pól. |
+
+### Krótkie przykłady
+
+```javascript
+// Sformatuj datę zamówienia (Luxon)
+const data = $now.toFormat('yyyy-MM-dd HH:mm');
+
+// Czy uruchomienie jest produkcyjne, czy testowe?
+const tryb = $execution.mode; // 'manual' podczas testów
+
+// Pobierz dane z node'a sprzed kilku kroków po nazwie
+const klient = $('Pobierz klienta').first().json;
+
+// Wyciągnij listę e-maili z zagnieżdżonej struktury
+const maile = $jmespath($json, "uzytkownicy[*].kontakt.email");
+```
+
+:::note[Daty bez bólu - Luxon]
+Zarówno `$now`, jak i `$today` to obiekty **Luxon**, dlatego masz pod ręką gotowe metody jak
+`.toFormat()`, `.plus({ days: 7 })` czy `.diff()`. Nie potrzebujesz instalować `moment` ani liczyć
+milisekund ręcznie.
+:::
+
+## Dane statyczne workflow (static data)
+
+Domyślnie każde wykonanie workflow startuje "na czysto" - nic nie pamięta z poprzedniego razu.
+Czasem jednak potrzebujesz **pamięci między uruchomieniami**: np. ostatnie pobrane ID, znacznik
+czasu ostatniej synchronizacji albo licznik. Do tego służą _dane statyczne workflow_.
+
+### Jak to działa
+
+W Code Node wywołujesz `$getWorkflowStaticData(type)` i dostajesz zwykły obiekt, na którym
+czytasz i zapisujesz wartości. Zakres podajesz argumentem:
+
+- `$getWorkflowStaticData('global')` - pamięć współdzielona w obrębie całego workflow.
+- `$getWorkflowStaticData('node')` - pamięć przypisana do konkretnego node'a.
+
+#### Przykład: zapamiętaj ostatnie przetworzone ID
+
+```javascript
+// Pobierz „pamięć" workflow
+const staticData = $getWorkflowStaticData('global');
+
+// Odczytaj ostatnie ID (przy pierwszym uruchomieniu będzie undefined)
+const ostatnieId = staticData.lastId || 0;
+
+// Przetwórz tylko nowe rekordy
+const nowe = $input.all().filter(i => i.json.id > ostatnieId);
+
+// Zapisz najwyższe ID na następny raz
+if (nowe.length > 0) {
+  staticData.lastId = Math.max(...nowe.map(i => i.json.id));
+}
+
+return nowe;
+```
+
+:::note[Kiedy static data ma sens]
+
+- **Pobieranie przyrostowe** - "od ostatniego ID / od ostatniej daty", żeby nie przetwarzać
+  wciąż tych samych rekordów.
+- **Proste liczniki i kursory** paginacji utrzymywane między uruchomieniami harmonogramu.
+- **Lekki znacznik stanu**, gdy nie chcesz stawiać osobnej bazy danych dla jednej liczby.
+
+:::
+
+:::caution[Ograniczenia - łatwo się naciąć]
+
+- **Zapis utrwala się tylko po udanym wykonaniu produkcyjnym.** Podczas ręcznego testu
+  (uruchomienie z edytora) zmiany w static data _nie_ zostają zapisane - dlatego testując, nie
+  zobaczysz "pamięci" przyrastającej między klikami.
+- **To nie jest baza danych.** Trzymaj tu drobne wartości (ID, daty, liczniki), nie duże zbiory -
+  static data ładuje się przy każdym wykonaniu.
+- **Przypisane do konkretnego workflow.** Skopiowanie/duplikat workflow nie przenosi jego danych
+  statycznych.
+- Gdy potrzebujesz trwałego, większego stanu - użyj prawdziwej bazy (Postgres, Redis) albo
+  zewnętrznego magazynu.
+
+:::
+
+## Sub-workflow - modularność przez Execute Workflow
+
+Gdy ten sam fragment logiki (walidacja, wysyłka powiadomienia, zapis do bazy) powtarza się w
+wielu miejscach, wydziel go do osobnego **sub-workflow** i wywołuj jak funkcję. Jedna zmiana w
+jednym miejscu - zamiast poprawiania pięciu kopii. To podstawa utrzymywalnych, dużych
+automatyzacji.
+
+### Dwa node'y, które tworzą parę
+
+<CardGrid>
+  <ConceptCard icon="fa-right-to-bracket" title="Execute Sub-workflow Trigger">
+    Start sub-workflow - "When Executed by Another Workflow". Odbiera dane przekazane przez
+    rodzica i definiuje, jakich wejść oczekuje.
+  </ConceptCard>
+  <ConceptCard icon="fa-diagram-next" title="Execute Sub-workflow">
+    Node w workflow-rodzicu, który wywołuje sub-workflow, przekazuje mu itemy i odbiera wynik z
+    powrotem do dalszych kroków.
+  </ConceptCard>
+</CardGrid>
+
+<Flow
+  title="workflow-rodzic"
+  alt="Schemat: w workflow-rodzicu Trigger uruchamia node Execute Sub-workflow, który wywołuje osobny sub-workflow, a wynik trafia do kolejnych kroków"
+>
+  <FlowNode icon="fa-bolt" label="Trigger" sub="start" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-diagram-next" label="Execute Sub-workflow" sub="wywołaj jak funkcję" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-arrow-right-long" label="Dalej" sub="kolejne kroki" from="#64748b" to="#475569" />
+</Flow>
+
+_Execute Sub-workflow wywołuje poniższy sub-workflow:_
+
+<Flow
+  title="sub-workflow"
+  alt="Schemat: w sub-workflow Sub-trigger odbiera dane, node Walidacja wykonuje wspólną logikę, a ostatni krok zwraca wynik rodzicowi"
+  caption="Powtarzalną logikę wydzielasz do sub-workflow i wywołujesz ją jak funkcję - jedna zmiana zamiast pięciu kopii."
+>
+  <FlowNode icon="fa-right-to-bracket" label="Sub-trigger" sub="odbiera dane" from="#6d28d9" to="#4c1d95" />
+  <FlowNode icon="fa-shield-halved" label="Walidacja" sub="wspólna logika" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-rotate-left" label="Zwróć wynik" sub="oddaj rodzicowi" from="#16a34a" to="#15803d" />
+</Flow>
+
+### Jak to zbudować - krok po kroku
+
+1. **Stwórz sub-workflow i dodaj jego trigger** - Załóż nowy workflow. Jako pierwszy node dodaj
+   **Execute Sub-workflow Trigger** ("When Executed by Another Workflow"). To on przyjmie dane od
+   rodzica.
+2. **Zbuduj wewnątrz powtarzalną logikę** - Dodaj kroki, które chcesz uwspólnić - np. walidację
+   e-maila, wzbogacenie danych, wysyłkę na Slacka. Zakończ node'em, którego wyjście chcesz
+   zwrócić rodzicowi.
+3. **W workflow-rodzicu dodaj Execute Sub-workflow** - W miejscu, gdzie ma zadziałać uwspólniona
+   logika, wstaw node **Execute Sub-workflow** i wskaż utworzony sub-workflow (z listy lub po
+   ID).
+4. **Przekaż dane do środka** - Itemy wpinane do node'a Execute Sub-workflow trafiają do
+   sub-workflow jako jego dane wejściowe. Mapuj tylko to, co sub-workflow naprawdę potrzebuje -
+   utrzymasz "kontrakt" czysty.
+5. **Odbierz wynik i jedź dalej** - Wyjście sub-workflow wraca do node'a Execute Sub-workflow w
+   rodzicu, a kolejne node'y korzystają z niego jak ze zwykłych danych. Gotowe - masz "funkcję" w
+   n8n.
+
+:::tip[Kiedy wydzielać logikę]
+Wydzielaj, gdy: (1) ten sam fragment **powtarza się** w paru workflow, (2) workflow staje się tak
+duży, że trudno go ogarnąć na jednej kanwie, albo (3) chcesz mieć jeden, testowalny "klocek" do
+konkretnego zadania (np. "wyślij powiadomienie"). Nie wydzielaj na siłę - jeśli logika jest mała
+i użyta raz, sub-workflow tylko doda warstwę pośrednią.
+:::
+
+## Obsługa błędów - automaty muszą być przewidywalne
+
+W produkcji nie pytasz, "czy coś się wysypie", tylko "kiedy". API zwróci 500, sieć mrugnie, dane
+przyjdą w złym formacie. Różnica między hobbystycznym a profesjonalnym automatem to nie brak
+błędów - to **zaplanowana reakcja** na nie. n8n daje trzy poziomy: workflow, node i jawne
+przerwanie.
+
+### Dedykowany error workflow + Error Trigger
+
+Zbuduj jeden workflow, którego start to node **Error Trigger**. Następnie w ustawieniach swoich
+workflow (**Settings → Error Workflow**) wskaż go jako workflow obsługi błędów. Od tej chwili
+każda nieobsłużona awaria uruchomi ten workflow i przekaże mu szczegóły błędu - możesz wysłać
+alert na Slacka/e-mail, zalogować incydent albo utworzyć zgłoszenie. Jedno miejsce, które "pilnuje"
+wszystkiego.
+
+<Flow
+  title="error-workflow"
+  alt="Schemat obsługi błędów: nieobsłużona awaria w workflow uruchamia Error Trigger, który wysyła alert"
+  caption="Każda nieobsłużona awaria (czerwona ścieżka) odpala wspólny error workflow, który wysyła alert i loguje incydent."
+>
+  <FlowNode icon="fa-diagram-project" label="Twój workflow" sub="nieobsłużony błąd" from="#64748b" to="#475569" />
+  <FlowNode icon="fa-triangle-exclamation" label="Error Trigger" sub="łapie awarię" from="#dc2626" to="#b91c1c" />
+  <FlowNode icon="fa-bell" label="Alert" sub="Slack / e-mail / log" from="#ea4b71" to="#6d28d9" />
+</Flow>
+
+### Ustawienia na poziomie node'a
+
+Pojedynczy node możesz uodpornić w jego zakładce **Settings**:
+
+| Ustawienie | Co robi |
+| --- | --- |
+| **On Error** → Stop Workflow | Domyślne. Błąd node'a zatrzymuje całe wykonanie (i uruchamia error workflow, jeśli ustawiony). |
+| **On Error** → Continue | Wcześniej "Continue On Fail". Workflow leci dalej mimo błędu node'a - używaj świadomie, gdy pojedyncza porażka nie powinna walić całości. |
+| **On Error** → Continue (using error output) | Node zyskuje osobne wyjście błędów - kierujesz tamtędy nieudane itemy i obsługujesz je inną ścieżką. |
+| **Retry On Fail** | Automatyczne ponawianie po błędzie - ratuje przy chwilowych problemach sieci/API. |
+| **Max. Tries** | Maksymalna liczba prób (łącznie z pierwszą). Nie ustawiaj absurdalnie wysoko. |
+| **Wait Between Tries (ms)** | Odstęp między próbami - daje API czas "dojść do siebie" i łagodzi rate limity. |
+
+### Stop And Error - świadome przerwanie
+
+Czasem chcesz _celowo_ przerwać workflow, gdy dane nie spełniają warunku (np. brak wymaganego
+pola). Służy do tego node **Stop And Error**: rzuca błąd z własnym komunikatem, zatrzymuje
+wykonanie i - jeśli masz error workflow - uruchamia obsługę. To lepsze niż "cicha" kontynuacja na
+błędnych danych.
+
+:::caution[Automaty muszą być przewidywalne]
+Automat działający "w 90% przypadków" w produkcji jest niebezpieczny - bo w pozostałych 10% robi
+coś po cichu źle. Zaprojektuj reakcję na błąd **zanim** włączysz workflow: ustaw error workflow z
+alertem, dodaj retry na node'ach sieciowych, a tam gdzie dane mogą być błędne - jawnie je waliduj
+i przerywaj przez Stop And Error. Lepszy głośny, kontrolowany błąd niż cicha katastrofa danych.
+:::
+
+<Takeaways>
+  - Code Node ma dwa tryby: "Run Once for All Items" (cały zbiór, `$input.all()`) i "Run Once for Each Item" (pojedynczy item, `$json`).
+  - Zawsze zwracaj dane w formacie itemów: `{ json: { ... } }` (Python: `"json"` i prefiks `_`).
+  - Najpierw node'y, kod dopiero gdy naprawdę trzeba - mniej kodu to mniej rzeczy do utrzymania.
+  - Zmienne wbudowane (`$input`, `$json`, `$now`/`$today` jako Luxon, `$jmespath`) skracają kod o połowę.
+  - Static data (`$getWorkflowStaticData`) daje pamięć między uruchomieniami - zapis utrwala się tylko po udanym wykonaniu produkcyjnym.
+  - Sub-workflow (Execute Sub-workflow + jego trigger) to "funkcje" n8n - wydzielaj powtarzalną logikę.
+  - Obsługa błędów na trzech poziomach: error workflow (Error Trigger), ustawienia node'a (On Error, retry) i Stop And Error.
+</Takeaways>

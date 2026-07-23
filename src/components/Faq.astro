@@ -1,0 +1,49 @@
+---
+import type { FaqItem } from '../lib/structured-data';
+
+interface Props {
+	items?: FaqItem[];
+}
+
+const { items = [] } = Astro.props;
+---
+
+{
+	items.length > 0 && (
+		<section class="faq" aria-labelledby="czeste-pytania">
+			<h2 id="czeste-pytania">Częste pytania</h2>
+			{items.map((item) => (
+				<details class="faq-item">
+					<summary>{item.q}</summary>
+					<p>{item.a}</p>
+				</details>
+			))}
+		</section>
+	)
+}
+
+<style>
+	.faq {
+		margin-top: 3rem;
+		border-top: 1px solid var(--sl-color-gray-5);
+		padding-top: 1.5rem;
+	}
+	.faq-item {
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		padding: 0.75rem 1rem;
+		margin-block: 0.5rem;
+		background: var(--sl-color-gray-7, transparent);
+	}
+	.faq-item > summary {
+		cursor: pointer;
+		font-weight: 600;
+		color: var(--sl-color-white);
+	}
+	.faq-item > p {
+		margin-block: 0.75rem 0.25rem;
+		color: var(--sl-color-gray-2);
+	}
+	/* Użytkownicy z prefers-reduced-motion nie są tu narażeni na animacje -
+	   <details> nie animuje się natywnie, a my żadnej nie dokładamy. */
+</style>

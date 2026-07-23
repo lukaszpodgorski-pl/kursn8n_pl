@@ -1,0 +1,42 @@
+---
+/**
+ * Kafelek z ikona - dawne .concept-card ze style.css.
+ * Uzywac wewnatrz <CardGrid> Starlighta.
+ */
+interface Props {
+	/** Klasa Font Awesome bez prefiksu rodziny, np. "fa-plug". */
+	icon: string;
+	title: string;
+	/** Rodzina Font Awesome: "fas" (solid) lub "fab" (brands). */
+	family?: 'fas' | 'fab';
+}
+
+const { icon, title, family = 'fas' } = Astro.props;
+
+// Ta sama luka co w Flow.astro (zobacz komentarz tam): "title" jest wymagany
+// w typach, ale npm run build nie sprawdza propsow z .mdx. "title" renderuje
+// sie tu jako naglowek <h4> (NIE aria-hidden - w przeciwienstwie do wnetrza
+// <Flow>), wiec pusty naglowek to realny blad dostepnosci: osoba nawigujaca
+// strona po naglowkach uslyszy "naglowek czwartego poziomu, pusty", bez
+// zadnej informacji o tresci kafelka.
+const titleIsMissing = typeof title !== 'string' || title.trim().length === 0;
+
+if (titleIsMissing) {
+	throw new Error(
+		'Komponent <ConceptCard> nie ma propsa "title", albo jest on pusty / zlozony z samych bialych znakow.\n' +
+			'\n' +
+			'DLACZEGO TO WAZNE: "title" renderuje sie jako naglowek <h4>, ktory czytniki ekranu odczytuja ' +
+			'wprost. Pusty naglowek to znany blad dostepnosci (puste naglowki myla nawigacje po ' +
+			'strukturze strony) - "title" nie jest tu dekoracja, tylko jedynym tytulem kafelka.\n' +
+			'\n' +
+			'JAK NAPRAWIC: dodaj atrybut "title" z krotkim tytulem kafelka, np.:\n' +
+			'  <ConceptCard icon="fa-plug" title="Integracje">Polacz n8n z dowolnym API bez pisania kodu od zera.</ConceptCard>'
+	);
+}
+---
+
+<div class="k-concept-card">
+	<div class="k-concept-ic"><i aria-hidden="true" class={`${family} ${icon}`}></i></div>
+	<h4>{title}</h4>
+	<p><slot /></p>
+</div>

@@ -1,0 +1,15 @@
+{
+	// Reguły markdownlint dla treści wiki (markdownlint-cli2)
+	"default": true,
+	// długość linii — piszemy akapitami, bez twardych łamań
+	"MD013": false,
+	// HTML/komponenty w MDX są dozwolone
+	"MD033": false,
+	// pierwsza linia to frontmatter, H1 generuje Starlight z `title`
+	"MD041": false,
+	// powtórzone nagłówki dozwolone, jeśli w różnych sekcjach
+	"MD024": { "siblings_only": true },
+	// styl wyróżnień: gwiazdki
+	"MD049": { "style": "underscore" },
+	"MD050": { "style": "asterisk" }
+}

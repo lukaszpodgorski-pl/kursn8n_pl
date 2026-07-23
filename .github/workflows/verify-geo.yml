@@ -1,0 +1,37 @@
+name: Weryfikacja GEO/AEO/SEO
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  weryfikacja-geo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Pełna historia gita, nie domyślny płytki klon (fetch-depth: 1).
+          # scripts/sitemap-lastmod.mjs liczy <lastmod> w sitemapie z `git log`
+          # per plik i sam wykrywa płytki klon (git rev-parse
+          # --is-shallow-repository), pomijając wtedy <lastmod> w całości.
+          # Bez fetch-depth: 0 build w CI cicho pominąłby <lastmod>, mimo że
+          # lokalny build (z pełną historią) go generuje - czyli CI dawałoby
+          # inny wynik niż deweloper widzi u siebie, a to właśnie ma wychwycić
+          # ten workflow, nie samo wywoływać.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalacja (zgodna z lockfile)
+        run: npm ci
+      - name: Build produkcyjny
+        run: npm run build
+      - name: Weryfikacja GEO/AEO/SEO (dane strukturalne, obrazy OG, sitemapa)
+        run: npm run verify:geo
+      - name: Zachowanie adresow (dist vs stara sitemapa - regresja URL po migracji)
+        run: npm run verify:urls
+      - name: Brak wycieku starej marki (poza legalnym sameAs autora)
+        run: npm run verify:brand

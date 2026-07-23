@@ -1,0 +1,25 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "kursn8n",
+	"compatibility_date": "2024-11-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"directory": "./dist",
+		// Adresy kursn8n.pl sa bez koncowego ukosnika (patrz stara sitemap.xml).
+		// Domyslne "auto-trailing-slash" dodaloby ukosnik i zerwalo zgodnosc.
+		"html_handling": "drop-trailing-slash",
+		// Nieznana sciezka -> zbudowany dist/404.html (stara strona miala
+		// ErrorDocument 404). Bez tego Cloudflare zwraca goly, domyslny 404.
+		"not_found_handling": "404-page"
+	},
+	// Cutover produkcyjny: Worker przechwytuje ruch na domenie, zanim trafi on
+	// do starego origin (PHP na cyberfolks). Rekordy DNS zostaja nietkniete -
+	// wycofanie to usuniecie tych route'ow, ruch wraca wtedy na stary hosting.
+	// Route wymaga proxowanego (pomaranczowa chmurka) rekordu DNS.
+	// WDROZENIE nastepuje przy merge do main (Cloudflare Workers Builds), wiec
+	// te route'y flipuja produkcje dopiero po merge - nie przy pushu galezi roboczej.
+	"routes": [
+		{ "pattern": "kursn8n.pl/*", "zone_name": "kursn8n.pl" },
+		{ "pattern": "www.kursn8n.pl/*", "zone_name": "kursn8n.pl" }
+	]
+}

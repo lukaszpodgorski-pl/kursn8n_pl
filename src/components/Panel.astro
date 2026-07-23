@@ -1,0 +1,60 @@
+---
+/**
+ * Kolorowy blok z tytulem - dawne .callout-pros / .callout-cons / .callout-tip
+ * ze style.css. Zwykle uzywany w parach wewnatrz <TwoCol> (np. "co wolno" /
+ * "co jest ograniczone"), ale dziala tez samodzielnie.
+ */
+interface Props {
+	/** 'pros' = zielony (--k-good), 'cons' = czerwony (--k-bad), 'neutral' = akcent marki (--k-accent). */
+	variant: 'pros' | 'cons' | 'neutral';
+	title: string;
+}
+
+const { variant, title } = Astro.props;
+
+// npm run build to samo "astro build" bez "astro check" - typy propsow z .mdx
+// nie sa sprawdzane w czasie budowania. Bez tej straznicy <Panel> bez
+// poprawnego "variant" wyrenderowalby sie bezobjawowo jako panel bez zadnego
+// koloru/ramki (klasa "k-panel-undefined" nie istnieje w CSS) - build
+// przeszedlby, ale strona wygladalaby na zepsuta bez zadnego ostrzezenia.
+const validVariants = ['pros', 'cons', 'neutral'];
+const variantIsMissing = typeof variant !== 'string' || !validVariants.includes(variant);
+
+if (variantIsMissing) {
+	throw new Error(
+		`Komponent <Panel> ma nieprawidlowy lub brakujacy props "variant" (otrzymano: ${JSON.stringify(variant)}).\n` +
+			'\n' +
+			'DLACZEGO TO WAZNE: "variant" decyduje o kolorze panelu (zielony/czerwony/akcent marki). Bez ' +
+			'poprawnej wartosci panel wyrenderowalby sie bez zadnego koloru czy ramki, po cichu, bo klasa ' +
+			'"k-panel-<cokolwiek>" po prostu nie istnieje w CSS.\n' +
+			'\n' +
+			'JAK NAPRAWIC: ustaw "variant" na jedna z wartosci: "pros", "cons" albo "neutral", np.:\n' +
+			'  <Panel variant="pros" title="Co wolno (za darmo)">...</Panel>'
+	);
+}
+
+// Ta sama luka co w ConceptCard.astro: "title" renderuje sie jako naglowek
+// <h4>, ktory czytniki ekranu odczytuja wprost. Pusty naglowek to znany
+// blad dostepnosci, wiec ten blad ma przerywac build, a nie przechodzic po cichu.
+const titleIsMissing = typeof title !== 'string' || title.trim().length === 0;
+
+if (titleIsMissing) {
+	throw new Error(
+		'Komponent <Panel> nie ma propsa "title", albo jest on pusty / zlozony z samych bialych znakow.\n' +
+			'\n' +
+			'DLACZEGO TO WAZNE: "title" renderuje sie jako naglowek <h4>, ktory czytniki ekranu odczytuja ' +
+			'wprost. Pusty naglowek to znany blad dostepnosci (puste naglowki myla nawigacje po strukturze ' +
+			'strony) - "title" nie jest tu dekoracja, tylko jedynym tytulem panelu.\n' +
+			'\n' +
+			'JAK NAPRAWIC: dodaj atrybut "title" z krotkim tytulem panelu, np.:\n' +
+			'  <Panel variant="cons" title="Co jest ograniczone">...</Panel>'
+	);
+}
+---
+
+<div class={`k-panel k-panel-${variant}`}>
+	<h4>{title}</h4>
+	<div class="k-panel-body">
+		<slot />
+	</div>
+</div>

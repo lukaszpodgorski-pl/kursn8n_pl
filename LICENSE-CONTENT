@@ -1,0 +1,28 @@
+Licencja treści: Creative Commons Uznanie autorstwa - Na tych samych warunkach 4.0
+Międzynarodowe (CC BY-SA 4.0)
+
+Cała treść merytoryczna tego repozytorium - pliki Markdown/MDX w src/content/
+oraz media (obrazy, animacje, wideo), o ile podpis nie wskazuje inaczej - jest
+udostępniana na licencji CC BY-SA 4.0.
+
+Oznacza to, że wolno Ci:
+- Dzielić się - kopiować i rozpowszechniać utwór w dowolnym medium i formacie
+- Adaptować - remiksować, zmieniać i tworzyć na bazie utworu w dowolnym celu,
+  także komercyjnym
+
+Na następujących warunkach:
+- Uznanie autorstwa - musisz podać autorstwo ("KursN8N.pl, kursn8n.pl,
+  Łukasz Podgórski i społeczność"), link do licencji i wskazać, czy dokonano
+  zmian.
+- Na tych samych warunkach - remiksując lub tworząc na bazie utworu, musisz
+  rozpowszechniać swój wkład na tej samej licencji co oryginał.
+
+Pełny tekst licencji:
+https://creativecommons.org/licenses/by-sa/4.0/legalcode.pl
+
+Wersja skrócona (podsumowanie):
+https://creativecommons.org/licenses/by-sa/4.0/deed.pl
+
+Wysyłając wkład (pull request) do tego repozytorium, zgadzasz się na
+licencjonowanie go na powyższych warunkach (treść) lub na licencji MIT (kod)
+- zobacz CONTRIBUTING.md.

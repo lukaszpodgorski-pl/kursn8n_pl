@@ -1,0 +1,56 @@
+---
+/**
+ * Rama diagramu przeplywu w stylu edytora n8n - dawne .flow ze style.css.
+ * Lacznik miedzy wezlami dokladany jest przez CSS, wiec w MDX wystarczy
+ * wymienic same <FlowNode />.
+ */
+interface Props {
+	/** Nazwa workflow w pasku tytulowym. */
+	title: string;
+	/** Podpis pod diagramem. */
+	caption?: string;
+	/** Opis dla czytnikow ekranu - obowiazkowy, diagram jest trescia. */
+	alt: string;
+}
+
+const { title, caption, alt } = Astro.props;
+
+// npm run build to samo "astro build" bez "astro check" - typy propsow z .mdx
+// nie sa sprawdzane. Bez tej straznicy <Flow title="x"> bez "alt" zbudowalby sie
+// bezobjawowo jako <div role="img"> bez aria-label (i bez zadnego fallbacku,
+// bo wnetrze diagramu jest aria-hidden) - dla czytnika ekranu to cisza tam,
+// gdzie widzacy uzytkownik widzi caly diagram. Diagram to tresc kursu, nie
+// dekoracja, wiec ten blad ma przerywac build, a nie przechodzic po cichu.
+const altIsMissing = typeof alt !== 'string' || alt.trim().length === 0;
+
+if (altIsMissing) {
+	const titleHint =
+		typeof title === 'string' && title.trim().length > 0 ? ` (title="${title}")` : ' (bez propsa "title")';
+	throw new Error(
+		`Komponent <Flow>${titleHint} nie ma propsa "alt", albo jest on pusty / zlozony z samych bialych znakow.\n` +
+			'\n' +
+			'DLACZEGO TO WAZNE: <Flow> renderuje sie jako <div role="img">, a caly diagram w srodku ' +
+			'(pasek tytulu i wszystkie <FlowNode>) ma aria-hidden="true". To znaczy, ze "alt" jest ' +
+			'JEDYNYM zrodlem informacji o tym diagramie dla osoby korzystajacej z czytnika ekranu - bez ' +
+			'niego czytnik napotyka calkowita cisze dokladnie tam, gdzie widzacy uzytkownik widzi caly ' +
+			'diagram przeplywu. Diagram jest tu trescia merytoryczna kursu (pokazuje kolejne kroki ' +
+			'workflow), a nie dekoracja - ten brak to realna utrata tresci.\n' +
+			'\n' +
+			'JAK NAPRAWIC: dodaj atrybut "alt" z krotkim opisem tego, co diagram pokazuje, np.:\n' +
+			'  <Flow title="Zamowienie -> Slack" alt="Diagram: Webhook odbiera zamowienie, wezel Kod je formatuje, Slack wysyla powiadomienie do zespolu">\n' +
+			'    <FlowNode icon="fa-bolt" label="Webhook" />\n' +
+			'    <FlowNode icon="fa-code" label="Kod" />\n' +
+			'    <FlowNode icon="fa-slack" family="fab" label="Slack" />\n' +
+			'  </Flow>'
+	);
+}
+---
+
+<div class="k-flow not-content" role="img" aria-label={alt}>
+	<div class="k-flow-bar" aria-hidden="true">
+		<span class="k-d k-r"></span><span class="k-d k-y"></span><span class="k-d k-g"></span>
+		<span class="k-flow-title">{title}</span>
+	</div>
+	<div class="k-flow-stage" aria-hidden="true"><slot /></div>
+</div>
+{caption && <p class="k-flow-cap">{caption}</p>}

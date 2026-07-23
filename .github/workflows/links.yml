@@ -1,0 +1,43 @@
+name: Sprawdzanie linków
+
+on:
+  pull_request:
+    paths: ['**/*.md', '**/*.mdx']
+  schedule:
+    # raz w tygodniu, poniedziałek 06:00 UTC - łapie linki, które umarły z czasem
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalacja (zgodna z lockfile)
+        run: npm ci
+      - name: Build produkcyjny
+        run: npm run build
+      - name: lychee - weryfikacja linków
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Sprawdzamy ZBUDOWANY serwis, nie źródła w Markdownie. Powód: linki
+          # wewnętrzne są root-relative (`/modul-3-praca-z-danymi`), a w źródłach nie
+          # da się ich rozwiązać - struktura treści jest płaska (`modul-3-praca-z-danymi.mdx`
+          # leży bezpośrednio w `src/content/docs/`), więc nie ma pliku ani katalogu
+          # o ścieżce odpowiadającej temu URL-owi. lychee zgłaszał wtedy
+          # "Cannot resolve root-relative link" dla każdego z nich, a `--exclude`
+          # tego nie tłumi, bo błąd powstaje na etapie rozwiązywania URI, zanim
+          # filtr ma co odrzucać. W `dist/` te adresy są prawdziwymi katalogami
+          # z `index.html` (mimo `trailingSlash: 'never'` w adresach źródłowych),
+          # więc rozwiązują się poprawnie razem z zewnętrznymi.
+          # Kod 999 to celowa blokada LinkedIn wobec botów - link jest sprawny.
+          args: >-
+            --no-progress
+            --accept 200,206,403,429,999
+            --root-dir "${{ github.workspace }}/dist"
+            'dist/**/*.html'
+          fail: true

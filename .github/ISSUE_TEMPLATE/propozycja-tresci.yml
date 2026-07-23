@@ -1,0 +1,29 @@
+name: 💡 Propozycja treści
+description: Pomysł na nowy moduł, poradnik lub rozszerzenie istniejącej treści
+labels: ['propozycja']
+body:
+  - type: input
+    id: temat
+    attributes:
+      label: Temat
+      placeholder: np. "Integracja n8n z Google Sheets krok po kroku"
+    validations:
+      required: true
+  - type: textarea
+    id: opis
+    attributes:
+      label: Co powinno się znaleźć w treści i dlaczego?
+      description: Dla kogo jest ta treść? Jakie pytania czytelnika ma odpowiedzieć? W którym module powinna wylądować?
+    validations:
+      required: true
+  - type: textarea
+    id: zrodla
+    attributes:
+      label: Źródła
+      description: Linki do wiarygodnych źródeł, na których można oprzeć treść
+  - type: checkboxes
+    id: pomoc
+    attributes:
+      label: Zaangażowanie
+      options:
+        - label: Chcę samodzielnie napisać tę treść (dostanę wsparcie przy PR)

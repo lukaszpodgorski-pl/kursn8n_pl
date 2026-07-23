@@ -1,0 +1,40 @@
+/*
+ * Tokeny kursn8n.pl - przepisane z public_html/assets/style.css.
+ * Prefiks --k- oddziela je od zmiennych Starlighta (--sl-).
+ * Ten plik nie odwoluje sie do Starlighta; mapowanie jest w kursn8n.css.
+ */
+:root {
+	--k-accent: #378ccf;
+	--k-accent-dark: #2a6fa8;
+	--k-accent-soft: #dcebf8;
+
+	--k-surface: #ffffff;
+	--k-surface-dark: #1a1d23;
+	--k-text-muted: #6b7280;
+	--k-border: #e5e7eb;
+	--k-border-strong: #d1d5db;
+
+	--k-good: #16a34a;
+	--k-warn: #d97706;
+	--k-bad: #dc2626;
+	--k-info: #2563eb;
+
+	--k-radius: 10px;
+	--k-radius-sm: 6px;
+	--k-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/*
+ * Wariant ciemny - skala akcentu z assets/brand/tokens.css (kontrast AA
+ * na ciemnym tle). Powierzchnie i obramowania odwrocone.
+ */
+:root[data-theme='dark'] {
+	--k-accent: #4a9fdd;
+	--k-accent-dark: #378ccf;
+	--k-accent-soft: #16364e;
+
+	--k-surface: #1b1b1f;
+	--k-text-muted: #a8a8b0;
+	--k-border: #3a3a40;
+	--k-border-strong: #4a4a52;
+}

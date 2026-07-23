@@ -1,0 +1,435 @@
+---
+title: Praca z danymi w n8n
+description: "Praca z danymi w n8n po polsku: struktura items (json/binary), wyrażenia {{ }} i zmienne $json/$node/$input, node Edit Fields (Set), logika IF/Switch/Filter, pętle Loop Over Items, Merge oraz pliki binarne (PDF, obrazy, CSV)."
+head:
+  - tag: title
+    content: "Moduł 3: Praca z danymi w n8n - items, wyrażenia, IF/Switch, Merge, pliki binarne | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Moduł 3: Praca z danymi w n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Struktura items (json/binary), wyrażenia {{ }}, Edit Fields (Set), logika IF/Switch/Filter, pętle, Merge i pliki binarne - praca z danymi po polsku."
+datePublished: 2026-05-21
+educationalLevel: Intermediate
+teaches:
+  - Jak n8n przechowuje dane - strukturę items z kluczami json i binary
+  - Jak pisać wyrażenia {{ }} i korzystać ze zmiennych $json, $node, $input, $now
+  - Do czego służy Edit Fields (Set) i jak mapować dane pod inny system
+  - Różnicę między IF, Switch i Filter
+  - Kiedy n8n iteruje samo, a kiedy potrzebna jest jawna pętla (Loop Over Items)
+  - Jak łączyć dane z wielu źródeł node'em Merge
+  - Jak pracować z plikami binarnymi (PDF, obrazy, CSV)
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: JSON
+    sameAs: https://en.wikipedia.org/wiki/JSON
+  - name: Base64
+    sameAs: https://en.wikipedia.org/wiki/Base64
+  - name: Join (SQL)
+    sameAs: https://en.wikipedia.org/wiki/Join_(SQL)
+faq:
+  - q: "Dlaczego mój node przetwarza tylko jeden rekord, a nie wszystkie?"
+    a: "Najczęstsze przyczyny: w ustawieniach node'a włączona jest opcja Execute Once, albo na wejściu masz jeden item z tablicą w środku zamiast wielu itemów. W drugim przypadku użyj node'a Split Out, by rozbić tablicę na osobne itemy."
+  - q: "Czym różni się $json od $node?"
+    a: "$json odwołuje się do danych itemu pochodzących z bezpośrednio poprzedniego node'a. $node[\"Nazwa\"] pozwala sięgnąć do danych dowolnego wcześniejszego, nazwanego node'a - przydatne, gdy potrzebujesz wartości sprzed kilku kroków."
+  - q: "Kiedy użyć Filter, a kiedy IF?"
+    a: "Jeśli chcesz tylko usunąć z przepływu itemy, które nie spełniają warunku, i jechać dalej jednym torem - użyj Filter. Jeśli potrzebujesz obsłużyć osobno itemy spełniające i niespełniające warunek (dwie różne ścieżki) - użyj IF i podłącz obie gałęzie."
+  - q: "Jak połączyć dane z dwóch list po wspólnym polu?"
+    a: "Użyj node'a Merge w trybie Combine → by matching fields i wskaż pole będące kluczem (np. email lub id). n8n dopasuje itemy z obu wejść po tej wartości i scali ich pola - analogicznie do JOIN-a w SQL."
+  - q: "Jak wyciągnąć dane z pliku CSV lub PDF?"
+    a: "Użyj node'a Extract from File - odczytuje on plik z klucza binary i zamienia jego zawartość na dane json (np. CSV na listę itemów, tekst z PDF). W drugą stronę, by zapisać dane jako plik, użyj Convert to File."
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Panel from '../../components/Panel.astro';
+import Takeaways from '../../components/Takeaways.astro';
+import TwoCol from '../../components/TwoCol.astro';
+
+<ModuleHero
+  tag="Moduł 3 · Poziom: średnio zaawansowany"
+  readingTime="~22 min"
+  note="Items, wyrażenia, logika, pliki"
+/>
+
+Każdy workflow to tak naprawdę przepływ danych z node'a do node'a. Gdy zrozumiesz, w jakiej
+strukturze n8n trzyma te dane i jak się do nich odwoływać wyrażeniami, przestaniesz zgadywać,
+a zaczniesz świadomie kształtować, filtrować i łączyć informacje. Ten moduł to fundament
+wszystkich kolejnych integracji.
+
+## Jak n8n przechowuje dane - items i struktura JSON
+
+Dane w n8n nie są pojedynczym obiektem - są **listą (tablicą) elementów** zwanych _items_.
+Każdy node przyjmuje listę itemów na wejściu, przetwarza je i zwraca listę itemów na wyjściu.
+Zrozumienie tego jednego faktu rozwiązuje większość problemów początkujących.
+
+:::note[Po ludzku - czym jest JSON]
+JSON to prosty, tekstowy sposób zapisu danych w parach `nazwa: wartość` - uniwersalny "język",
+którym programy wymieniają się informacjami. Klamry `{ }` grupują pola jednego obiektu, nawiasy
+kwadratowe `[ ]` oznaczają listę, a dwukropek oddziela nazwę pola od jego wartości. Nie musisz
+umieć pisać go z pamięci - wystarczy, że rozpoznasz tę strukturę na ekranie.
+:::
+
+Każdy pojedynczy item to obiekt, który może mieć dwa klucze: `json` (dane tekstowe/strukturalne)
+oraz `binary` (pliki - opcjonalnie). Pełna struktura danych płynących między node'ami wygląda
+następująco:
+
+```json
+[
+  {
+    "json": {
+      "imie": "Anna",
+      "email": "anna@example.com",
+      "zamowienie": { "kwota": 199, "waluta": "PLN" }
+    },
+    "binary": {
+      "faktura": {
+        "data": "JVBERi0xLjQ...",  // zawartość pliku zakodowana w base64
+        "mimeType": "application/pdf",
+        "fileName": "faktura.pdf"
+      }
+    }
+  },
+  {
+    "json": {
+      "imie": "Marek",
+      "email": "marek@example.com",
+      "zamowienie": { "kwota": 49, "waluta": "PLN" }
+    }
+  }
+]
+```
+
+Powyżej widać **dwa itemy**. Pierwszy ma zarówno dane `json`, jak i plik w `binary`; drugi ma
+tylko `json`. To normalne - klucz `binary` pojawia się tylko wtedy, gdy item niesie ze sobą plik.
+Treść pliku w polu `data` zapisana jest w _base64_ - to sposób przedstawienia dowolnego pliku
+(np. PDF) jako jednego długiego ciągu zwykłych znaków tekstowych.
+
+<CardGrid>
+  <ConceptCard icon="fa-list" title="Lista itemów">
+    Wejście i wyjście node'a to zawsze tablica - nawet jeśli zawiera tylko jeden element.
+  </ConceptCard>
+  <ConceptCard icon="fa-code" title="Klucz json">
+    Tu mieszkają dane strukturalne: pola, liczby, teksty, zagnieżdżone obiekty i tablice.
+  </ConceptCard>
+  <ConceptCard icon="fa-file" title="Klucz binary">
+    Opcjonalny - przechowuje pliki (PDF, obrazy, CSV) wraz z metadanymi (mimeType, fileName).
+  </ConceptCard>
+  <ConceptCard icon="fa-arrows-turn-right" title="Node na każdym itemie">
+    Domyślnie node wykonuje swoją operację raz dla każdego itemu z listy wejściowej.
+  </ConceptCard>
+</CardGrid>
+
+:::note[Tabela = lista itemów]
+W widoku **Table** w panelu danych jeden wiersz = jeden item, a kolumny to pola z klucza `json`.
+Przełącz na widok **JSON**, by zobaczyć dokładnie tę samą strukturę, która płynie pod spodem. To
+najlepszy sposób, by "zobaczyć" swoje dane podczas budowania.
+:::
+
+## Wyrażenia (expressions) i składnia `{{ }}`
+
+Wyrażenia to sposób, w jaki sięgasz po dane z poprzednich node'ów wprost w polach formularza.
+Każde pole node'a możesz przełączyć z trybu **Fixed** (wpisujesz wartość na stałe) na tryb
+**Expression** (wartość wyliczana dynamicznie z danych). Wyrażenia zapisujesz w podwójnych
+klamrach: `{{ }}`.
+
+### Tryb Fixed vs Expression
+
+<TwoCol>
+  <Panel variant="neutral" title="Fixed (stały)">
+    Wpisujesz dosłowną wartość, np. `witaj@firma.pl`. n8n traktuje to jako zwykły tekst i nic nie
+    wylicza.
+  </Panel>
+  <Panel variant="neutral" title="Expression (wyrażenie)">
+    Wartość liczona dynamicznie z danych, np. `{{ $json.email }}`. Przy każdym wykonaniu podstawia
+    się realna wartość.
+  </Panel>
+</TwoCol>
+
+Przełącznik trybu znajdziesz najeżdżając kursorem na pole - pojawia się opcja _Fixed / Expression_.
+W trybie Expression pole zmienia kolor, a pod spodem widzisz podgląd wyliczonej wartości na żywo.
+
+### Najważniejsze zmienne wbudowane
+
+Wewnątrz klamer masz dostęp do zmiennych zaczynających się od `$`. Oto te, których będziesz
+używać najczęściej:
+
+| Zmienna | Co zwraca | Przykład |
+| --- | --- | --- |
+| `$json` | Dane `json` bieżącego itemu z poprzedniego node'a | `{{ $json.email }}` |
+| `$binary` | Dane binarne bieżącego itemu | `{{ $binary.faktura.fileName }}` |
+| `$node` | Dostęp do danych konkretnego, nazwanego node'a (po nazwie) | `{{ $node["Webhook"].json.id }}` |
+| `$input` | Wejście bieżącego node'a - z metodami `.item`, `.all()`, `.first()`, `.last()` | `{{ $input.first().json.imie }}` |
+| `$now` | Aktualna data i czas (obiekt DateTime / Luxon) | `{{ $now.toISO() }}` |
+| `$workflow` / `$execution` | Metadane bieżącego workflow i wykonania (id, nazwa) | `{{ $workflow.name }}` |
+
+### Przykłady wyrażeń
+
+```javascript
+// Pole proste - pobranie e-maila z poprzedniego node'a
+{{ $json.email }}
+
+// Zagnieżdżone pole
+{{ $json.zamowienie.kwota }}
+
+// Połączenie tekstu z danymi (interpolacja)
+Cześć {{ $json.imie }}, dziękujemy za zamówienie!
+
+// Odwołanie do konkretnego, nazwanego node'a
+{{ $node["HTTP Request"].json.results[0].id }}
+
+// Metody JavaScript działają wewnątrz klamer
+{{ $json.email.toLowerCase() }}
+{{ $json.kwota * 1.23 }}
+
+// Pierwszy item z całego wejścia
+{{ $input.first().json.imie }}
+
+// Data w formacie ISO
+{{ $now.toISO() }}
+```
+
+:::tip[Wskazówka: przeciągaj zamiast pisać]
+Najprostszy sposób na poprawne wyrażenie to **przeciągnięcie pola z panelu danych** (po lewej)
+wprost do pola w node'cie. n8n samo wstawi prawidłową składnię `{{ $json.nazwa_pola }}`. Dopiero
+potem doszlifuj je ręcznie, jeśli trzeba.
+:::
+
+## Edit Fields (Set) - kształtowanie i mapowanie danych
+
+Node **Edit Fields** (wcześniej i nadal nazywany _Set_) to Twoje główne narzędzie do
+porządkowania danych: dodawania pól, zmiany istniejących, mapowania jednej struktury na inną. To
+prawdopodobnie najczęściej używany node do transformacji w całym n8n.
+
+### Do czego służy
+
+- **Dodawanie pól** - tworzysz nowe pole i nadajesz mu wartość (stałą lub z wyrażenia).
+- **Zmiana istniejących pól** - nadpisujesz wartość, łączysz teksty, przeliczasz liczby.
+- **Mapowanie** - przekształcasz dane z jednego systemu na format wymagany przez kolejny (np.
+  dopasowanie nazw pól pod API).
+- **Czyszczenie** - z opcją "Keep Only Set" zostawiasz wyłącznie pola, które jawnie zdefiniowałeś,
+  odrzucając resztę.
+
+### Praktyczny przykład - przygotowanie danych pod CRM
+
+Wyobraź sobie, że z formularza dostajesz surowe dane, a Twoje API CRM oczekuje innej struktury.
+W node Edit Fields definiujesz pola wyjściowe:
+
+| Nazwa pola (wyjście) | Typ | Wartość (wyrażenie) |
+| --- | --- | --- |
+| `full_name` | String | `{{ $json.imie }} {{ $json.nazwisko }}` |
+| `email` | String | `{{ $json.email.toLowerCase() }}` |
+| `order_value` | Number | `{{ $json.zamowienie.kwota }}` |
+| `created_at` | String | `{{ $now.toISO() }}` |
+| `source` | String | formularz-www _(stała / fixed)_ |
+
+Efekt: niezależnie od tego, jak wyglądały dane wejściowe, na wyjściu otrzymasz schludny,
+przewidywalny obiekt gotowy do wysłania dalej. Pole `source` jest wpisane na stałe, reszta liczona
+z wyrażeń.
+
+:::note[Inne node'y do transformacji]
+Oprócz Edit Fields przydadzą Ci się: **Aggregate** (scala wiele itemów w jeden), **Summarize**
+(podsumowania jak w tabeli przestawnej), **Sort** (sortowanie), **Limit** (ogranicza liczbę
+itemów), **Remove Duplicates** (usuwa duplikaty) oraz **Split Out** (rozbija tablicę z jednego
+pola na osobne itemy). Poznasz je w praktyce, gdy zajdzie potrzeba.
+:::
+
+## Logika: IF, Switch, Filter
+
+Te trzy node'y decydują, co dzieje się z danymi w zależności od warunków. Choć bywają mylone,
+robią różne rzeczy: dwie z nich _rozgałęziają_ przepływ, jedna _odsiewa_ itemy bez tworzenia
+gałęzi.
+
+<CardGrid>
+  <ConceptCard icon="fa-code-branch" title="IF">
+    Dwie gałęzie: **true** i **false**. Itemy spełniające warunek idą jedną drogą, reszta - drugą.
+  </ConceptCard>
+  <ConceptCard icon="fa-shuffle" title="Switch">
+    Wiele gałęzi. Kierujesz itemy do różnych wyjść w zależności od wartości - jak rozjazd kolejowy.
+  </ConceptCard>
+  <ConceptCard icon="fa-filter" title="Filter">
+    Jedno wyjście. Przepuszcza tylko itemy spełniające warunek, resztę po prostu usuwa z przepływu.
+  </ConceptCard>
+</CardGrid>
+
+<Flow
+  title="rozgalezienie-if"
+  alt="Schemat rozgałęzienia: węzeł IF dzieli dane na ścieżkę true i false"
+  caption="IF rozdziela itemy na dwie ścieżki: spełniające warunek (true) i resztę (false). Switch robi to na wiele wyjść, Filter po prostu odsiewa."
+>
+  <FlowNode icon="fa-list" label="Dane" sub="lista itemów" from="#64748b" to="#475569" />
+  <FlowNode icon="fa-code-branch" label="IF" sub="kwota > 100?" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-check" label="TRUE" sub="wyślij rabat" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-xmark" label="FALSE" sub="pomiń" from="#dc2626" to="#b91c1c" />
+</Flow>
+
+| Cecha | IF | Switch | Filter |
+| --- | --- | --- | --- |
+| Liczba wyjść | 2 (true / false) | Wiele (definiujesz reguły) | 1 |
+| Co robi | Rozgałęzia na dwie ścieżki | Rozgałęzia na wiele ścieżek | Odsiewa itemy |
+| Itemy odrzucone | Trafiają na gałąź _false_ | Mogą trafić do gałęzi "fallback" | Znikają z przepływu |
+| Typowe użycie | "Jeśli kwota > 100 to…, inaczej…" | Routing wg statusu / typu / kraju | "Zostaw tylko aktywnych klientów" |
+| Kiedy wybrać | Prosty warunek dwustanowy | 3+ możliwych dróg | Nie potrzebujesz drugiej gałęzi |
+
+:::tip[Jak wybrać]
+Potrzebujesz reakcji "tak / nie" i obsługujesz obie ścieżki → **IF**. Masz kilka kategorii i każda
+idzie gdzie indziej → **Switch**. Chcesz tylko wyrzucić niepasujące itemy i jechać dalej jednym
+torem → **Filter** (czystsze niż IF z pustą gałęzią false).
+:::
+
+## Pętle - kiedy n8n iteruje sam, a kiedy potrzebujesz jawnej pętli
+
+Najczęstsze nieporozumienie początkujących: "muszę dodać pętlę, żeby przetworzyć wszystkie
+rekordy". Zwykle **nie musisz** - node domyślnie wykonuje swoją operację raz dla _każdego_ itemu
+z listy wejściowej. Pętla automatyczna jest wbudowana.
+
+### Domyślne przetwarzanie itemów
+
+Jeśli na wejście node'a (np. HTTP Request albo wysyłka maila) trafi 50 itemów, node wykona się
+50 razy - po jednym dla każdego itemu - bez żadnej pętli z Twojej strony. To zachowanie domyślne
+i pożądane.
+
+### Loop Over Items (Split in Batches)
+
+Node **Loop Over Items** (znany też jako _Split in Batches_) służy do **jawnego** sterowania
+pętlą: dzieli itemy na paczki (batche) i przepuszcza je przez podłączoną gałąź porcjami, aż
+przerobi wszystkie. Używasz go w konkretnych sytuacjach:
+
+- **Batchowanie** - gdy API ma limit (np. maks. 100 rekordów na żądanie albo rate limit),
+  przetwarzasz dane partiami.
+- **Paginacja** - pobieranie kolejnych stron wyników (strona 1, 2, 3…) aż do wyczerpania danych.
+- **Operacje krok po kroku** - gdy każda iteracja zależy od wyniku poprzedniej i musisz je
+  rozdzielić w czasie.
+
+:::caution[Typowe pomyłki z pętlami]
+
+- **Niepotrzebna pętla.** Dodajesz Loop Over Items tam, gdzie node i tak iterowałby sam po
+  itemach - komplikujesz workflow bez powodu.
+- **Brak domknięcia pętli.** Przy Loop Over Items gałąź "loop" musi wracać do node'a pętli -
+  inaczej przerobi się tylko jedna paczka.
+- **Mylenie 1 itemu z listą.** Jeśli oczekujesz wielu itemów, a node dostaje jeden obiekt
+  z tablicą w środku, użyj **Split Out**, by rozbić go na osobne itemy.
+- **"Execute Once".** Włączona opcja _Execute Once_ w ustawieniach node'a sprawia, że przetworzy
+  on tylko pierwszy item - łatwo o tym zapomnieć.
+
+:::
+
+## Merge - łączenie danych z wielu źródeł
+
+Gdy workflow rozdziela się na kilka gałęzi albo pobierasz dane z dwóch różnych źródeł, node
+**Merge** scala je z powrotem w jeden strumień. Kluczowy jest wybór trybu - to on decyduje, _jak_
+dane się połączą.
+
+### Tryby łączenia
+
+| Tryb | Jak łączy | Kiedy użyć |
+| --- | --- | --- |
+| **Append** | Dokleja itemy z wejścia 2 za itemami z wejścia 1 - jedna dłuższa lista, bez dopasowywania. | Chcesz po prostu zsumować dwie listy w jedną. |
+| **Combine → by matching fields** | Łączy itemy po wspólnym kluczu (np. `email` albo `id`), scalając ich pola - jak JOIN w SQL. | Wzbogacasz dane: dane z A uzupełniasz pasującymi danymi z B. |
+| **Combine → by position** | Łączy itemy po pozycji: pierwszy z pierwszym, drugi z drugim itd. | Obie listy mają tę samą kolejność i długość. |
+| **Combine → all combinations** | Tworzy każdą możliwą parę itemów z obu wejść (iloczyn kartezjański). | Rzadziej - gdy świadomie potrzebujesz wszystkich kombinacji. |
+| **SQL Query** | Łączysz dane zapytaniem SQL na wejściach jak na tabelach. | Złożone połączenia, gdy znasz SQL. |
+
+### Przykład - wzbogacanie po kluczu
+
+Masz listę zamówień (wejście 1) i listę klientów z ich danymi (wejście 2). Wybierasz tryb
+**Combine → by matching fields** i wskazujesz pole `email` jako klucz. Merge dopasuje każde
+zamówienie do właściwego klienta i scali ich pola w jeden item - dokładnie tak, jak _JOIN_
+w bazach danych (łączenie dwóch tabel po wspólnej kolumnie - tu rolę kolumny pełni pole `email`).
+
+<Flow
+  title="merge-po-email"
+  alt="Schemat scalania: dwa wejścia (zamówienia i klienci) łączą się w węźle Merge po polu email w jeden wynik"
+  caption="Merge łączy dwa wejścia po wspólnym kluczu (email) w jeden wzbogacony strumień - jak JOIN w SQL."
+>
+  <FlowNode icon="fa-receipt" label="Zamówienia" sub="wejście 1" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-users" label="Klienci" sub="wejście 2" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-code-merge" label="Merge" sub="po polu email" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-table-cells" label="Wynik" sub="scalone itemy" from="#6d28d9" to="#4c1d95" />
+</Flow>
+
+:::note[Merge czeka na obie gałęzie]
+Node Merge zwykle uruchamia się dopiero, gdy spłyną do niego dane z obu wejść. Jeśli jedna
+z gałęzi nie zostanie wykonana (np. odcięta przez IF), pamiętaj, że może to wpłynąć na zachowanie
+scalania.
+:::
+
+## Pliki binarne - PDF, obrazy, CSV
+
+Nie wszystkie dane to tekst. Pliki - PDF-y, zdjęcia, arkusze CSV, archiwa - to **dane binarne**.
+n8n trzyma je oddzielnie od `json`, w kluczu `binary` itemu. Praca z plikami rządzi się trochę
+innymi prawami niż praca z polami JSON.
+
+### Czym binarne różni się od JSON
+
+<TwoCol>
+  <Panel variant="neutral" title="Dane JSON">
+    - Tekst i struktura: pola, liczby, obiekty, tablice
+    - Widoczne wprost w panelu danych (Table / JSON)
+    - Odwołujesz się przez `$json.pole`
+  </Panel>
+  <Panel variant="pros" title="Dane binarne">
+    - Zawartość pliku - nie nadaje się do czytania jako tekst
+    - Przechowywane z metadanymi: `mimeType`, `fileName`
+    - Odwołujesz się przez `$binary.nazwa`
+  </Panel>
+</TwoCol>
+
+### Konwersje: binary ⇄ JSON
+
+Najczęściej chcesz albo wyciągnąć dane z pliku, albo zapisać dane jako plik. Służą do tego dwa
+node'y:
+
+- **Extract from File** - wyciąga dane z pliku binarnego do `json`. Np. z CSV robi listę itemów,
+  z PDF wyciąga tekst, odczytuje XLSX/JSON/XML.
+- **Convert to File** - odwrotnie: zamienia dane `json` na plik binarny. Np. z listy itemów
+  tworzy plik CSV/XLSX gotowy do wysłania lub zapisania.
+
+### Typowy scenariusz
+
+1. Trigger pobiera maila z załącznikiem CSV → plik ląduje w `binary`.
+2. **Extract from File** rozbija CSV na itemy w `json`.
+3. **Edit Fields** / **Filter** czyszczą i odsiewają dane.
+4. **Convert to File** tworzy z przerobionych danych nowy plik XLSX.
+5. Node wysyłki dołącza plik z `binary` do wiadomości lub zapisuje go w chmurze.
+
+<Flow
+  title="pipeline-plikow"
+  alt="Schemat pipeline plików: e-mail z CSV, Extract from File, Edit Fields, Convert to File, wysyłka"
+  caption="Pipeline plików: z maila wyciągasz CSV, przerabiasz dane i zapisujesz je jako nowy plik XLSX gotowy do wysyłki."
+>
+  <FlowNode icon="fa-envelope" label="Email" sub="CSV w załączniku" from="#dc2626" to="#b91c1c" />
+  <FlowNode icon="fa-file-import" label="Extract from File" sub="CSV → itemy" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-pen-to-square" label="Edit Fields" sub="wyczyść dane" from="#d97706" to="#b45309" />
+  <FlowNode icon="fa-file-export" label="Convert to File" sub="itemy → XLSX" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-paper-plane" label="Wyślij" sub="mail / chmura" from="#6d28d9" to="#4c1d95" />
+</Flow>
+
+:::caution[Pamiętaj o danych binarnych]
+
+- **Pliki obciążają pamięć.** Duże załączniki przetwarzane masowo potrafią zjeść RAM instancji -
+  batchuj je, gdy jest ich dużo.
+- **Klucz binary nie podróżuje sam.** Niektóre node'y transformujące działają na `json` i mogą
+  "zgubić" `binary` - sprawdzaj wyjście w panelu danych.
+- **mimeType i fileName mają znaczenie.** Błędny typ MIME sprawi, że odbiorca nie rozpozna pliku
+  poprawnie.
+
+:::
+
+<Takeaways>
+  - Dane w n8n to lista itemów; każdy item ma klucz `json` i opcjonalnie `binary`.
+  - Wyrażenia w `{{ }}` sięgają po dane: `$json`, `$node`, `$input`, `$now` - przełącz pole z Fixed na Expression.
+  - Edit Fields (Set) to główne narzędzie do dodawania, zmiany i mapowania pól.
+  - IF = 2 gałęzie, Switch = wiele gałęzi, Filter = odsiewa itemy bez rozgałęziania.
+  - Node domyślnie iteruje po itemach sam - jawna pętla (Loop Over Items) potrzebna głównie przy paginacji i batchowaniu.
+  - Merge łączy dane: Append (doklejanie) lub Combine (po kluczu / pozycji / wszystkie kombinacje).
+  - Pliki to dane binarne; konwersje robisz przez Extract from File i Convert to File.
+</Takeaways>

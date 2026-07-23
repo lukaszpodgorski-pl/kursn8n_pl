@@ -1,0 +1,33 @@
+name: Audyt zależności
+
+on:
+  push:
+    branches: [main]
+    paths: ['package.json', 'package-lock.json']
+  pull_request:
+    paths: ['package.json', 'package-lock.json']
+  schedule:
+    # raz w tygodniu, poniedziałek 07:00 UTC - łapie nowo ujawnione podatności w już zainstalowanych paczkach
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audyt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalacja (zgodna z lockfile)
+        run: npm ci
+      - name: npm audit - blokuj podatności high/critical
+        run: npm audit --audit-level=high
+      - name: npm outdated - raport nieaktualnych paczek
+        if: always()
+        run: |
+          echo "## Nieaktualne paczki" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npm outdated >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

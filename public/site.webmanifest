@@ -1,0 +1,22 @@
+{
+  "name": "KursN8N.pl - Wiki i kurs n8n po polsku",
+  "short_name": "KursN8N.pl",
+  "description": "Otwarta wiki i darmowy kurs automatyzacji n8n po polsku.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1d23",
+  "theme_color": "#1a1d23",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

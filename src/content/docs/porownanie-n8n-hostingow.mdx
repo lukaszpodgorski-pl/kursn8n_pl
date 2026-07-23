@@ -1,0 +1,1954 @@
+---
+title: Porównanie hostingów n8n
+description: "Porównanie 7 ścieżek hostingu n8n: Raspberry Pi, mini PC, Mikrus, cyber_Folks, Hostinger, Hetzner i Railway. Bezpieczeństwo, RODO, ceny, backupy, łatwość obsługi i katalog testów do samodzielnego powtórzenia."
+# Ten sam mechanizm head: co w modul-0-fundamenty.mdx (scalanie z domyślnym
+# head Starlight po kluczu `tag`). Poniżej <title> oraz og:title/og:description
+# przepisane 1:1 z public_html/content/porownanie-n8n-hostingow.head.php - bez
+# sufiksu "| KursN8N.pl", bo w źródłowym <title> go nie było (inaczej niż w modułach).
+head:
+  - tag: title
+    content: "Porównanie hostingów n8n - kompletny poradnik 2026"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Porównanie hostingów n8n - kompletny poradnik 2026"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "7 realnych ścieżek wdrożenia n8n - od Raspberry Pi po PaaS. Bezpieczeństwo, RODO, ceny, backupy i katalog testów do samodzielnego powtórzenia."
+# Data pierwszej publikacji na żywej stronie (head.php, LearningResource.datePublished).
+datePublished: 2026-05-21
+educationalLevel: Intermediate
+teaches:
+  - Jak porównać 7 realnych ścieżek hostingu n8n - od Raspberry Pi po PaaS
+  - Obowiązki RODO i lokalizację danych u każdego z dostawców
+  - Zasadę backupu 3-2-1 i dlaczego trzeba testować odtwarzanie
+  - Jak dobrać hosting do własnego profilu (nauka, mała firma, sektor regulowany)
+  - Katalog 25 testów do samodzielnego zbenchmarkowania środowiska
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Raspberry Pi
+    sameAs: https://en.wikipedia.org/wiki/Raspberry_Pi
+  - name: Docker
+    sameAs: https://en.wikipedia.org/wiki/Docker_(software)
+  - name: PostgreSQL
+    sameAs: https://www.postgresql.org/
+  - name: Hetzner
+    sameAs: https://en.wikipedia.org/wiki/Hetzner
+  - name: Hostinger
+    sameAs: https://en.wikipedia.org/wiki/Hostinger
+  - name: Railway
+    sameAs: https://railway.com/
+  - name: cyber_Folks
+    sameAs: https://cyberfolks.pl/
+  - name: Mikrus
+    sameAs: https://mikr.us/
+  - name: RODO (GDPR)
+    sameAs: https://en.wikipedia.org/wiki/General_Data_Protection_Regulation
+  - name: Let's Encrypt
+    sameAs: https://letsencrypt.org/
+  - name: Cloudflare Tunnel
+    sameAs: https://www.cloudflare.com/products/tunnel/
+faq:
+  - q: "Ile RAM potrzebuje n8n?"
+    a: "Oficjalne minimum to 2 GB RAM, ale realne minimum produkcyjne to 4 GB. W spoczynku n8n zużywa ~100-300 MB, jednak przy AI agentach, dużych payloadach JSON i operacjach na plikach binarnych zużycie potrafi gwałtownie skoczyć. Do nauki wystarczy 1 GB; do trybu kolejkowego z workerami albo lokalnego modelu Ollama planuj 8-16 GB."
+  - q: "Czy n8n można hostować na Raspberry Pi do produkcji?"
+    a: "Tak, do automatyzacji osobistych i domowych Raspberry Pi 5 (najlepiej 8 GB RAM i dysk SSD zamiast karty microSD) spokojnie udźwignie n8n w Dockerze. Do zastosowań firmowych z SLA i wieloma równoległymi wykonaniami lepiej sprawdzi się VPS - RPi nie daje gwarancji dostępności, a karta SD bywa zawodna."
+  - q: "Jaki jest najtańszy hosting n8n zgodny z RODO?"
+    a: "Najtaniej i z danymi w UE: self-hosting na własnym sprzęcie (Raspberry Pi, mini PC) albo polski VPS (Mikrus od ~75-197 zł/rok, cyber_Folks z DC w Polsce). Hetzner (DE/FI) ma najlepszy stosunek ceny do mocy w UE. Dla RODO kluczowe jest, gdzie fizycznie leżą dane (UE/EOG) oraz umowa powierzenia (DPA) z dostawcą."
+  - q: "Hosting własny (VPS / Raspberry Pi) czy PaaS (np. Railway)?"
+    a: 'PaaS (Railway) daje najszybsze wdrożenie "na klik" i zero administracji, ale płacisz więcej za tę samą moc, a dane są poza UE (USA). VPS lub własny sprzęt to niższy koszt długofalowy i pełna kontrola nad danymi, kosztem samodzielnej konfiguracji (Docker, HTTPS, backupy). Na naukę i prototyp - PaaS; na stałe, świadome wdrożenie - VPS/self-host.'
+  - q: "Czy do n8n wystarczy zwykły hosting WWW (shared)?"
+    a: "Nie. n8n to długo działający proces Node.js, który potrzebuje dostępu do portów i kontroli nad środowiskiem. Klasyczny shared hosting tego nie zapewnia - potrzebujesz VPS, kontenera albo fizycznego komputera."
+  - q: "Jak bezpiecznie backupować n8n?"
+    a: "Stosuj zasadę 3-2-1: trzy kopie, na dwóch różnych nośnikach, jedna poza lokalizacją (off-site). Backupuj bazę danych ORAZ klucz `N8N_ENCRYPTION_KEY` - bez klucza nie odszyfrujesz poświadczeń, więc kopia samej bazy jest bezużyteczna. I najważniejsze: regularnie testuj odtwarzanie, bo backup, którego nie testujesz, nie istnieje."
+---
+
+import ModuleHero from '../../components/ModuleHero.astro';
+import Panel from '../../components/Panel.astro';
+import TwoCol from '../../components/TwoCol.astro';
+
+<ModuleHero
+  tag="Materiał dodatkowy · Wersja 1.0 · maj 2026"
+  readingTime="~45 min"
+  note="7 środowisk hostingowych · katalog 25 testów własnych"
+/>
+
+Siedem realnych ścieżek wdrożenia n8n - od Raspberry Pi w piwnicy po PaaS-y z USA.
+Bezpieczeństwo, RODO, ceny, łatwość obsługi i to, co naprawdę boli, gdy coś pójdzie nie tak.
+
+## Zanim zaczniesz - kilka słów ode mnie
+
+### n8n nadal jest świetnym systemem do automatyzacji
+
+Szum medialny na YouTubie wokół n8n trochę przygasł - w 2024 i 2025 wszyscy nagrywali o
+nim, w 2026 jest mniej "wow video". To dobrze. Szum medialny zawsze przeszacowuje
+narzędzie w krótkim terminie i niedoszacowuje w długim. **n8n w 2026 jest narzędziem
+dojrzałym** - i to jest jego największa zaleta, nie wada.
+
+Co w nim wciąż jest mocne:
+
+- **Tworzenie automatyzacji** - wizualny edytor jest jednym z najlepszych na rynku,
+  krzywa wejścia płaska, ale sufit wysoki (Code Node, Function, sub-scenariuszy, tryb
+  kolejkowy).
+- **Zarządzanie** - wersjonowanie workflow przez eksport JSON, zmienne środowiskowe,
+  role, foldery, tagi. Da się utrzymać setki workflow w sensownym porządku.
+- **Testowanie** - "Execute Workflow" daje natychmiastowy feedback, można uruchamiać
+  pojedyncze node'y z mockowanym inputem, pinning danych przyspiesza debugowanie.
+- **Integracje z AI** - nody AI Agent, integracja z LangChain, gotowe nody do OpenAI /
+  Anthropic / Ollama / lokalnych LLM-ów. To jeden z lepszych orchestratorów AI workflow,
+  jakie obecnie są dostępne.
+- **Samodzielny hosting** - własny kontener, własne dane, brak miesięcznych opłat per
+  execution. To jest powód, dla którego ten poradnik w ogóle istnieje.
+
+Innymi słowy: **jeśli ktoś rozważa n8n w 2026, to dobry moment** - bez szumu medialnego,
+ale z dojrzałą społecznością, dobrą dokumentacją i regularnymi wydaniami.
+
+:::note[Disclosure - jak powstał ten poradnik]
+Chcę być z Tobą uczciwy co do tego, skąd biorą się testy i dlaczego niektóre rzeczy
+oceniam tak a nie inaczej:
+
+- Na potrzeby testów **dostałem serwer testowy od Jakuba Mrugalskiego (Mikrus)** oraz **od
+  cyber_Folks**. Dziękuję obu firmom za udostępnienie środowisk.
+- **To NIE wpłynęło na sposób, w jaki je oceniam.** Plusy i minusy w tabelach są dokładnie
+  te same, które wystawiłbym kupując te usługi za własne pieniądze. Tam, gdzie widzę
+  słabości (np. promocje cyber_Folks tylko w pierwszym okresie, czy ograniczenia 1 GB RAM
+  Mikrusa 2.1), piszę o nich wprost.
+- Rekomendacje w sekcji "Macierz decyzyjna" to **moje doświadczenia i moje przemyślenia**.
+  Twoja sytuacja może być inna i Twoja decyzja może (i powinna) być inna.
+- **Każdy może samodzielnie przeprowadzić testy** z katalogu w sekcji "Wyniki testów
+  własnych" i zweryfikować, czy moje oceny pasują do Twojego przypadku. Zachęcam do tego -
+  to też cel tego poradnika.
+- **Prywatnie korzystam z Raspberry Pi oraz VM na własnym serwerze domowym.** Po prostu
+  taki setup mi wystarcza i spełnia wszystkie moje potrzeby - nie hostuję komercyjnie n8n
+  dla klientów, nie potrzebuję SLA, dane mam fizycznie u siebie. Twój przypadek może
+  wymagać czegoś zupełnie innego - i to też jest OK.
+
+Linki partnerskie w sekcji "Linki do dostawców" mogą się pojawić - wtedy będą oznaczone i
+ich obecność też nie wpływa na merytoryczną ocenę.
+:::
+
+:::caution[Pamiętaj o licencji n8n]
+n8n nie jest klasycznym Open Source w rozumieniu MIT/Apache. Dystrybuowany jest na
+**Sustainable Use License** - co w skrócie znaczy:
+
+- **Wolno:** używać do własnych celów (osobistych i wewnętrznych w firmie), modyfikować,
+  self-hostować - także dla automatyzacji wewnętrznych procesów własnej firmy.
+- **Nie wolno:** oferować n8n jako usługi konkurencyjnej (n8n jako usługa hostowana dla
+  klientów zewnętrznych), usuwać brandingu w komercyjnych dystrybucjach, używać do budowy
+  konkurencyjnego produktu.
+- Jeśli planujesz **świadczyć usługi automatyzacji dla klientów** stawiając im n8n na ich
+  serwerach - sprawdź dokładnie warunki licencji lub porozmawiaj z n8n o licencji
+  Embed/Enterprise.
+
+Pełny tekst licencji:
+[docs.n8n.io/sustainable-use-license](https://docs.n8n.io/sustainable-use-license/) -
+przeczytaj, zanim zaczniesz budować biznes na n8n.
+:::
+
+## Wprowadzenie: czego n8n naprawdę potrzebuje
+
+n8n to platforma no-code/low-code do automatyzacji workflow, dystrybuowana jako Open
+Source pod licencją Sustainable Use License. Wszystkie omawiane tu rozwiązania uruchamiają
+**tę samą edycję Community Edition** - różnica jest wyłącznie w warstwie hostingu.
+
+### Oficjalne minimum systemowe
+
+- **2 GB RAM**, 2 rdzenie CPU, 20 GB pamięci masowej
+- **Node.js v20.19+** na systemie Linux
+- Wbudowana baza **SQLite** działa od ręki; PostgreSQL rekomendowany dla większego
+  obciążenia
+
+### Realistyczne minimum produkcyjne
+
+4 GB RAM, 2 vCPU, 40-60 GB szybkiego SSD. n8n jest bardziej wymagający pamięciowo niż
+CPU. W stanie bezczynności potrzebuje ~100 MB RAM, ale podczas wykonywania workflow
+zużycie potrafi gwałtownie wzrosnąć - szczególnie przy AI agentach, dużych payloadach
+JSON, operacjach na plikach binarnych.
+
+### Kiedy potrzebujesz więcej
+
+- **8 GB RAM i 4 vCPU:** gdy masz ponad 100 egzekucji dziennie, kilka webhooków pod
+  obciążeniem, lub kilka równoległych workflow.
+- **16 GB+ RAM:** gdy chcesz uruchomić lokalnie Ollamę albo inne modele LLM razem z n8n,
+  albo gdy korzystasz z trybu kolejkowego (tryb kolejkowy) z osobnymi workerami.
+
+:::caution[Co odpada w teorii, ale działa w praktyce]
+Shared hosting (klasyczny "hosting WWW") - nie nadaje się. n8n potrzebuje długo
+działającego procesu Node.js, dostępu do portów, kontroli nad środowiskiem. Wszystkie
+omawiane tu opcje to VPS, kontener lub fizyczny komputer.
+:::
+
+## Wspólne pojęcia: RODO, klucz szyfrujący, OAuth, backupy
+
+Te zagadnienia wyglądają tak samo w każdym z 7 środowisk - warto je raz przerobić, żeby
+potem szybko oceniać konkretne oferty.
+
+### RODO / GDPR
+
+Kluczowe pytania, które musisz sobie zadać niezależnie od wyboru hostingu:
+
+1. **Gdzie fizycznie leżą dane?** Jeśli w UE/EOG - sytuacja prosta. Jeśli poza (USA,
+   Singapur, UK po Brexicie) - potrzebujesz Standardowych Klauzul Umownych (SCC) i
+   analizy ryzyka transferu.
+2. **Czy dostawca podpisuje DPA (Data Processing Agreement)?** Wszystkie poważne
+   hostingi unijne to oferują.
+3. **Czy jesteś administratorem czy procesorem?** W samodzielnym hostingu zwykle
+   administratorem - hosting jest tylko podprocesorem.
+4. **Czy musisz prowadzić rejestr czynności przetwarzania (RCPD)?** Tak, jeśli
+   przetwarzasz dane osobowe regularnie i jesteś firmą.
+
+:::note[Praktyczna wskazówka]
+Dla firm w PL/UE najprostsza ścieżka to hosting w UE (PL, DE, FI, NL) + DPA + szyfrowanie
+credentials w n8n. Hosting w USA wymaga znacząco więcej papierologii.
+:::
+
+### Klucz szyfrujący `N8N_ENCRYPTION_KEY`
+
+n8n używa jednego klucza szyfrującego do zabezpieczenia wszystkich zapisanych
+credentials (API keys, hasła OAuth, tokeny). Jeśli ten klucz zostanie utracony -
+wszystkie credentials w bazie stają się niedostępne. Jeśli wycieknie - atakujący z
+dostępem do bazy odzyska wszystkie credentials.
+
+- Generuj raz przez `openssl rand -hex 32` przed pierwszym startem n8n.
+- Zapisz w menedżerze haseł **i** w pliku `.env` na serwerze.
+- Klucz **musi być taki sam** po przywróceniu z backupu - inaczej credentials się nie
+  odszyfrują.
+- Nigdy nie commituj do gita.
+
+### OAuth i HTTPS
+
+Integracje z Google, Microsoft, Slack, Notion, HubSpot itd. wymagają callbacku OAuth2 -
+twoja instancja n8n **musi być dostępna pod publicznym adresem HTTPS** z prawdziwym
+certyfikatem. Adresy `http://`, `https://localhost`, IP, samopodpisane certyfikaty są
+odrzucane.
+
+W praktyce daje to dwie ścieżki:
+
+- **Publiczny VPS z domeną + reverse proxy + Let's Encrypt** (cyber_Folks, Hostinger,
+  Hetzner).
+- **Lokalny serwer (RPi, mini PC) + Cloudflare Tunnel** - tunel daje publiczny URL HTTPS
+  bez otwierania portów na routerze, działa nawet pod CGNAT.
+
+Mikrus i Railway dają HTTPS automatycznie pod swoją subdomeną - bez własnej domeny też
+zadziała.
+
+### Backupy - co i jak
+
+Backupować trzeba trzy rzeczy:
+
+1. **Klucz szyfrujący** - raz, do menedżera haseł.
+2. **Bazę danych** (plik SQLite lub `pg_dump` z PostgreSQL).
+3. **Wolumen `~/.n8n` lub `/home/node/.n8n`** - workflow, ustawienia, statycznie zapisane
+   pliki binarne, config.
+
+**Podstawowa zasada 3-2-1:** trzy kopie, na dwóch różnych nośnikach, jedna poza
+lokalizacją.
+
+:::danger[Backup, którego nie testujesz, NIE ISTNIEJE]
+To nie jest abstrakcyjna rada - widziałem w praktyce firmy, które przez miesiące były
+przekonane, że mają działający backup. Dopiero w dniu awarii, gdy trzeba było odzyskać
+dane, okazywało się że:
+
+- **Skrypt backupu rzucał błędem od pół roku** - bo nikt nie czytał logów cronowych.
+- **Skończyło się miejsce na dysku backupowym** - nowe kopie nie zapisywały się, a stare
+  były już za stare lub nadpisane.
+- **Backup był wykonywany w trakcie aktywnego zapisu do bazy** - plik istniał, ale był
+  uszkodzony i nie dawał się przywrócić.
+- **Klucz `N8N_ENCRYPTION_KEY` się zmienił** i odzyskana baza ma credentials, których nie
+  da się odszyfrować.
+- **Backup był na tym samym dysku co serwer** - dysk padł, backup poszedł razem z nim.
+- **Backup był na tym samym urządzeniu** (inny dysk, ale ten sam serwer) -
+  ransomware/pożar/kradzież zabrały oba.
+- **Wersja n8n na nowej maszynie była nowsza niż w backupie** i migracja schematu bazy
+  nie przeszła czysto.
+- **Skrypt restore był pisany "od ręki" w stresie** - 4 godziny zamiast 20 minut, bo nikt
+  go nigdy nie odpalił.
+
+W każdym z tych przypadków firma **myślała**, że ma backup. Aż nie miała.
+:::
+
+#### Testuj odtworzenie - minimum raz na kwartał
+
+Odpal procedurę przywracania na świeżej, czystej maszynie. Nie na produkcji, nie "obok" -
+w pełni od zera. Cele takiego testu:
+
+- **Weryfikacja**, że backup w ogóle się da przywrócić (a nie tylko "plik istnieje").
+- **Zmierzenie czasu** - wiesz ile to trwa od zera do działającego n8n. W dniu awarii
+  nikt nie chce się tego dowiadywać na żywo.
+- **Wykrycie brakujących elementów** - klucz szyfrujący, zmienne `.env`, certyfikaty
+  SSL, custom nodes, ustawienia DNS, plik `docker-compose.yml`. Te rzeczy często "są
+  gdzieś", ale nie w backupie.
+- **Aktualizacja instrukcji awaryjnej** - krok po kroku co zrobić w razie potrzeby.
+  Powinien być w gicie albo w Notion, nie w głowie jednej osoby.
+
+Każde takie ćwiczenie skraca **RTO (Recovery Time Objective)** - czas, w którym jesteś w
+stanie wrócić do działania. Pierwsze restore zajmie 4 godziny. Trzecie - 30 minut.
+Dziesiąte - 10 minut, bo masz skrypt, który robi to za ciebie.
+
+#### Monitoruj proces backupu (nie tylko sam plik)
+
+Sam fakt istnienia pliku `backup-2026-05-15.sql` w katalogu nic nie znaczy. Minimum tego,
+co warto monitorować:
+
+- **Exit code skryptu backupu** - cron z `MAILTO=` alarmuje przy błędzie, albo skrypt
+  pinguje [healthchecks.io](https://healthchecks.io) / Uptime Kuma po sukcesie (brak
+  pingu = alarm).
+- **Rozmiar pliku** - backup który nagle waży 2 KB zamiast 200 MB to czerwona lampka.
+- **Wolne miejsce** na dysku docelowym - alarm gdy zostaje \<20%.
+- **Data ostatniej kopii** - alert jeśli najnowszy backup jest starszy niż X dni.
+- **Suma kontrolna / checksum** - opcjonalnie, dla wrażliwych danych. Wykrywa cichą
+  korupcję plików.
+
+:::caution[Backup musi być w bezpiecznym miejscu - czyli gdzie?]
+Reguła "off-site" oznacza: **backup nie może być tam, gdzie może go zniszczyć ta sama
+awaria co produkcję**. W praktyce trzy poziomy "wystarczająco daleko":
+
+1. **Inny dysk fizyczny** (minimum) - chroni przed awarią dysku, ale nie przed
+   ransomware, kradzieżą, pożarem, błędem człowieka który skasuje wszystko.
+2. **Inne urządzenie w tej samej lokalizacji** - NAS w domu obok serwera. Chroni przed
+   awarią serwera, ale nie przed pożarem/zalaniem/kradzieżą domu.
+3. **Inna fizyczna lokalizacja / chmura** (rekomendowane) - Backblaze B2, AWS S3,
+   Hetzner Storage Box, Google Drive, OneDrive, dysk u znajomego, sejf u rodziców.
+   Chroni przed wszystkim oprócz utraty kluczy szyfrujących.
+
+**Czego NIE robić:** backupy na tej samej partycji co n8n, na tym samym dysku VPS-a, w
+tym samym datacenter u tego samego dostawcy bez off-site, na nieszyfrowanym dysku USB
+leżącym obok serwera, "tylko w n8n exports w katalogu, bo można cofnąć". To są pozory
+bezpieczeństwa.
+:::
+
+#### Praktyczna minimalna strategia backupu n8n
+
+1. **Codziennie o 03:00:** cron robi `pg_dump` + `tar` z `.n8n`, zapisuje lokalnie,
+   `rclone` wysyła do Backblaze B2 (lub S3, Storage Box).
+2. **Po każdym backupie:** skrypt pinguje healthchecks.io. Brak pingu w ciągu 26 godzin
+   = mail/Slack alarm.
+3. **Retencja:** 14 dni lokalnie, 90 dni w chmurze, 1 kopia kwartalna trzymana rok.
+4. **Raz na kwartał:** restore na świeżą maszynę (VM, drugi VPS, lokalny mini PC).
+   Sprawdź czy n8n startuje, czy workflow są, czy credentials działają.
+5. **Klucz `N8N_ENCRYPTION_KEY`** w menedżerze haseł (Bitwarden/1Password) + na pendrive
+   w szufladzie + u zaufanej osoby. Bez niego backup bazy jest bezużyteczny.
+
+### Modele odpowiedzialności (kto pilnuje czego)
+
+| Komponent | RPi / MiniPC | Mikrus | cyber_Folks | Hostinger | Hetzner | Railway |
+| --- | --- | --- | --- | --- | --- | --- |
+| Sprzęt fizyczny | Ty | Dostawca | Dostawca | Dostawca | Dostawca | Dostawca |
+| Hypervisor / kontener | - | Dostawca | Dostawca | Dostawca | Dostawca | Dostawca |
+| OS i jego patche | Ty | Częściowo | Ty | Ty | Ty | - |
+| Docker / Node | Ty | Dostawca | Dostawca (inst.) | Dostawca (inst.) | Ty | Dostawca |
+| n8n install i upgrade | Ty | Dostawca (auto) | Ty | Ty | Ty | Ty (ponowne wdrożenie) |
+| Workflow, credentials | Ty | Ty | Ty | Ty | Ty | Ty |
+| Backupy systemu | Ty | Codzienne | 28 dni | Cykliczne | Płatne | Częściowo |
+| Backup workflow | Ty | Codzienne | Ty | Ty | Ty | Ty |
+
+To jest mapa, która porządkuje resztę poradnika. Im więcej "Ty" - tym więcej kontroli, ale
+i pracy.
+
+## Raspberry Pi 5
+
+**Pełna kontrola · Idealne RODO · Wymaga umiejętności · ~650 zł zakupu · ~5 zł / mc
+prądu**
+
+Mały komputer ARM64 (Cortex-A76, 2.4 GHz, 2/4/8/16 GB RAM), który stoi u ciebie w domu i
+hostuje n8n 24/7.
+
+| Metryka | Wartość |
+| --- | --- |
+| Koszt zakupu | ~650-900 zł |
+| Stała miesięczna | ~5-10 zł (prąd) |
+| Lokalizacja | U Ciebie |
+| TCO 3 lata | ~1000-1500 zł |
+
+### Czego potrzebujesz fizycznie
+
+- **Raspberry Pi 5 - wariant 8 GB** to optymalna opcja dla n8n (4 GB to minimum, 16 GB
+  jeśli planujesz Ollamę).
+- Oficjalny **zasilacz USB-C 27 W** - słabsze powodują spowolnienie i niestabilność.
+- Active cooler lub porządny case z wentylatorem - pod obciążeniem RPi 5 łatwo dochodzi
+  do 80°C.
+- **Storage:** absolutnie nie tania karta microSD. Oficjalny M.2 HAT+ z NVMe 500 GB.
+- Ethernet do routera (stabilniejszy niż Wi-Fi).
+
+### Instalacja n8n
+
+1. **npm + systemd** - najlżejsze zużycie pamięci, ale najmniej "produkcyjny".
+2. **Docker Compose z SQLite** - najpopularniejszy starter.
+3. **Docker Compose + PostgreSQL + reverse proxy** - wersja produkcyjna. Stos: n8n +
+   Postgres + Caddy/Traefik + cloudflared.
+
+### Bezpieczeństwo, RODO, backupy
+
+<TwoCol>
+  <Panel variant="pros" title="Mocne strony">
+    - Dane fizycznie u ciebie - idealne RODO
+    - Brak DPA potrzebnego dla hostingu
+    - Cloudflare Tunnel + Access - proste i bezpieczne wystawianie na świat (działa pod CGNAT)
+    - Pełna kontrola nad firewallem i konfiguracją
+  </Panel>
+  <Panel variant="cons" title="Słabości">
+    - Ty odpowiadasz za bezpieczeństwo fizyczne (kradzież, pożar, zalanie)
+    - Off-site backup niepodlegający dyskusji
+    - Brak SLA - żaden domowy ISP nie da 99,9%
+    - Karta SD pada cicho i bez ostrzeżenia
+  </Panel>
+</TwoCol>
+
+### Łatwość - ocena
+
+| Wymiar | Ocena | Komentarz |
+| --- | --- | --- |
+| Instalacja | Średnia | 1-3 godziny dla początkującego, 30 min dla doświadczonego |
+| Obsługa codzienna | Łatwa | UI n8n identyczny jak wszędzie |
+| Aktualizacje | Średnia | `docker compose pull && up -d`, czasem release notes |
+| Odtworzenie | Trudna | W razie awarii sprzętu - zapasowy RPi lub zamówienie (2-7 dni) |
+
+:::caution[Na co uważać]
+
+- **Karta SD pada cicho.** Niektóre karty mają tylko ~70 IOPS przy zapisie losowym.
+  Migracja na SSD/NVMe to największy wzrost stabilności.
+- **Brak aktywnego chłodzenia** = spowolnienia i mikro-zawieszenia.
+- **Słaby zasilacz** → undervoltage warningi. Sprawdź `vcgencmd get_throttled`.
+- **Awaria zasilania** uszkadza SQLite. Mały UPS (PiSugar ~200 zł) eliminuje problem.
+- **N8N_ENCRYPTION_KEY na zagubionej karcie SD** = utrata wszystkich credentials.
+
+:::
+
+### Cena szczegółowo
+
+- **Cena zakupu:** ~650-900 zł (Pi 5 8GB ~350 zł + zasilacz 80 zł + cooler 50 zł + NVMe
+  HAT 120 zł + NVMe 500 GB 200 zł + case 100 zł)
+- **Cena miesięczna:** 0 zł (tylko prąd ~5-10 W idle, 15 W pod obciążeniem ≈ 4-8 zł/mc w
+  PL)
+- **Cena utrzymania:** wymiana SD/SSD co 2-3 lata (~150 zł), opcjonalny UPS, domena (~50
+  zł/rok), B2 storage (~5 zł/mc)
+
+<TwoCol>
+  <Panel variant="pros" title="Kiedy warto">
+    - Domowe automatyzacje, prywatne projekty
+    - Nauka samodzielnego hostingu
+    - Mała firma z minimalnym ruchem (\<50 egzekucji/dzień)
+    - Maksymalna prywatność / paranoja RODO
+  </Panel>
+  <Panel variant="cons" title="Kiedy nie">
+    - Krytyczne biznesowo workflow z SLA
+    - Webhooki obsługujące płatności z dużym wolumenem
+    - Nikt nie zajmie się Pi przy awarii (urlop, wyjazd)
+  </Panel>
+</TwoCol>
+
+## Mini PC (Intel N100/N150)
+
+**x86_64 bez ograniczeń · Idealne RODO · Bardziej wydajny niż RPi · ~700 zł zakupu**
+
+Tania, energooszczędna alternatywa dla RPi z architekturą x86_64 - natywna
+kompatybilność z Dockerem, bez ograniczeń ARM, więcej RAM i szybsze NVMe.
+
+| Metryka | Wartość |
+| --- | --- |
+| Koszt zakupu | 600-900 zł |
+| Stała miesięczna | ~3-5 zł (prąd) |
+| TCO 3 lata | ~900-1300 zł |
+| Pobór w bezczynności | 6-10 W |
+
+### Sprzęt
+
+Standardem rynku jest **Intel N100 lub N150** (4 rdzenie, TDP 6W). Modele: Beelink S12
+Pro, Beelink EQ14, GMKtec NucBox G3, MinisForum UN100. Typowa konfiguracja: N100/N150 +
+16 GB DDR4/DDR5 + 500 GB NVMe + dual GbE. Koszt nowego zestawu: 600-900 zł.
+
+### Porównanie z RPi 5
+
+| Wymiar | RPi 5 8GB | Mini PC N100 16GB |
+| --- | --- | --- |
+| Cena startowa | ~650 zł | ~700 zł |
+| CPU | 4× ARM A76 @ 2.4 GHz | 4× x86 @ 3.4 GHz boost |
+| RAM | 8 GB standard (16 GB max) | 16 GB standard, do 32 GB |
+| Storage | NVMe przez HAT | NVMe natywnie |
+| Obrazy ARM-only | Ograniczenie | Brak ograniczenia |
+| Pobór w bezczynności | 5-8 W | 6-10 W |
+| Sprzętowe AES + Quick Sync | Brak | Tak |
+| Ekosystem GPIO/HAT | Bogaty | Brak |
+
+W praktyce dla n8n **mini PC z N100 jest lepszym wyborem w 90% przypadków:** więcej RAM,
+szybciej, mniej ograniczeń software'owych. RPi wygrywa tylko ekosystemem GPIO i gdy
+szukasz fizycznie najmniejszej rzeczy.
+
+### Instalacja n8n
+
+Identyczna jak na RPi, ale prostsza:
+
+- Ubuntu Server 24.04 LTS lub Debian 12 (Bookworm)
+- Docker + Docker Compose (skrypt instalacyjny od Dockera)
+- Stos n8n + Postgres + reverse proxy (Caddy / NPM) + cloudflared
+
+Można też uruchomić **Proxmox VE** i mieć n8n w VM lub LXC z możliwością odpalania
+innych usług (Home Assistant, Pi-hole, NextCloud, Vaultwarden) na tej samej maszynie.
+
+<TwoCol>
+  <Panel variant="pros" title="Plusy względem RPi">
+    - Natywne x86_64 - wszystkie obrazy Docker działają
+    - TPM 2.0 umożliwia LUKS z kluczem w TPM
+    - Łatwiejsza wymiana sprzętu (nowy mini PC + przełóż NVMe)
+    - Idealny pod homelab z Proxmoxem
+  </Panel>
+  <Panel variant="cons" title="Na co uważać">
+    - **Brak UPS** = uszkodzenia bazy przy padzie zasilania
+    - **Tania pamięć NVMe bez DRAM cache** = wolniejsze losowe zapisy
+    - **BIOS bez ECC** - w domowym OK, ale w danych krytycznych zwracaj uwagę
+    - **Kradzież fizyczna** - LUKS na dysku obowiązkowy
+  </Panel>
+</TwoCol>
+
+### Cena szczegółowo
+
+- **Cena zakupu:** 600-900 zł komplet (np. Beelink S12 Pro 16GB/500GB ~700 zł)
+- **Cena miesięczna:** 0 zł, prąd 3-5 zł/mc
+- **Cena utrzymania:** opcjonalny UPS, opcjonalny B2/S3 storage, domena (~50 zł/rok)
+
+## Mikrus (mikr.us)
+
+**Bonus · Polski dostawca · 1-polecenie instalacja · Auto-update n8n · 75-197 zł / rok**
+
+Polski mikrohosting VPS od UW-TEAM.ORG (Jakub Mrugalski). Niskie ceny, gotowy szablon
+n8n z instalacją jednym poleceniem.
+
+### Co dostajesz
+
+| Plan | RAM | Dysk SSD | Cena roczna brutto | Cena miesięczna (pro rata) |
+| --- | --- | --- | --- | --- |
+| Mikrus 2.1 | 1 GB | 10 GB | 75 zł | ~6,25 zł |
+| Mikrus 3.0 | 2 GB | 25 GB | 130 zł | ~10,80 zł |
+| Mikrus 3.5 | 4 GB | 40 GB | 197 zł | ~16,40 zł |
+
+W każdym pakiecie: darmowa subdomena z automatycznym SSL, dostęp root, instalacja n8n
+jednym poleceniem (`n8n_install`), automatyczne codzienne kopie zapasowe scenariuszy,
+automatyczne aktualizacje n8n co kilka dni. **Brak różnicy w cenie między pierwszym a
+kolejnym rokiem** (uczciwy model).
+
+### Instalacja - najprostsza ze wszystkich
+
+1. Kup serwer (Mikrus 2.1 lub wyżej).
+2. Zaloguj się przez SSH używając danych z maila powitalnego.
+3. Wpisz `n8n_install` (lub `n8n_install_postgres` jeśli masz min. 2 GB RAM).
+4. Dostajesz URL, pod którym jest twoja instancja n8n z HTTPS i działa.
+
+Czas: **~2 minuty od loginu do działającego n8n**.
+
+### Lokalizacja i RODO
+
+**Serwery są fizycznie w Finlandii w serwerowni Hetznera.** To Unia Europejska, EOG -
+czyli pod RODO bez problemu. Brak transferu poza UE. UW-TEAM.ORG to legalnie działająca
+polska firma (NIP 6821639338), wystawia faktury VAT automatycznie. **Faktura w PLN**,
+brutto z VAT.
+
+### Łatwość
+
+| Wymiar | Ocena |
+| --- | --- |
+| Instalacja | Bardzo łatwa - 1 polecenie, ~2 minuty |
+| Obsługa | Łatwa |
+| Aktualizacje | Automatyczne co kilka dni |
+| Odtworzenie | Łatwe (Mikrus restore + własny eksport) |
+
+:::caution[Zagrożenia]
+
+- **1 GB RAM (2.1) to bardzo mało** - przy złożonych operacjach szybko upadnie. Minimum
+  3.0 (2 GB) albo 3.5 (4 GB).
+- **Współdzielony zasób hosta** - ekspozycja na hałaśliwych sąsiadów większa niż w
+  cyber_Folks/Hetzner.
+- **Brak gwarantowanych zasobów / SLA** - to nie jest produkt enterprise.
+- **IPv6** w niektórych planach - przy integracjach z legacy systemami może być problem.
+
+:::
+
+<TwoCol>
+  <Panel variant="pros" title="Kiedy warto">
+    - Nauka n8n, pierwsze prawdziwe wdrożenie
+    - Bardzo mały biznes (1-osobowy), kilka workflow
+    - Polska faktura VAT, polski support
+  </Panel>
+  <Panel variant="cons" title="Kiedy nie">
+    - Aplikacje wymagające gwarancji SLA
+    - Wysoki wolumen (>500 egzekucji/dzień)
+    - Lokalne modele AI (Ollama) - RAM za mały
+  </Panel>
+</TwoCol>
+
+## cyber_Folks - VPS z preinstalowanym n8n
+
+**Polski dostawca · DC w Polsce · Polski support 24/7 · Backup 28 dni · Wyższa półka
+cenowa**
+
+Polski dostawca z siedzibą w Poznaniu (cyber_Folks S.A., KRS 0000685595). Oferta "VPS
+Root + AlmaLinux + preinstalowany n8n", dostępna od listopada 2025.
+
+To **opcja z wyższej półki dla firm**: płacisz więcej niż u taniej konkurencji, ale w
+zamian dostajesz bardzo dobrą jakość usług, gwarantowane zasoby i polskie wsparcie 24/7.
+To jeden z najwyżej ocenianych dostawców na polskim rynku (ok. 4,7/5 w Google i Trustpilot
+z tysięcy opinii), chwalony zwłaszcza za szybki i merytoryczny support po polsku. Jeśli
+zależy Ci na świętym spokoju, a budżet nie jest pierwszym kryterium - to solidny wybór.
+
+### Co dostajesz
+
+Cztery plany VPS Root z gwarantowanymi zasobami (AMD Epyc, NVMe, KVM):
+
+| Plan | vCPU | RAM | NVMe | Promo netto/mc | Regularna netto/mc |
+| --- | --- | --- | --- | --- | --- |
+| vroot_START! | 1 × do 3,7 GHz | 2 GB | 30 GB | 24,90 zł | 34,00 zł |
+| vroot_RUN! | 2 × do 3,7 GHz | 4 GB | 60 GB | 49,90 zł | 69,00 zł |
+| **vroot_SPRINT!** (bestseller) | 4 × do 3,7 GHz | 8 GB | 100 GB | 49,90 zł (-54%) | 109,00 zł |
+| vroot_JUMP! | 8 × do 3,7 GHz | 12 GB | 160 GB | 89,90 zł | 179,00 zł |
+
+W każdym: szybkie NVMe, AMD Epyc, KVM, rozszerzony antyDDoS, backup do 28 dni wstecz,
+transfer bez limitu. **Ceny promocyjne obowiązują tylko w pierwszym okresie
+rozliczeniowym.** Aktywacja serwera ~5 min od zaksięgowania wpłaty. AlmaLinux 10 + n8n
+preinstalowane.
+
+### Lokalizacja i RODO
+
+cyber_Folks ma datacentrum w **Polsce** (Poznań/Warszawa). Pod kątem RODO: **najlepsza
+możliwa sytuacja dla firmy z Polski** - polski dostawca, polskie centrum danych, polska
+faktura VAT, polskie wsparcie, polskie prawo. DPA bez wątpliwości.
+
+### Bezpieczeństwo i backupy
+
+- Dostęp root SSH, KVM, gwarantowane zasoby (nie współdzielone z innymi klientami)
+- Rozszerzony antyDDoS w cenie
+- Aktualizacje systemu AlmaLinux: **po twojej stronie**
+- n8n po pierwszej instalacji: **ty go aktualizujesz**
+
+:::note[Backupy - szczegóły]
+**Backup do 28 dni wstecz** - to jeden z głównych atutów oferty (vs typowe "dwa dni" u
+konkurencji). Ale: **przywrócenie jest odpłatne na zlecenie klienta**. W praktyce: rób
+własny dump n8n + Postgres + tar `.n8n` raz na dobę do zewnętrznego storage (Backblaze B2
+/ cyber_Storage).
+:::
+
+### Łatwość
+
+| Wymiar | Ocena |
+| --- | --- |
+| Instalacja | Łatwa - AlmaLinux + n8n preinstalowane |
+| Obsługa | Łatwa - panel klienta + SSH |
+| Aktualizacje | Średnia - n8n + system ręcznie |
+| Odtworzenie | Łatwe (28 dni płatny restore + własny backup) |
+
+:::caution[Zagrożenia]
+
+- **Promocja obowiązuje w pierwszym okresie rozliczeniowym.** Cena regularna jest wyższa
+  (SPRINT 49,90 zł promo → 109 zł netto) - to dostawca z wyższej półki, więc warto od
+  razu planować budżet pod cenę regularną. Rozliczenie roczne pozwala odsunąć podwyżkę w
+  czasie.
+- **Wsparcie tylko na infrastrukturę** - "nie oferujemy wsparcia aplikacyjnego". Standard
+  u każdego VPS Root.
+- **Aktualizacje n8n** - pamiętaj o nich. Cron na `docker compose pull && up -d`.
+- **AlmaLinux 10** jako baza - większość tutoriali jest pod `apt`, tu masz `dnf`.
+
+:::
+
+### Cena szczegółowo
+
+- **Cena zakupu:** 0 zł
+- **Cena miesięczna (promo / regularna):** od ~25/34 zł netto (START) do ~90/179 zł
+  netto (JUMP)
+- **TCO rocznie:** 300-1300 zł netto zależnie od planu i okresu
+
+<TwoCol>
+  <Panel variant="pros" title="Kiedy warto">
+    - **Firmy, które stawiają na jakość i święty spokój** - gwarantowane zasoby, polskie DC i wsparcie 24/7 po polsku
+    - Zależy Ci na polskim wsparciu i polskiej fakturze VAT
+    - Preinstalowane n8n bez konfigurowania systemu od zera
+    - RODO i dane fizycznie w Polsce mają dla Ciebie znaczenie
+  </Panel>
+  <Panel variant="cons" title="Kiedy nie">
+    - Najniższa cena jest priorytetem - Hetzner CX22/CPX11 daje porównywalne zasoby taniej (ale bez polskiego DC i wsparcia po polsku)
+    - Chcesz pełnej kontroli od bare-OS
+  </Panel>
+</TwoCol>
+
+## Hostinger - Self-hosted n8n VPS
+
+**Wdrożenie jednym kliknięciem · Kodee AI assistant · USD billing · Lock 24 mc**
+
+Międzynarodowy dostawca VPS (Litwa, działający globalnie) z bardzo agresywnymi
+promocjami i dedykowanym templatem n8n. Dostępny w wielu lokalizacjach datacenter, w tym
+w Europie.
+
+### Co dostajesz
+
+Cztery plany VPS KVM z n8n preinstalowanym:
+
+| Plan | vCPU | RAM | NVMe | Transfer | Promo/mc | Regularna/mc |
+| --- | --- | --- | --- | --- | --- | --- |
+| KVM 1 | 1 | 4 GB | 50 GB | 4 TB | $6,49 | $11,99 |
+| **KVM 2** (najczęściej wybierany) | 2 | 8 GB | 100 GB | 8 TB | $8,99 | $14,99 |
+| KVM 4 | 4 | 16 GB | 200 GB | 16 TB | $12,99 | $28,99 |
+| KVM 8 | 8 | 32 GB | 400 GB | 32 TB | $25,99 | $49,99 |
+
+Ceny netto, USD. Promocje opierają się na płatności z góry za **24+ miesięcy**. W każdym
+planie: nielimitowane scenariusze, unlimited równoczesne wykonania, nody
+społecznościowe, szablon trybu kolejkowego, **asystent AI Kodee (MCP)**, darmowa domena
+na rok.
+
+### Instalacja
+
+Szablon "Ubuntu 24.04 with n8n" - preinstalowane Docker + n8n. Można też wybrać szablon
+z trybem kolejkowym albo z 100+ gotowymi workflow. **Hostinger podkreśla "wdrożenie
+jednym kliknięciem"** - zamawiasz VPS, wybierasz szablon, czekasz kilka minut, masz
+działającą instancję pod publicznym IP.
+
+### Lokalizacja i RODO
+
+Hostinger ma datacentra w wielu lokalizacjach: USA (Phoenix), UK (Londyn), Niderlandy
+(Amsterdam), Singapur, Litwa (Wilno), Brazylia, Indie. **Dla firm z PL/UE: wybierz EU**
+(Amsterdam, Wilno, Londyn). Hostinger International Ltd. ma siedzibę na Cyprze i Litwie -
+unijna firma, DPA i SCC dostępne na żądanie.
+
+### Bezpieczeństwo
+
+- KVM virtualization, dedykowane vCPU/RAM
+- Migawki i automatyczne backupy (płatne lub w planie)
+- Firewall na poziomie panelu (hPanel)
+- **asystent AI Kodee** (oparty na MCP) do zarządzania VPS przez chat
+- Aktualizacje OS i n8n: **po twojej stronie**. Hostinger: _"support scope covers the
+  VPS environment itself... We do not provide technical support for internal n8n
+  workflows"_
+
+### Łatwość
+
+| Wymiar | Ocena |
+| --- | --- |
+| Instalacja | Bardzo łatwa - szablon jednym kliknięciem |
+| Obsługa | Łatwa - hPanel intuicyjny, Kodee AI |
+| Aktualizacje | Średnia - n8n ręcznie |
+| Odtworzenie | Łatwe - migawka z panelu lub własny backup |
+
+:::caution[Zagrożenia]
+
+- **Cena regularna po promo to często 2-4× cena promo.** Płatność z góry za 24 mc
+  blokuje cię w budżecie.
+- **Wsparcie tylko do infrastruktury** - analogicznie jak cyber_Folks.
+- **Lokalizacja nie zawsze EU domyślnie** - jeśli wybierzesz US przez przypadek,
+  migrowanie to ból.
+- **Faktura w USD** - przewalutowanie + ewentualne VAT-OSS.
+- **Dependencja od ekosystemu Hostingera** - uzależnienie od dostawcy lite.
+
+:::
+
+### Cena szczegółowo
+
+- **Cena zakupu:** 0 zł
+- **Cena miesięczna (promo / regularna):** $6,49/$11,99 (KVM 1) do $25,99/$49,99 (KVM 8)
+- **TCO rocznie:** ~$78-311 promo, ~$144-600 po promo (~310-2400 zł)
+
+<TwoCol>
+  <Panel variant="pros" title="Kiedy warto">
+    - Najprostszy 1-click setup z międzynarodowego dostawcy
+    - Globalna firma / klienci spoza UE
+    - Doceniasz asystenta AI Kodee
+    - Promocja na 24 mc mieści się w budżecie
+  </Panel>
+  <Panel variant="cons" title="Kiedy nie">
+    - Firmy z PL preferujące polskiego dostawcę
+    - Budżet skupiony na stabilnych cenach (Hetzner/Mikrus tańsze)
+    - Nie chcesz lockowania się na 2-letnie umowy
+  </Panel>
+</TwoCol>
+
+## Hetzner Cloud - VPS bez nakładek
+
+**Najlepszy €/moc w UE · DC w DE/FI · SLA 99,9% + C5 · Wymaga umiejętności**
+
+Niemiecki dostawca, lider rynku europejskiego pod kątem stosunku ceny do mocy. Bez
+preinstalowanego n8n - stawiasz Dockerem sam. Wybór dla osób, którym zależy na kontroli
+i optymalnej cenie.
+
+### Co dostajesz
+
+Cztery linie produktowe Cloud: **CX** (shared Intel), **CPX** (shared AMD), **CAX**
+(ARM Ampere), **CCX** (dedykowane vCPU). Aktualny cennik na maj 2026:
+
+| Plan | vCPU | RAM | NVMe | Cena netto/mc |
+| --- | --- | --- | --- | --- |
+| CX23 | 2 (Intel shared) | 4 GB | 40 GB | €3,99 |
+| CX33 | 4 (Intel shared) | 8 GB | 80 GB | ~€7,00 |
+| CPX11 | 2 (AMD shared) | 2 GB | 40 GB | €5,99 |
+| CPX21 | 3 (AMD shared) | 4 GB | 80 GB | ~€9,00 |
+| CAX11 (ARM) | 2 | 4 GB | 40 GB | €4,49 |
+| CAX21 (ARM) | 4 | 8 GB | 80 GB | ~€8,00 |
+| **CCX13** | 2 (dedykowane) | 8 GB | 80 GB | €16,99 |
+
+Wszystkie z 20 TB transferu i 1 IPv4 w cenie. Płatne miesięcznie (max cap) lub
+godzinowo. **Brak długoterminowych zobowiązań.**
+
+### Instalacja n8n
+
+To VPS bez nakładek, stawiasz sam. Dwie typowe ścieżki:
+
+1. **Szybka (oficjalna n8n + Hetzner):** wybierasz Docker CE App image przy
+   zamawianiu, Hetzner stawia Ubuntu z Dockerem. Klonujesz oficjalny stos `n8n +
+   Caddy`, edytujesz `.env`, `docker compose up -d`.
+2. **Pełna kontrola:** Ubuntu/Debian, własne `docker-compose.yml` z n8n + Postgres +
+   Caddy/NPM, Cloudflare DNS, własna konfiguracja firewall.
+
+Czas: 30 minut dla doświadczonego, 1-2 godziny dla początkującego z dokumentacją n8n.
+
+### Lokalizacja i RODO
+
+**Centra danych:** Falkenstein i Norymberga (Niemcy), Helsinki (Finlandia), Hillsboro i
+Ashburn (USA), Singapur. Dla firm z UE/PL: wybierz **Norymbergę, Falkenstein lub
+Helsinki**. Wszystkie ISO/IEC 27001 certyfikowane.
+
+Hetzner Online GmbH ma siedzibę w Niemczech, jest **zgodny z RODO**, DPA dostępne
+standardowo. To prawdopodobnie najbardziej "podręcznikowo zgodny z przepisami"
+europejski dostawca pod kątem RODO. **C5 (BSI) certyfikat**.
+
+### Bezpieczeństwo
+
+- KVM, dedykowane lub shared vCPU zależnie od linii
+- **Stateful firewall w panelu, w cenie**
+- Networks (prywatne sieci między serwerami)
+- Migawki i backupy (płatne osobno, ~20% wartości serwera za pełen backup co tydzień)
+- **SLA 99,9% z C5 certyfikacją**
+
+### Backupy
+
+Backupy automatyczne (cotygodniowe migawki) jako opcja płatna ~20% kosztu serwera. Dla
+CX23 = ~€0,80/mc. Standardowo dorzucasz własny skrypt:
+
+- `pg_dump` z PostgreSQL + `tar` z wolumenu `.n8n`
+- `rclone` do **Hetzner Storage Box** (od €3,29/mc za 1 TB) lub Object Storage (S3, od
+  €6,49/mc), lub Backblaze B2
+
+Off-site (poza Hetzner) ważne: jeśli Hetzner ma poważny problem, nie chcesz mieć tam
+wszystkich kopii.
+
+### Łatwość
+
+| Wymiar | Ocena |
+| --- | --- |
+| Instalacja | Średnia - bez gotowca, dokumentacja n8n bardzo dobra |
+| Obsługa | Łatwa - panel intuicyjny, CLI/API/Terraform |
+| Aktualizacje | Średnia - ręczne lub cron |
+| Odtworzenie | Łatwe - snapshot (minuty) lub backup (15-30 min) |
+
+:::caution[Zagrożenia]
+
+- **Brak gotowca** - krzywa wejścia większa niż Mikrus/Hostinger/cyber_Folks.
+- **Hetzner ma rygorystyczne polityki anty-abuse.** Masowe maile, skanowanie sieci =
+  łatwo wylądować z blokadą.
+- **Hetzner od kwietnia 2026 podniósł ceny o 25-40%** dla niektórych planów.
+- **Wsparcie tylko mailowo, w godzinach pracy DE** - niemiecki support potrafi być
+  suchy, ale rzeczowy.
+- **Faktura w EUR** - przewalutowanie. NIP UE wystarczy do faktury bez VAT (reverse
+  charge).
+
+:::
+
+### Cena szczegółowo
+
+- **Cena zakupu:** 0 zł
+- **Cena miesięczna:** €3,99 (CX23) - €17 (CCX13) netto. Plus €0,80-3,40 za backupy.
+- **TCO rocznie:** €60-250 (~250-1050 zł) plus VAT (lub bez VAT przy reverse charge)
+
+To **najtańszy realnie produkcyjny VPS na liście**. CX23 lub CAX11 z 4 GB RAM za
+€3,99-4,49/mc to wartość praktycznie nie do pobicia w Europie.
+
+<TwoCol>
+  <Panel variant="pros" title="Kiedy warto">
+    - Firmy techniczne, doświadczenie Docker/Linux
+    - Optymalizujesz koszty, najlepszy €/moc w UE
+    - Niemieckie/fińskie DC bez kompromisów RODO
+    - Wdrażasz wielu klientów - łatwe automatyzowanie przez API/Terraform
+  </Panel>
+  <Panel variant="cons" title="Kiedy nie">
+    - Brak doświadczenia z Linuksem i Dockerem
+    - Potrzebujesz polskiej faktury VAT
+    - Potrzebujesz wsparcia premium 24/7
+    - Workflow potencjalnie podobne do spamu (masowa wysyłka maili)
+  </Panel>
+</TwoCol>
+
+## Railway
+
+**Najszybsze wdrożenie · Rozliczanie wg zużycia · RODO ryzykowne · Uzależnienie od
+dostawcy**
+
+Platforma PaaS z USA, oparta o rozliczanie wg zużycia. Konkurent Heroku, optymalizowany
+pod komfort pracy programisty. Dla n8n istnieje oficjalny szablon, który stawia n8n +
+Postgres jednym kliknięciem.
+
+### Co dostajesz
+
+Railway to model "git push → wdrożenie". Klikasz "Deploy n8n template", logujesz się
+przez GitHub, otrzymujesz działającą instancję pod `*.up.railway.app` z HTTPS w ~2
+minuty.
+
+| Plan | Cena bazowa | Co wchodzi |
+| --- | --- | --- |
+| Próbny | $0 (jednorazowo $5 saldo, 30 dni) | Do 2 vCPU, 1 GB RAM, max 5 projektów |
+| Free | $0 | $1/mc kredytu, 0,5 GB RAM, 1 vCPU |
+| **Hobby** | $5/mc | $5 kredytu na zużycie wliczone |
+| Pro | $20/mc per seat | $20 kredytu/seat, funkcje zespołowe |
+| Enterprise | od $2000/mc | Dedykowana infra, SSO, audit, HIPAA |
+
+**Billing:** opłata abonamentowa + zużycie (rozliczane per sekunda):
+
+- ~$0,000463 per vCPU-minuta (≈ $0,028/vCPU-godzina)
+- ~$0,014 per GB-godzina RAM
+- ~$0,25 per GB-miesiąc storage
+- $0,10 per GB egress
+
+**Realny koszt n8n na Hobby:** ~$5/mc przy normalnym użyciu (wpada w wliczone saldo), do
+~$14/mc pod większym obciążeniem.
+
+### Instalacja - najszybsza ze wszystkich
+
+1. Wejdź na railway.com/deploy/n8n
+2. "Deploy n8n"
+3. Login GitHub
+4. Pojawia się projekt z dwoma serwisami: n8n + Postgres. Czekasz ~2 minuty.
+5. W Variables ustawiasz `WEBHOOK_URL`, `N8N_ENCRYPTION_KEY` (Railway generuje, ale
+   zapisz!), opcjonalnie własną domenę.
+
+### Lokalizacja i RODO
+
+:::danger[Tu jest największy problem dla firm UE]
+Railway ma 4 regiony - głównie USA + jeden w UE (Amsterdam) + Singapur. **Wybierz
+Amsterdam (EU-West)** dla RODO compliance.
+
+Ale: Railway Corp. ma siedzibę w USA. Mimo lokalizacji datacentrum w UE, **dostęp do
+danych mogą mieć US-based pracownicy**. Trzeba podpisać DPA i SCC. Po wyroku Schrems II
+i z aktualną Data Privacy Framework - możliwe, ale wymaga audytu i analizy ryzyka. Dla
+firm wrażliwych na RODO (kancelarie prawne, medycyna, sektor publiczny) - **Railway jest
+najbardziej ryzykownym wyborem na liście**.
+:::
+
+### Bezpieczeństwo
+
+- Kontenery na infrastrukturze Railway, zarządzane Postgres
+- HTTPS automatyczny pod subdomeną `*.railway.app`
+- Variables szyfrowane
+- **Brak dostępu do hosta** - nie ma SSH, kernela, firewalla per server
+- Aktualizacje systemu: Railway. n8n: ty (ponowne wdrożenie z nowym tagiem)
+
+### Backupy
+
+- Railway robi backupy infrastruktury (Postgres ma migawki)
+- Workflow i credentials żyją w Postgres → backup Postgres = backup wszystkiego
+- Możesz dodać template "Postgres-S3-backups" → robi cron do bucketu S3
+- **N8N_ENCRYPTION_KEY zapisany w Variables Railway** - backup ręczny obowiązkowy!
+
+### Łatwość
+
+| Wymiar | Ocena |
+| --- | --- |
+| Instalacja | Najłatwiejsza ze wszystkich - ~2 min |
+| Obsługa | Łatwa - świetne dashboardy, logi, metryki |
+| Aktualizacje | Łatwe - ponowne wdrożenie z nowym tagiem |
+| Odtworzenie | Łatwe, ale uzależnione od Railway (lock-in) |
+
+:::caution[Zagrożenia]
+
+- **Rozliczanie wg zużycia potrafi zaskoczyć.** Jeden workflow z pętlą może zżerać CPU i
+  wygenerować rachunek $50+ za noc. **Ustaw alerty kosztowe!**
+- **Brak permanentnego darmowego planu** - po wykorzystaniu salda próbnego $5 (1-2
+  tygodnie) musisz przejść na Hobby.
+- **Lock-in:** migracja n8n z Railway na VPS nie jest trywialna.
+- **Faktura w USD**, faktury Railway nie są "polish-friendly".
+- **Polityka RODO** - największa wątpliwość dla firm UE.
+- **Railway od marca 2025 wymaga karty kredytowej** nawet do trialu.
+
+:::
+
+### Cena szczegółowo
+
+- **Cena zakupu:** $0
+- **Cena miesięczna:** od $5 (Hobby) do $20+/mc (Pro) plus zużycie. Realnie $5-14 na
+  małym n8n.
+- **TCO rocznie:** ~$60-170 (~240-675 zł) dla małej-średniej instancji
+
+<TwoCol>
+  <Panel variant="pros" title="Kiedy warto">
+    - Eksperymenty, MVP, projekty boczne
+    - Programista przede wszystkim - chcesz `git push` i koniec
+    - Małe wolumeny, akceptujesz lock-in
+    - Międzynarodowe firmy, US-based stack OK
+  </Panel>
+  <Panel variant="cons" title="Kiedy nie">
+    - Polska firma dla polskich klientów - RODO
+    - Sektor regulowany (finanse, zdrowie, publiczny)
+    - Duży wolumen - Hetzner CX23 daje więcej za $4
+    - Awersja na usage-based i niespodziewane rachunki
+  </Panel>
+</TwoCol>
+
+## Porównanie skrótowe - wszystkie środowiska obok siebie
+
+Ceny przeliczone na PLN przy roboczym kursie 1 EUR ≈ 4,30 zł, 1 USD ≈ 3,95 zł (kurs maj
+2026).
+
+### Cena i wartość
+
+| Rozwiązanie | Koszt zakupu | Stała / mc | TCO/rok (małe użycie) | TCO/rok (średnie) |
+| --- | --- | --- | --- | --- |
+| **RPi 5 (8GB)** | ~700 zł | ~5 zł (prąd) | ~760 zł (1. rok) → ~60 zł | jw. |
+| **Mini PC N100** | ~700 zł | ~4 zł (prąd) | ~750 zł (1. rok) → ~50 zł | jw. |
+| **Mikrus 3.0** | 0 zł | ~11 zł | **~130 zł** | ~200 zł (Mikrus 3.5) |
+| **Mikrus 3.5** | 0 zł | ~16 zł | ~200 zł | ~200 zł |
+| **cyber_Folks vroot_RUN** | 0 zł | ~50 / ~69 zł netto | ~600 promo, ~850 reg. | ~1300 zł (SPRINT reg.) |
+| **Hostinger KVM 2** | 0 zł | ~$9 / ~$15 | ~$108 promo (~430 zł) | ~$180 reg (~710 zł) |
+| **Hetzner CX23** | 0 zł | ~€4 | **~€60 (~260 zł)** | ~€90 (~380 zł, CX33) |
+| **Hetzner CCX13 ded.** | 0 zł | ~€17 | ~€205 (~880 zł) | jw. |
+| **Railway Hobby** | $0 | $5 minimum | ~$60-90 (~240-360 zł) | ~$150 (~600 zł) |
+
+### Łatwość i wymagane umiejętności
+
+| Rozwiązanie | Instalacja | Obsługa | Aktualizacje | Odtworzenie | Wymagane umiejętności |
+| --- | --- | --- | --- | --- | --- |
+| Raspberry Pi 5 | Średnia | Łatwa | Średnia | Trudna | Linux + Docker + sieci |
+| Mini PC N100 | Średnia | Łatwa | Średnia | Średnia | Linux + Docker |
+| Mikrus | Bardzo łatwa | Łatwa | Auto | Łatwa | SSH + 1 polecenie |
+| cyber_Folks z n8n | Łatwa | Łatwa | Średnia | Łatwa | Linux + Docker basics |
+| Hostinger z n8n | Bardzo łatwa | Łatwa | Średnia | Łatwa | Linux + Docker basics |
+| Hetzner czysty | Średnia | Łatwa | Średnia | Łatwa | Linux + Docker (mid) |
+| Railway | Najłatwiejsza | Łatwa | Łatwa | Lock-in | Git + dashboard |
+
+### RODO, lokalizacja, kontrola
+
+| Rozwiązanie | Lokalizacja danych | RODO (dla firmy PL) | Kontrola |
+| --- | --- | --- | --- |
+| RPi / Mini PC | U Ciebie fizycznie | Idealne | Pełna |
+| Mikrus | Finlandia (Hetzner) | OK | Pełna (VPS Root) |
+| cyber_Folks | **Polska** | Najlepsza | Pełna (VPS Root) |
+| Hostinger | Wybór (najlepiej UE) | OK przy EU + DPA | Pełna (VPS Root) |
+| Hetzner | DE / FI / US / SG | Bardzo dobra (DE/FI) | Pełna (VPS Root) |
+| Railway | US / NL / SG | Ryzykowne (US HQ) | Ograniczona (PaaS) |
+
+### Wsparcie i backupy
+
+| Rozwiązanie | Wsparcie | Wbudowane backupy | SLA |
+| --- | --- | --- | --- |
+| RPi / Mini PC | Brak (community) | Brak (wszystko sam) | Brak |
+| Mikrus | Polski (czat/mail) | Codzienne (workflow) | Brak formalnego |
+| cyber_Folks | Polski 24/7 | Do 28 dni (płatny restore) | Standard branżowy |
+| Hostinger | Anglojęzyczny 24/7 + Kodee AI | Migawki / planowe | 99,9% |
+| Hetzner | Mail, godziny pracy DE | Płatne ~20% wart. serwera | 99,9% z C5 |
+| Railway | Discord + tickety Pro | Częściowe (Postgres) | Pro/Enterprise |
+
+### Zagrożenia - szybka ściąga
+
+| Rozwiązanie | Główne zagrożenia / Na co uważać |
+| --- | --- |
+| **RPi 5** | Karta SD pada cicho; brak chłodzenia = spowolnienie taktowania; awaria zasilania uszkadza SQLite; brak SLA |
+| **Mini PC** | Brak UPS = uszkodzenia bazy; tania NVMe bez DRAM cache; kradzież fizyczna |
+| **Mikrus** | 1 GB RAM (2.1) za mało dla produkcji; hałaśliwi sąsiedzi; brak SLA; IPv6 w niższych planach |
+| **cyber_Folks** | Wyższa półka cenowa (cena regularna po promo); restore z backupu płatny; wsparcie tylko na infrastrukturę (standard VPS Root) |
+| **Hostinger** | Cena regularna 2-4× promo; faktura USD; uzależnienie od dostawcy lite; trzeba świadomie wybrać EU DC |
+| **Hetzner** | Brak gotowca; rygorystyczne anty-abuse; podwyżki w 2026; wsparcie tylko mail |
+| **Railway** | Usage-based potrafi zaskoczyć; lock-in; RODO ryzykowne; wymóg karty kredytowej |
+
+## Macierz decyzyjna - co wybrać kiedy
+
+Skrótowe sugestie na podstawie typowych profili użytkowników.
+
+### "Uczę się n8n / robię swoje pierwsze automatyzacje"
+
+**→ Mikrus 2.1 lub 3.0** (75-130 zł/rok). Najmniej tarcia, jedno polecenie, działa.
+Polska faktura.
+
+_Alternatywa: Railway plan próbny przez 30 dni za $0, potem decyzja co dalej._
+
+### "Mała firma, n8n 24/7 dla klientów (do 50 egzekucji/dzień)"
+
+- **→ Mikrus 3.5** (197 zł/rok, 4 GB) - jeśli prywatność i polska faktura są priorytetem
+- **→ Hetzner CX23/CAX11** (€4-4,50/mc) - jeśli chcesz najlepszego stosunku jakości do
+  ceny w UE
+- **→ cyber_Folks vroot_RUN** (~600 zł/rok promo) - jeśli stawiasz na jakość, polskie DC
+  i wsparcie 24/7 po polsku
+
+### "Firma średnia, kilkudziesięciu klientów, klucz biznesowy"
+
+**→ Hetzner CCX13** (€17/mc, dedykowane vCPU, 8 GB RAM, SLA 99,9% z C5)
+
+_Alternatywa: cyber_Folks vroot_SPRINT (8 GB) za 109 zł/mc - drożej, ale bardzo dobra
+jakość, polskie DC i wsparcie 24/7 po polsku._
+
+Backup off-site obowiązkowy. Cloudflare Tunnel + Access przed loginem n8n dla podwójnej
+autoryzacji.
+
+### "Firma duża, RODO krytyczne, sektor regulowany"
+
+**→ cyber_Folks VPS Managed** lub dedykowany w PL z DPA
+
+_Alternatywa: Hetzner Cloud z lokalizacją Falkenstein/Helsinki + DPA + dedykowane vCPU +
+SSO._
+
+**Unikać:** Railway (US-headquartered), Hostinger jeśli nie wybierzesz świadomie EU.
+
+### "Homelab, integracje IoT, prywatność jako priorytet"
+
+**→ Mini PC z N100 + Proxmox** + n8n w LXC + Home Assistant + Pi-hole + NextCloud na tej
+samej maszynie. Cloudflare Tunnel.
+
+_Alternatywa: Raspberry Pi 5 8GB, jeśli chcesz GPIO/HAT._
+
+### "Eksperymentuję, MVP startupu, wdrożenie ma być szybkie"
+
+**→ Railway.** Najkrótsza ścieżka od pomysłu do działającego adresu. Akceptuj ryzyko
+lock-in i RODO; gdy pomysł chwyta - migrujesz.
+
+### "Budżet zero, chcę spróbować bez karty kredytowej"
+
+**→ Raspberry Pi z piwnicy / stary mini PC z OLX** (300-500 zł za używany Beelink) +
+Cloudflare Tunnel + domena `.xyz` za 50 zł/rok.
+
+## Wyniki testów własnych
+
+Gotowa metodyka i tabele, według których samodzielnie zmierzysz i porównasz każde
+środowisko. Wypełnij je wynikami własnych pomiarów.
+
+### Metodologia testów
+
+- **Workflow referencyjny:** ten sam dla wszystkich środowisk (np. webhook → 5 nodes →
+  response)
+- **Liczba egzekucji w teście:** stała próba, np. 100-1000 powtórzeń
+- **Okres obserwacji:** np. 24-72h ciągłej pracy
+- **Punkty pomiarowe:** czas instalacji od zera, czas wykonania workflow, zużycie
+  RAM/CPU, czas odtworzenia z backupu, koszt netto po miesiącu
+
+### Wyniki - tabela do wypełnienia
+
+| Środowisko | Czas instalacji | Czas workflow | RAM idle | RAM pod obc. | Czas restore | Koszt po 1 mc | Uwagi |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Raspberry Pi 5 | - | - | - | - | - | - | - |
+| Mini PC N100 | - | - | - | - | - | - | - |
+| Mikrus 3.5 | - | - | - | - | - | - | - |
+| cyber_Folks vroot_SPRINT | - | - | - | - | - | - | - |
+| Hostinger KVM 2 | - | - | - | - | - | - | - |
+| Hetzner CX23 | - | - | - | - | - | - | - |
+| Railway Hobby | - | - | - | - | - | - | - |
+
+### Katalog testów - propozycja zestawu pomiarowego
+
+Poniżej kompletny zestaw **25 testów** podzielonych na 9 kategorii. Każdy test ma kroki,
+oczekiwany wynik, narzędzie do uruchomienia i poziom istotności. Zacznij od testów
+krytycznych - są najbardziej diagnostyczne.
+
+| Poziom | Znaczenie |
+| --- | --- |
+| **Krytyczny** | bez tego nie idziesz do produkcji |
+| **Wysoki** | szybko zaboli na produkcji |
+| **Średni** | warto sprawdzić |
+| **Niski** | nice to know |
+
+#### Benchmarki infrastrukturalne (sprzęt, sieć, dysk)
+
+Uruchom raz na każdym środowisku - pokazują "surową moc" niezależnie od n8n.
+
+**B-01 · CPU benchmark (sysbench / Geekbench)** - `INFRA`, istotność: krytyczna
+
+Wynik single-core i multi-core. n8n w trybie domyślnym jest single-threaded, więc
+single-core ma większe znaczenie.
+
+Kroki:
+
+1. Zaloguj się przez SSH do serwera
+2. Zainstaluj sysbench (`apt install sysbench`)
+3. Uruchom test single-core: `sysbench cpu --threads=1 run`
+4. Uruchom test multi-core: `sysbench cpu --threads=$(nproc) run`
+
+Komenda all-in-one (YABS):
+
+```bash
+curl -sL yabs.sh | bash -s -- -i -d
+```
+
+**Oczekiwany wynik:** single-core events/sec ≥ 3000 (typowy VPS), multi-core skaluje się
+~liniowo
+
+---
+
+**B-02 · Dysk IOPS i przepustowość (fio)** - `INFRA`, istotność: krytyczna
+
+Wydajność PostgreSQL i SQLite zależy bezpośrednio od IOPS. NVMe daje 10-50× więcej niż
+SATA HDD i kart SD.
+
+Random 4K read/write (typowy wzorzec DB):
+
+```bash
+fio --name=randrw --ioengine=libaio --rw=randrw --bs=4k \
+  --numjobs=4 --size=1G --runtime=60 --direct=1 --group_reporting
+```
+
+Sequential 1M throughput (backupy):
+
+```bash
+fio --name=seq --rw=write --bs=1M --size=2G --numjobs=1 --runtime=30
+```
+
+**Oczekiwany wynik:** NVMe: ≥ 20 000 IOPS random; SSD SATA: ≥ 5 000; karta SD: typowo
+100-500 (uważaj!)
+
+---
+
+**B-03 · Przepustowość i latencja RAM** - `INFRA`, istotność: wysoka
+
+n8n przetwarza duże tablice JSON w pamięci - wolny RAM = wolniejsze workflow z dużymi
+payloadami.
+
+Test sysbench memory:
+
+```bash
+sysbench memory --memory-block-size=1M \
+  --memory-total-size=10G run
+```
+
+Dostępna pamięć w czasie testów:
+
+```bash
+free -h
+vmstat 1 10
+```
+
+**Oczekiwany wynik:** ≥ 5 000 MiB/s na nowoczesnym DDR4/DDR5; ARM Pi 5 dostaje ~3 000
+MiB/s
+
+---
+
+**B-04 · Latencja sieci do popularnych API** - `INFRA`, istotność: wysoka
+
+Workflow z integracjami z OpenAI, Google, Stripe - latencja do tych endpointów wpływa na
+całkowity czas wykonania.
+
+Ping do najpopularniejszych API:
+
+```bash
+for h in api.openai.com www.googleapis.com api.stripe.com api.notion.com; do
+  echo "=== $h ==="
+  ping -c 5 -q $h | tail -1
+done
+```
+
+Throughput (iperf3 do serwera EU):
+
+```bash
+iperf3 -c speedtest.fra1.de.leaseweb.net -t 30
+```
+
+**Oczekiwany wynik:** latencja do EU API \< 30 ms (DC w EU), \< 150 ms (DC w US);
+throughput ≥ 1 Gbps
+
+---
+
+**B-05 · Czas startu kontenera n8n (zimny start)** - `INFRA`, istotność: średnia
+
+Po restarcie serwera lub kontenera - ile sekund do gotowości n8n? Wpływa na czas
+odzyskiwania po awarii.
+
+Test zimny start:
+
+```bash
+docker compose down
+time docker compose up -d
+# Czekaj aż /healthz zwróci 200:
+until curl -fs http://localhost:5678/healthz; do sleep 1; done
+```
+
+Test restart na ciepło:
+
+```bash
+time docker compose restart n8n
+```
+
+**Oczekiwany wynik:** zimny start \< 30s na VPS, \< 60s na RPi/Mini PC; restart na ciepło <
+15s
+
+#### Wydajność aplikacji n8n
+
+**T-01 · Czas odpowiedzi webhooka (czas odpowiedzi)** - `WYDAJNOŚĆ`, istotność:
+krytyczna
+
+Czas od wysłania żądania do otrzymania odpowiedzi. Najważniejszy parametr dla webhooków
+synchronicznych.
+
+Kroki:
+
+1. Utwórz scenariusz z Webhook Node jako trigger
+2. Dodaj node "Respond to Webhook" z prostą odpowiedzią JSON
+3. Wyślij 10 żądań POST przez curl
+4. Zmierz średni, P50, P95, P99 czas odpowiedzi
+
+Narzędzie:
+
+```bash
+for i in {1..10}; do
+  curl -w "%{time_total}\n" -s -o /dev/null \
+    -X POST https://twoj-n8n.pl/webhook/test
+done | awk '{s+=$1} END {print "avg:", s/NR}'
+```
+
+**Oczekiwany wynik:** średni czas \< 500 ms, P99 \< 1500 ms
+
+---
+
+**T-02 · Równoczesne wykonania (równoległe wykonania)** - `WYDAJNOŚĆ`, istotność:
+krytyczna
+
+Wykrywa bottlenecki i limity systemu. Najbardziej diagnostyczny test różnicujący
+platformy.
+
+Kroki:
+
+1. Utwórz scenariusz Webhook → Set → Respond
+2. Wyślij 50 równoległych żądań
+3. Sprawdź, ile zakończyło się sukcesem (HTTP 200)
+4. Sprawdź, czy nie ma błędów 429/503
+
+Narzędzie (Apache Bench):
+
+```bash
+ab -n 100 -c 50 -m POST \
+  -p payload.json -T application/json \
+  https://twoj-n8n.pl/webhook/test
+```
+
+**Oczekiwany wynik:** ≥ 90% żądań obsłużonych bez błędów; brak 5xx
+
+---
+
+**T-03 · Długo działające scenariusze (długie wykonania)** - `WYDAJNOŚĆ`, istotność:
+wysoka
+
+Testuje, czy hosting nie terminuje długo działających workflow (reverse proxy timeout,
+idle utrata połączenia).
+
+Kroki:
+
+1. Function Node z sleep(120000) - 2 minuty
+2. Wywołaj przez webhook
+3. Sprawdź, czy workflow dobiegł końca
+4. Sprawdź logi pod kątem timeout
+
+Kod Function Node:
+
+```js
+await new Promise((r) => setTimeout(r, 120000));
+return [{ json: { done: true } }];
+```
+
+**Oczekiwany wynik:** workflow wykonany po 120s bez timeout; brak błędów 504
+
+---
+
+**T-04 · Przetwarzanie dużych ładunków danych (duże dane)** - `WYDAJNOŚĆ`, istotność:
+wysoka
+
+Limity rozmiaru danych - czy hosting akceptuje duże ładunki JSON. Reverse proxy ma
+często limit ~1 MB domyślnie.
+
+Kroki:
+
+1. Wygeneruj JSON z 10 000 rekordów (~5 MB)
+2. Wyślij jako payload do webhooka
+3. Przetwórz przez Split In Batches node
+4. Zmierz czas przetwarzania całości
+
+Narzędzie:
+
+```bash
+python3 -c "import json; print(json.dumps(
+  [{'id':i,'data':'x'*500} for i in range(10000)]
+))" | curl -s -X POST \
+  -H 'Content-Type: application/json' \
+  -d @- https://twoj-n8n.pl/webhook/big
+```
+
+**Oczekiwany wynik:** payload 5MB+ zaakceptowany, przetworzony \< 30s
+
+#### Sieć i integracje zewnętrzne
+
+**T-05 · Zewnętrzne żądania HTTP (połączenia wychodzące)** - `SIEĆ`, istotność:
+krytyczna
+
+Czy workflow może wykonywać żądania do zewnętrznych API bez blokad sieciowych (NAT,
+firewall, geo-blocking).
+
+Kroki:
+
+1. HTTP Request node → GET httpbin.org/get
+2. HTTP Request → GET api.github.com
+3. HTTP Request → GET httpbin.org/ip (poznaj IP wychodzące)
+4. Sprawdź, czy wszystkie zwracają 200
+
+Z poziomu shell:
+
+```bash
+docker compose exec n8n curl -s https://httpbin.org/ip
+docker compose exec n8n curl -I https://api.openai.com/v1/models
+```
+
+**Oczekiwany wynik:** wszystkie zewnętrzne żądania zakończone sukcesem; IP wychodzące w
+EU/PL
+
+---
+
+**T-06 · SSL/HTTPS webhooka (certyfikat)** - `SIEĆ`, istotność: krytyczna
+
+OAuth2 dostawców (Google, Microsoft) wymaga ważnego HTTPS - bez tego nie podłączysz
+integracji.
+
+Sprawdzenie certyfikatu:
+
+```bash
+echo | openssl s_client -connect twoj-n8n.pl:443 \
+  2>/dev/null | openssl x509 -noout -dates -issuer -subject
+```
+
+Test redirectu HTTP → HTTPS:
+
+```bash
+curl -I http://twoj-n8n.pl
+# Oczekiwane: 301/308 → https://
+```
+
+**Oczekiwany wynik:** certyfikat ważny > 30 dni, HTTPS enforced (HSTS), grade A na SSL
+Labs
+
+---
+
+**T-07 · Obsługa limitów żądań (obsługa 429)** - `SIEĆ`, istotność: średnia
+
+Zachowanie przy przekroczeniu limitów API - czy n8n robi retry z backoffem, czy się
+wywala.
+
+Kroki:
+
+1. HTTP Request z retry: 3 próby, interval 5s
+2. GET na httpbin.org/status/429
+3. Sprawdź, czy workflow ponawia próby
+4. Sprawdź, czy Error Workflow został wywołany
+
+Konfiguracja node:
+
+```text
+HTTP Request → Options:
+  retry: 3
+  retryInterval: 5000
+  alwaysOutputData: true
+```
+
+**Oczekiwany wynik:** błąd 429 obsłużony, retry wykonany 3 razy, finalnie Error Workflow
+
+#### Niezawodność i stabilność
+
+**T-08 · Obsługa błędów i ponowienia** - `NIEZAWODNOŚĆ`, istotność: wysoka
+
+Mechanizmy obsługi błędów i automatycznego ponawiania - kluczowe dla workflow
+produkcyjnych.
+
+Kroki:
+
+1. Scenariusz z błędnym HTTP Request (404 URL)
+2. Settings → Error Workflow (drugi workflow)
+3. Włącz retry: 3 próby, interval 5s
+4. Sprawdź, czy Error Workflow wystartował po wszystkich próbach
+
+Konfiguracja:
+
+```text
+Settings → Error Workflow: [ID error wf]
+Node → On Error: continueErrorOutput
+Node → retry: 3, interval: 5000ms
+```
+
+**Oczekiwany wynik:** Error Workflow uruchomiony, wszystkie retry wykonane, logi
+czytelne
+
+---
+
+**T-09 · Precyzja harmonogramu cron (precyzja harmonogramu)** - `NIEZAWODNOŚĆ`,
+istotność: wysoka
+
+Czy Schedule Triggers uruchamiają się punktualnie. Pominięcie wykonań = zepsute SLA.
+
+Kroki:
+
+1. Schedule Trigger co 1 minutę
+2. HTTP Request POST do webhook.site z `$now`
+3. Monitoruj przez minimum 60 minut
+4. Oblicz odchylenie + liczbę pominiętych
+
+Workflow:
+
+```text
+Schedule Trigger (every minute) →
+  HTTP Request POST https://webhook.site/UUID
+  body: {{ $now.toISO() }}
+```
+
+**Oczekiwany wynik:** odchylenie \< 5 sekund, 0 pominiętych w 60 minutach
+
+---
+
+**T-10 · Trwałość danych (przeżycie restartów)** - `NIEZAWODNOŚĆ`, istotność: średnia
+
+Czy dane w Static Data przeżywają restart kontenera i restart serwera.
+
+Kroki:
+
+1. Zapisz wartość przez Static Data w workflow
+2. Zrestartuj kontener (`docker compose restart`)
+3. Wywołaj workflow ponownie
+4. Sprawdź, czy Static Data nadal istnieje
+
+Kod Function Node:
+
+```js
+const data = getWorkflowStaticData('global');
+data.counter = (data.counter || 0) + 1;
+return [{ json: { counter: data.counter } }];
+```
+
+**Oczekiwany wynik:** Static Data zachowane po restarcie (counter rośnie sekwencyjnie)
+
+#### Zasoby (RAM, CPU, dysk)
+
+**T-11 · Test limitu pamięci (limit RAM)** - `ZASOBY`, istotność: średnia
+
+Limit pamięci RAM i zachowanie przy jego przekroczeniu - jasny OOM error vs crash
+całego n8n.
+
+Kroki:
+
+1. Function Node alokujący 500 MB tablicy
+2. Wykonaj i obserwuj błędy
+3. Stopniowo zwiększaj do 1 GB, 2 GB
+4. Sprawdź, jaki OOM error pojawia się w logach
+
+Kod:
+
+```js
+const arr = [];
+for (let i = 0; i < 5000000; i++) arr.push({ data: 'x'.repeat(100) });
+return [{ json: { size: arr.length } }];
+```
+
+**Oczekiwany wynik:** jasny OOM error, brak crash całego n8n, kontener restartuje się
+
+---
+
+**T-12 · Miejsce na dysku i pliki binarne** - `ZASOBY`, istotność: średnia
+
+Obsługa plików binarnych - pobieranie, przetwarzanie, limity dyskowe. Pięta achillesowa
+n8n.
+
+Kroki:
+
+1. Workflow pobierający plik 100 MB przez HTTP Request
+2. Zapisz przez Write Binary File node
+3. Sprawdź, czy plik dostępny w kolejnym nodzie
+4. Sprawdź dostępne miejsce na dysku
+
+Test pliku:
+
+```text
+HTTP Request (Binary) →
+  https://speed.hetzner.de/100MB.bin
+→ Write Binary File: /tmp/test.bin
+→ Read Binary File: /tmp/test.bin
+```
+
+**Oczekiwany wynik:** plik 100 MB pobrany i zapisany \< 30s, brak OOM
+
+---
+
+**T-13 · Test obciążenia procesora (sortowanie)** - `ZASOBY`, istotność: niska
+
+Wydajność CPU przy intensywnych obliczeniach w Function Node.
+
+Kroki:
+
+1. Function Node z sortowaniem 100k losowych liczb
+2. Uruchom 5 równoległych instancji
+3. Zmierz czas wykonania i użycie CPU (`htop`)
+4. Sprawdź, czy inne workflow są spowolnione
+
+Kod:
+
+```js
+const arr = Array.from({ length: 100000 }, () => Math.random());
+arr.sort();
+return [{ json: { sorted: arr.length } }];
+```
+
+**Oczekiwany wynik:** czas wykonania \< 10s, brak istotnego wpływu na inne workflow
+
+#### Kod, integracje, sub-scenariusz
+
+**T-14 · Wykonywanie własnego kodu** - `KOD`, istotność: wysoka
+
+Obsługa Code Node - dostępność modułów npm, ograniczenia środowiska (sandboxing).
+
+Kroki:
+
+1. Test `require('crypto')` w Code Node
+2. Test `require('fs')` - powinien być ograniczony
+3. Test operacji na datach z Luxon
+4. Sprawdź dostępność `$helpers` i `$jmespath`
+
+Kod:
+
+```js
+const crypto = require('crypto');
+return [{ json: { hash: crypto.createHash('md5').update('test').digest('hex') } }];
+```
+
+**Oczekiwany wynik:** `crypto` dostępne, Luxon działa, `$helpers` OK, `fs` zablokowane
+(lub ograniczone)
+
+---
+
+**T-15 · Wywoływanie sub-scenariuszy** - `KOD`, istotność: wysoka
+
+Wywoływanie workflow przez inne workflow - kluczowe dla modułowości i dużych systemów.
+
+Kroki:
+
+1. Utwórz "podrzędny" scenariusz z Execute Workflow Trigger
+2. Utwórz "nadrzędny" z Execute Workflow node → podrzędny
+3. Przekaż parametry i sprawdź odbiór
+4. Sprawdź, czy błąd w podrzędnym propaguje do nadrzędnego
+
+Konfiguracja:
+
+```text
+Nadrzędny: Execute Workflow
+  workflowId: [podrzędny ID]
+  source: parameter
+  workflowInputs: {param: "value"}
+```
+
+**Oczekiwany wynik:** sub-scenariusz wywołany, parametry przekazane, błędy propagowane
+
+---
+
+**T-16 · Połączenie z bazą danych (zewnętrzne DB)** - `KOD`, istotność: średnia
+
+Połączenia z zewnętrznymi bazami przez dedykowane nody (Postgres, MySQL, MongoDB).
+
+Kroki:
+
+1. Skonfiguruj połączenie PostgreSQL/MySQL
+2. SELECT zwracający 1000 rekordów
+3. Zmierz czas połączenia i wykonania
+4. Test reconnect po utracie połączenia
+
+Zapytanie:
+
+```sql
+SELECT generate_series(1,1000) as id,
+       random()::text as val,
+       NOW() as ts;
+```
+
+**Oczekiwany wynik:** połączenie \< 2s, zapytanie 1000 rekordów \< 5s, reconnect działa
+
+#### Bezpieczeństwo
+
+**T-17 · Bezpieczeństwo poświadczeń (szyfrowanie)** - `BEZPIECZEŃSTWO`, istotność:
+krytyczna
+
+Czy credentials są szyfrowane na dysku i nie wyciekają w plain text przez UI/API.
+
+Kroki:
+
+1. Dodaj API Key credential do n8n
+2. Sprawdź, czy widoczny w plain text przez UI
+3. Sprawdź bazę pod kątem plain text secrets
+4. Sprawdź zmienną `N8N_ENCRYPTION_KEY`
+
+Inspekcja bazy:
+
+```bash
+docker compose exec n8n env | grep ENCRYPTION
+docker compose exec postgres psql -U n8n -d n8n \
+  -c "SELECT name, data FROM credentials_entity LIMIT 1;"
+```
+
+**Oczekiwany wynik:** credentials zaszyfrowane (data zaczyna się od "U2FsdGVkX1..."),
+klucz w env
+
+---
+
+**T-18 · Zmienne środowiskowe** - `BEZPIECZEŃSTWO`, istotność: wysoka
+
+Czy zmienne środowiskowe nie wyciekają przez Code Node, ale są dostępne przez n8n
+Variables.
+
+Kroki:
+
+1. Ustaw `N8N_CUSTOM_VAR=secret123` w env
+2. W Code Node sprawdź `process.env.N8N_CUSTOM_VAR`
+3. Utwórz n8n Variable przez Settings → Variables
+4. Sprawdź `$vars.myVariable` w expression
+
+Testy:
+
+```js
+// Code Node - powinno być zablokowane:
+console.log(Object.keys(process.env));
+// Expression - powinno działać:
+// {{ $vars.MY_VARIABLE }}
+```
+
+**Oczekiwany wynik:** n8n Variables dostępne przez `$vars`, `process.env` zablokowane w
+Code Node (CE)
+
+#### Operacje i monitoring
+
+**T-19 · Dostępność serwisu (uptime) (24h)** - `OPERACJE`, istotność: krytyczna
+
+Dostępność serwisu w oknie 24-godzinnym lub dłuższym - realny test SLA.
+
+Kroki:
+
+1. Skonfiguruj UptimeRobot / BetterUptime
+2. Health check co 1 minutę na `/healthz`
+3. Monitoruj minimum 7 dni
+4. Oblicz uptime% i max downtime
+
+Lokalny test:
+
+```bash
+while true; do
+  curl -fs -o /dev/null https://twoj-n8n.pl/healthz \
+    && echo "$(date) UP" || echo "$(date) DOWN"
+  sleep 60
+done | tee uptime.log
+```
+
+**Oczekiwany wynik:** uptime ≥ 99,9% (max ~43 min downtime/mc); brak rebootów
+
+---
+
+**T-20 · Eksport i kopia zapasowa (odzyskiwanie po awarii)** - `OPERACJE`, istotność:
+wysoka
+
+Eksport workflow i przywracanie na czystym serwerze - pełny scenariusz odzyskiwania po
+awarii.
+
+Kroki:
+
+1. Eksport workflow: `n8n export:workflow --all`
+2. Eksport credentials: `n8n export:credentials --all`
+3. Zaimportuj na czysty serwer
+4. Sprawdź, czy konfiguracje zachowane
+
+Komendy:
+
+```bash
+n8n export:workflow --backup --output=./backup/
+n8n export:credentials --backup --output=./backup/
+# Na nowym serwerze:
+n8n import:workflow --separate --input=./backup/
+n8n import:credentials --separate --input=./backup/
+```
+
+**Oczekiwany wynik:** pełny export i import bez utraty danych; credentials działają
+(klucz szyfr. ten sam!)
+
+### Scorecard - tabela do wypełnienia
+
+Dla każdego z testów oceń każde środowisko: ✓ PASS / ~ partial / ✗ FAIL / - nie
+testowano. Łatwo policzyć procentowy wynik per dostawca.
+
+| ID | Test | RPi 5 | Mini PC | Mikrus | cyber_Folks | Hostinger | Hetzner | Railway |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| B-01 | CPU benchmark | - | - | - | - | - | - | - |
+| B-02 | Dysk IOPS | - | - | - | - | - | - | - |
+| B-03 | RAM throughput | - | - | - | - | - | - | - |
+| B-04 | Latencja do API | - | - | - | - | - | - | - |
+| B-05 | Zimny start | - | - | - | - | - | - | - |
+| T-01 | Czas odpowiedzi webhooka | - | - | - | - | - | - | - |
+| T-02 | Concurrent execs | - | - | - | - | - | - | - |
+| T-03 | Długo działający | - | - | - | - | - | - | - |
+| T-04 | Duży ładunek danych | - | - | - | - | - | - | - |
+| T-05 | External HTTP | - | - | - | - | - | - | - |
+| T-06 | SSL/HTTPS | - | - | - | - | - | - | - |
+| T-07 | Rate limit (429) | - | - | - | - | - | - | - |
+| T-08 | Obsługa błędów | - | - | - | - | - | - | - |
+| T-09 | Precyzja harmonogramu | - | - | - | - | - | - | - |
+| T-10 | Trwałość danych | - | - | - | - | - | - | - |
+| T-11 | Limit pamięci | - | - | - | - | - | - | - |
+| T-12 | Pliki binarne | - | - | - | - | - | - | - |
+| T-13 | Obciążenie procesora | - | - | - | - | - | - | - |
+| T-14 | Custom code | - | - | - | - | - | - | - |
+| T-15 | Sub-scenariusz | - | - | - | - | - | - | - |
+| T-16 | Połączenie z bazą | - | - | - | - | - | - | - |
+| T-17 | Bezpieczeństwo poświadczeń | - | - | - | - | - | - | - |
+| T-18 | Zmienne środowiskowe | - | - | - | - | - | - | - |
+| T-19 | Uptime 24h+ | - | - | - | - | - | - | - |
+| T-20 | Eksport/kopia zapasowa | - | - | - | - | - | - | - |
+| **SCORE %** | | - | - | - | - | - | - | - |
+
+### Wnioski z testów
+
+Po wypełnieniu tabel porównaj środowiska kolumnami - największe różnice zwykle widać w
+czasie odtwarzania z backupu i realnym koszcie po miesiącu.
+
+## Lista kontrolna przed produkcyjnym uruchomieniem
+
+Niezależnie od wybranego środowiska, sprawdź przed wyjściem n8n na produkcję.
+
+- [ ] `N8N_ENCRYPTION_KEY` wygenerowany przez `openssl rand -hex 32`, zapisany w
+      menedżerze haseł i w `.env` na serwerze
+- [ ] HTTPS działa z prawdziwym certyfikatem (nie self-signed, nie HTTP). Test:
+      integracja z Google Sheets działa
+- [ ] Konto ownera n8n utworzone z silnym hasłem i 2FA włączonym
+- [ ] Backup workflow działa (test: usunąć dowolny workflow, odtworzyć z eksportu)
+- [ ] Backup bazy działa (test: `pg_dump` lub kopia SQLite zapisuje się gdzieś)
+- [ ] Backup **off-site** działa - w innej fizycznej lokalizacji niż produkcja
+      (Backblaze B2 / S3 / Google Drive / Storage Box). NIE na tym samym dysku, NIE w
+      tym samym datacenter bez kopii zewnętrznej
+- [ ] **Monitoring backupu** - alert gdy skrypt nie wykona się 24h+ (healthchecks.io,
+      Uptime Kuma, cron MAILTO)
+- [ ] **Monitoring rozmiaru** - alert gdy backup nagle waży 10× mniej niż zwykle
+      (oznacza zepsuty dump)
+- [ ] **Monitoring miejsca** na dysku docelowym - alert gdy zostaje \<20%
+- [ ] Procedura restore **przetestowana na świeżej maszynie** - w pełni, od zera, z
+      timerem. Nie "wydaje mi się, że zadziała"
+- [ ] Instrukcja awaryjna restore (krok po kroku) zapisana w gicie / Notion - nie tylko
+      w głowie jednej osoby
+- [ ] Klucz `N8N_ENCRYPTION_KEY` w menedżerze haseł + zapasowo w drugim miejscu
+      (pendrive, druga osoba). Bez niego restore credentials nie zadziała
+- [ ] Plan testów odtworzenia w kalendarzu - minimum raz na kwartał
+- [ ] Monitoring podstawowy: dyskowy, RAM, status kontenera. UptimeRobot na URL n8n
+- [ ] Firewall blokuje wszystko poza 443 (i 22 SSH z LAN/VPN)
+- [ ] OS aktualizowany regularnie (`unattended-upgrades` na Debian/Ubuntu)
+- [ ] n8n aktualizowany regularnie (`docker compose pull && up -d` raz na 1-2 tygodnie)
+- [ ] DPA z dostawcą podpisany, jeśli firma (nie dotyczy RPi/Mini PC u ciebie)
+- [ ] Rejestr czynności przetwarzania (RCPD) aktualizowany o n8n + integracje
+- [ ] Monitoring kosztów (zwłaszcza Railway) - alerty kosztowe ustawione
+
+## Referencje techniczne - komendy
+
+Skrótowe referencje do szybkiego użycia. Działa na wszystkich VPS-ach z Dockerem.
+
+### Aktualizacja n8n w Docker Compose
+
+```bash
+cd /sciezka/do/n8n
+docker compose pull
+docker compose up -d
+docker image prune -f  # opcjonalnie, sprzątanie
+```
+
+### Backup z PostgreSQL + n8n volume
+
+```bash
+TIMESTAMP=$(date +%F)
+docker compose exec -T postgres pg_dump -U n8n n8n > backup-${TIMESTAMP}.sql
+tar czf n8n-data-${TIMESTAMP}.tar.gz ./data/n8n
+rclone copy backup-${TIMESTAMP}.sql b2:my-backups/n8n/
+rclone copy n8n-data-${TIMESTAMP}.tar.gz b2:my-backups/n8n/
+```
+
+### Cloudflare Tunnel - uruchomienie
+
+```bash
+# Po skonfigurowaniu tunelu w Cloudflare Zero Trust
+sudo cloudflared service install <TOKEN>
+sudo systemctl enable --now cloudflared
+```
+
+### Sprawdzenie czy n8n żyje (do UptimeRobota)
+
+```text
+GET https://n8n.twojadomena.pl/healthz
+→ 200 OK
+```
+
+### Generowanie klucza szyfrującego
+
+```bash
+openssl rand -hex 32
+# Wynik wklej do .env jako N8N_ENCRYPTION_KEY=...
+# I ZAPISZ w menedżerze haseł!
+```
+
+### Minimalny docker-compose.yml dla produkcji
+
+```yaml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: n8n
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:5678:5678'
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: ${N8N_HOST}
+      WEBHOOK_URL: https://${N8N_HOST}/
+      N8N_PROTOCOL: https
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+    depends_on:
+      - postgres
+```
+
+## Linki do dostawców
+
+Bezpośrednie odnośniki do stron każdego z opisanych rozwiązań. Sprawdź aktualne ceny i
+ofertę u źródła przed zakupem.
+
+:::note[Informacja o linkach partnerskich]
+Część poniższych linków to linki partnerskie (affiliate). Klikając w nie i dokonując
+zakupu, wspierasz dalszy rozwój tego poradnika - bez dodatkowych kosztów po Twojej
+stronie. Każde rozwiązanie zostało wybrane na podstawie rzeczywistej oceny, niezależnie
+od programu partnerskiego.
+:::
+
+### Hosting i VPS
+
+| Dostawca | Typ | Opis |
+| --- | --- | --- |
+| [cyber_Folks VPS z n8n](https://cyberfolks.pl/serwery-vps-z-n8n/?ref=LUKASZPODGORSKI) | VPS · DC w Polsce · kod ref: LUKASZPODGORSKI | Polski dostawca z preinstalowanym n8n na AlmaLinux - wyższa półka, ale bardzo dobra jakość usług i polskie wsparcie 24/7. Po przejściu na stronę użyj kodu polecającego **LUKASZPODGORSKI**, jeśli link się nie zachowa. |
+| Hetzner Cloud (`hetzner.com/cloud`) | VPS · DC w DE/FI | Najlepszy stosunek ceny do mocy w Europie. Bez linku partnerskiego - oryginalna strona dostawcy. |
+| [Hostinger Self-hosted n8n](https://www.hostinger.com/pl?REFERRALCODE=LUKASZ) | VPS · międzynarodowy | Wdrożenie jednym kliknięciem + Kodee AI. |
+| [Mikrus (mikr.us)](https://mikr.us/?r=lukasz) | VPS · roczna płatność | Polski mikrohosting z instalacją n8n jednym poleceniem. |
+| Railway (`railway.com/deploy/n8n`) | PaaS · USA | Najszybsze wdrożenie n8n. Bez linku partnerskiego - oryginalna strona dostawcy. |
+
+### Hardware
+
+| Sprzęt | Typ | Opis |
+| --- | --- | --- |
+| Raspberry Pi 5 | Sprzęt · zakup jednorazowy | Oficjalna strona Raspberry Pi Foundation oraz polscy dystrybutorzy (Botland, KAMAMI, RoboCraft). |
+| Mini PC (Beelink / GMKtec) | Sprzęt · zakup jednorazowy | Beelink S12 Pro, GMKtec NucBox G3, MinisForum UN100 - najczęściej kupowane modele z N100/N150. Allegro, Amazon, oficjalne sklepy. |
+
+---
+
+_Wersja dokumentu: 1.0 - maj 2026. Ceny i parametry weryfikuj przed zakupem u
+dostawców._
+
+_Kolejne wersje: rozszerzone wyniki testów wydajnościowych, benchmarki wybranych
+workflow, koszty rzeczywiste po 6 miesiącach._

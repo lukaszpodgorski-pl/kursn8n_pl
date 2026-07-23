@@ -1,0 +1,25 @@
+name: 🔄 Aktualizacja
+description: Informacja na stronie zdezaktualizowała się (n8n zmienia się szybko, to norma!)
+labels: ['aktualizacja']
+body:
+  - type: input
+    id: strona
+    attributes:
+      label: Której strony dotyczy aktualizacja?
+      placeholder: https://kursn8n.pl/modul-4-integracje-api
+    validations:
+      required: true
+  - type: textarea
+    id: co
+    attributes:
+      label: Co się zmieniło?
+      description: Opisz, która informacja jest nieaktualna i jaki jest stan obecny.
+    validations:
+      required: true
+  - type: textarea
+    id: zrodlo
+    attributes:
+      label: Źródło potwierdzające zmianę
+      description: Link do ogłoszenia, dokumentacji, artykułu itp.
+    validations:
+      required: true

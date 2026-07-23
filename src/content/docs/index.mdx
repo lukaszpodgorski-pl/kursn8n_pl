@@ -1,0 +1,355 @@
+---
+title: Ucz się n8n po polsku - od pierwszego workflow po wdrożenia produkcyjne
+description: "Darmowy kurs i otwarta wiki n8n po polsku - 100% za darmo, bez logowania i bez paywalla. Od podstaw po zaawansowane: instalacja, hosting, integracje, AI, bezpieczeństwo, RODO i gotowe workflow."
+# Ta sama technika co w modułach (patrz modul-0-fundamenty.mdx): `head:` nadpisuje
+# WYŁĄCZNIE <title> i pary meta[property] w <head>, treść poniżej (`title` w
+# frontmatterze) steruje osobno widocznym <h1>. Wartości przepisane 1:1 z
+# public_html/content/home.head.php (<title>, og:title, og:description).
+head:
+  - tag: title
+    content: "Kurs n8n po polsku - darmowa wiki | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "KursN8N.pl - Wiki i darmowy kurs n8n po polsku"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Darmowy kurs i otwarta wiki n8n po polsku - 100% za darmo, bez logowania. Od podstaw po zaawansowane wdrożenia produkcyjne, świadomie i bez ściemy."
+# Brak `datePublished` celowo - to strona główna (landing), nie artykuł z historią
+# publikacji. Z tego samego powodu brak `educationalLevel`/`teaches`/`about`/`mentions`/`faq`:
+# dane strukturalne dla "/" (WebSite + Course) generuje Head.astro automatycznie
+# (blok `isHome`), niezależnie od tych pól frontmatterowych.
+# Strona to landing, nie artykuł czytany sekcja po sekcji - spis treści z boku
+# tylko duplikowałby nawigację, którą i tak daje menu sekcji programu kursu.
+tableOfContents: false
+---
+
+import { Badge, CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+
+<Badge text="Otwarta wiki · aktualizowana na bieżąco" variant="success" size="medium" />
+
+KursN8N.pl to rosnąca wiki i kurs automatyzacji w n8n. Bez ściemy i straszenia, za to
+z naciskiem na świadome budowanie: workflow, które naprawdę działają, są bezpieczne, mają
+backup i przewidywalną obsługę błędów.
+
+**✅ 100% za darmo · bez logowania · bez paywalla**
+
+- 📚 9 modułów: od podstaw do zaawansowanego
+- 🇵🇱 w całości po polsku
+- 🆓 zawsze za darmo
+- 🔄 aktualizowane na bieżąco
+
+<LinkButton href="#program-kursu-od-podstaw-do-zaawansowanego" icon="rocket">
+  Zobacz program kursu
+</LinkButton>
+<LinkButton href="#bądź-pierwszy-przy-nowych-materiałach" variant="secondary">
+  Zapisz się na powiadomienia
+</LinkButton>
+
+<Flow
+  title="moj-pierwszy-workflow"
+  alt="Diagram przykładowego workflow w edytorze n8n: Schedule uruchamia się codziennie o 7:00, HTTP Request pobiera dane, AI Agent je przetwarza, a Telegram wysyła raport"
+  caption="Przykładowy workflow z edytora n8n - od harmonogramu po wysyłkę raportu."
+>
+  <FlowNode icon="fa-clock" label="Schedule" sub="codziennie 7:00" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-globe" label="HTTP Request" sub="pobierz dane" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-robot" label="AI Agent" sub="przetwórz" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-paper-plane" label="Telegram" sub="wyślij raport" from="#0ea5e9" to="#0369a1" />
+</Flow>
+
+## O projekcie
+
+Tę stronę tworzę z pasji do n8n i chęci pokazania, jak naprawdę pracować z tym narzędziem.
+Cała ścieżka - od fundamentów i hostingu, przez pracę z danymi i integracje, aż po agentów
+AI i wdrożenia produkcyjne - jest już dostępna w 9 modułach. Materiały opieram na oficjalnej
+dokumentacji n8n i wciąż je rozbudowuję o nowe poradniki i gotowe workflow.
+
+<CardGrid>
+  <ConceptCard icon="fa-layer-group" title="Od podstaw do zaawansowanego">
+    Uporządkowana ścieżka w 9 modułach - wiesz, od czego zacząć i co robić dalej.
+  </ConceptCard>
+  <ConceptCard icon="fa-brain" title="Świadomie, nie na pamięć">
+    Rozumiesz, co i dlaczego klikasz, zamiast ślepo kopiować cudze workflow.
+  </ConceptCard>
+  <ConceptCard icon="fa-shield-halved" title="Produkcyjne podejście">
+    Bezpieczeństwo, RODO, backupy i obsługę błędów traktuję jak normę, nie dodatek.
+  </ConceptCard>
+  <ConceptCard icon="fa-server" title="Self-hosting w praktyce">
+    Raspberry Pi, mini PC, VPS i PaaS - realne testy i porównania, nie teoria.
+  </ConceptCard>
+</CardGrid>
+
+### Dlaczego tworzę to miejsce
+
+Brakowało mi jednego, konkretnego miejsca, w którym znajdę dużo informacji o n8n zebranych
+razem. Wiedza jest porozrzucana po wielu źródłach, a do tego sporo twórców nagrywa 15- czy
+20-minutowe filmy o czymś, co spokojnie da się zapisać w kilku zdaniach. Takie filmy mają
+swoją wartość, ale gdy ktoś szuka miejsca, w którym wszystko jest opisane jasno i czytelnie
+
+- właśnie tego mi brakowało. Dlatego powstała ta wiki.
+
+Zdecydowałem się to robić również dlatego, że teraz, w erze sztucznej inteligencji,
+tworzenie tego typu projektów mocno przyspieszyło. Mogę podyktować, co chcę pokazać na
+stronie, i zrobić rzetelny research - bo nie ukrywam, sam też nie wiem wszystkiego. Nowe
+rozwiązania i elementy, które się pojawiają, najpierw muszę sam poznać i sprawdzić, a
+dopiero potem opisuję je w kursie.
+
+:::tip[Darmowe na zawsze - i jak to się utrzymuje]
+Ta wiki jest i pozostanie **w 100% darmowa**: bez logowania, bez paywalla, bez "premium".
+Nie zarabiam na Tobie - utrzymuję ją z **partnerstw i linków partnerskich** (np. do
+hostingów), które zawsze są oznaczone, a oceny wystawiam szczerze, niezależnie od programu
+partnerskiego. Jeśli kiedyś skorzystasz z takiego linku, wspierasz rozwój darmowej wiki bez
+żadnych dodatkowych kosztów po Twojej stronie. Dzięki!
+:::
+
+:::caution[Aktualność materiałów]
+n8n zmienia się bardzo szybko, więc czasem jakiś fragment kursu może być już nieaktualny.
+Staram się materiały na bieżąco aktualizować, a docelowo chcę uruchomić bota, który będzie
+wykrywał zmiany. Mimo to gdzieś może przemknąć coś przeterminowanego - jeśli trafisz na taki
+punkt, [daj mi znać](#o-autorze) od razu, a szybko go poprawię.
+:::
+
+## Bądź pierwszy przy nowych materiałach
+
+Nie musisz tu wracać i sprawdzać, czy coś nowego się pojawiło. Zapisz się, a wyślę Ci
+krótkie powiadomienie, gdy dodam nowy rozdział, poradnik albo gotowy workflow.
+
+- Powiadomienie o każdym nowym materiale na wiki
+- Sprawdzone rozwiązania i ukryte możliwości n8n
+- Gotowe workflow jako dobry punkt startu
+- Zero spamu - wypiszesz się jednym kliknięciem
+
+### Zapisz się na powiadomienia
+
+Dołącz do osób, które uczą się n8n świadomie.
+
+<form id="newsletter-form" action="https://lukaszpodgorski.pl/sendy/subscribe" method="POST" accept-charset="utf-8">
+  <input type="email" class="form-control" name="email" id="email" placeholder="Twój adres email" autocomplete="email" inputmode="email" required />
+  <button type="submit" name="submit" id="submit" class="form-submit">Zapisz się</button>
+
+  <p class="form-note">
+    Wysyłając formularz, akceptujesz <a href="/regulamin" target="_blank" rel="noopener">Regulamin</a> i <a href="https://aitomate.pl/polityka-prywatnosci" target="_blank" rel="noopener">Politykę prywatności</a>. Możesz w każdej chwili zrezygnować, klikając link w stopce dowolnego e-maila.
+  </p>
+
+  {/*Honeypot antyspamowy: ukryty przed ludźmi i niewidoczny dla czytników ekranu*/}
+  <div style="display:none;" aria-hidden="true">
+    <input type="text" name="hp" id="hp" tabindex="-1" autocomplete="off" />
+  </div>
+  {/* Zgoda RODO wyrażana przez świadome wysłanie formularza (jasna informacja powyżej) */}
+  <input type="hidden" name="gdpr" value="1" />
+  <input type="hidden" name="list" value="Si8V763FyPwNlZ36k4Wbr6Ww" />
+  <input type="hidden" name="subform" value="yes" />
+</form>
+
+## Polecany materiał na start
+
+Cały kurs (9 modułów) znajdziesz w sekcji poniżej. Jeśli zaczynasz od kwestii
+"gdzie postawić n8n", zacznij od tego flagowego poradnika - to najobszerniejszy materiał
+na wiki.
+
+<LinkCard
+  href="/porownanie-n8n-hostingow"
+  title="Porównanie hostingów n8n - kompletny poradnik 2026"
+  description="Siedem realnych ścieżek wdrożenia n8n: od Raspberry Pi w domu po PaaS-y z USA. Bezpieczeństwo, RODO, ceny, łatwość obsługi, backupy i katalog testów, które możesz powtórzyć samodzielnie. Część Modułu 1."
+/>
+
+## Polecane kanały YouTube
+
+Wolisz wideo? To kanały, które warto obserwować. Tu na stronie znajdziesz konkrety na
+szybko, a na tych kanałach pełne przykłady "na żywo" i materiały, które dobrze uzupełniają
+wiedzę.
+
+<CardGrid>
+  <ConceptCard icon="fa-youtube" family="fab" title="Łukasz Podgórski">
+    Mój kanał - automatyzacje i n8n w praktyce. [Otwórz kanał →](https://www.youtube.com/@lukaszpodgorski)
+  </ConceptCard>
+  <ConceptCard icon="fa-youtube" family="fab" title="Robert Szewczyk">
+    Skutecznie Efektywny - automatyzacje i narzędzia no-code po polsku. [Otwórz kanał →](https://www.youtube.com/@skutecznieefektywny/)
+  </ConceptCard>
+  <ConceptCard icon="fa-youtube" family="fab" title="n8n (kanał oficjalny)">
+    Oficjalne konto n8n - nowości, tutoriale i webinary od twórców (po angielsku). [Otwórz kanał →](https://www.youtube.com/@n8n-io)
+  </ConceptCard>
+</CardGrid>
+
+## Program kursu: od podstaw do zaawansowanego
+
+To mapa całej wiki - wszystkie 9 modułów jest już dostępnych do czytania. Każdy moduł to
+osobny rozdział oparty na oficjalnej dokumentacji n8n. Kliknij dowolny, żeby przejść do
+pełnej treści; poniżej w każdym module widzisz, co dokładnie obejmuje.
+
+**Wszystkie moduły są już dostępne.** Kliknij tytuł modułu lub "Czytaj moduł", aby otworzyć
+rozdział.
+
+### 0. Fundamenty automatyzacji
+
+Zanim klikniesz pierwszy node - czym jest n8n i kiedy ma sens.
+
+- Czym jest n8n i do czego służy automatyzacja procesów
+- n8n vs Make, Zapier, Power Automate - kiedy które wybrać
+- Licencja Sustainable Use License - co wolno, a czego nie
+- Słownik pojęć: workflow, node, trigger, execution, credentials
+- n8n Cloud vs self-hosted - przegląd dostępnych ścieżek
+
+[Czytaj moduł 0: Fundamenty automatyzacji →](/modul-0-fundamenty)
+
+### 1. Instalacja i hosting
+
+Gdzie i jak postawić n8n, żeby działał stabilnie i bezpiecznie.
+
+- Wymagania systemowe: RAM, CPU, dysk - minimum vs produkcja
+- n8n Cloud - najszybszy start bez własnego serwera
+- Docker i Docker Compose krok po kroku
+- Self-hosting na Raspberry Pi i mini PC (N100/N150)
+- VPS i PaaS: cyber_Folks, Hostinger, Hetzner, Railway, Mikrus
+- [Porównanie hostingów n8n - kompletny poradnik 2026](/porownanie-n8n-hostingow) (czytaj)
+- HTTPS, własna domena, reverse proxy i Cloudflare Tunnel
+- Klucz `N8N_ENCRYPTION_KEY` i zmienne środowiskowe
+- Aktualizacje i bieżące utrzymanie instancji
+
+[Czytaj moduł 1: Instalacja i hosting →](/modul-1-instalacja-hosting)
+
+### 2. Interfejs i pierwszy workflow
+
+Pierwsze kliknięcia: budujesz i uruchamiasz działającą automatyzację.
+
+- Przegląd interfejsu: canvas, panel node'ów, ustawienia
+- Twój pierwszy workflow krok po kroku
+- Triggery: Manual, Schedule, Webhook
+- Uruchamianie i debugowanie: Execute, pinning danych, lista executions
+- Organizacja pracy: foldery, tagi, nazewnictwo workflow
+
+[Czytaj moduł 2: Interfejs i pierwszy workflow →](/modul-2-interfejs-pierwszy-workflow)
+
+### 3. Praca z danymi
+
+Serce n8n: jak przepływają, jak je przekształcać i łączyć.
+
+- Jak n8n przechowuje dane: items i struktura JSON
+- Wyrażenia (expressions) i składnia `{{ }}`
+- Edit Fields / Set - kształtowanie i mapowanie danych
+- Logika: IF, Switch, Filter
+- Pętle: Loop Over Items, Split in Batches
+- Merge i łączenie danych z wielu źródeł
+- Pliki binarne: PDF, obrazy, CSV, załączniki
+
+[Czytaj moduł 3: Praca z danymi →](/modul-3-praca-z-danymi)
+
+### 4. Integracje i API
+
+Łączenie n8n ze światem - gotowe node'y i dowolne API.
+
+- Node'y aplikacji: Google, Slack, Notion, Airtable i inne
+- Uwierzytelnianie: API key vs OAuth2 w praktyce
+- HTTP Request - uniwersalny klucz do każdego API
+- Webhooki: odbieranie i wysyłanie zdarzeń
+- Paginacja, limity zapytań (rate limit) i ponawianie
+
+[Czytaj moduł 4: Integracje i API →](/modul-4-integracje-api)
+
+### 5. Kod i sub-workflow
+
+Gdy node'y to za mało - odrobina kodu i modularność.
+
+- Code Node: JavaScript i Python
+- Kiedy użyć kodu, a kiedy zostać przy node'ach
+- Dane statyczne workflow (static data)
+- Sub-workflow (Execute Workflow) i budowa modułowa
+- Obsługa błędów: Error Trigger, error workflow, Continue On Fail, retry
+
+[Czytaj moduł 5: Kod i sub-workflow →](/modul-5-kod-sub-workflow)
+
+### 6. AI i agenci
+
+n8n jako orkiestrator AI: od czatu po agentów pracujących 24/7.
+
+- AI Agent node i integracja z LangChain w n8n
+- Modele: OpenAI, Anthropic oraz lokalne (Ollama)
+- RAG: bazy wektorowe i embeddingi
+- Budowa chatbota / asystenta na własnych danych
+- Agenci pracujący w tle 24/7 - wzorce i pułapki
+
+[Czytaj moduł 6: AI i agenci →](/modul-6-ai-agenci)
+
+### 7. Produkcja: bezpieczeństwo i niezawodność
+
+To, co odróżnia zabawkę od automatyzacji, której można zaufać.
+
+- Zabezpieczenie instancji: logowanie, 2FA, firewall, reverse proxy
+- RODO/GDPR w automatyzacjach - gdzie leżą dane i kto za nie odpowiada
+- Backupy w modelu 3-2-1 i testowane odtwarzanie
+- Monitoring, logi i healthchecks
+- Tryb kolejkowy (queue mode), workery i skalowanie
+- Środowiska dev/prod i wersjonowanie workflow przez Git
+
+[Czytaj moduł 7: Produkcja: bezpieczeństwo i niezawodność →](/modul-7-produkcja)
+
+### 8. Wzorce i realne wdrożenia
+
+Sprawdzone schematy, biblioteka workflow i nauka na cudzych błędach.
+
+- Biblioteka gotowych workflow - z wyjaśnieniem, nie do ślepego kopiowania
+- Wzorce projektowe automatyzacji
+- Case studies i przepisy (recipes) z realnych projektów
+- Optymalizacja wydajności i kosztów
+- Antywzorce - najczęstsze błędy i jak ich unikać
+
+[Czytaj moduł 8: Wzorce i realne wdrożenia →](/modul-8-wzorce-wdrozenia)
+
+## Jak tu uczę
+
+Tutaj nie chodzi o kopiowanie gotowych workflow "dla efektu". Zależy mi, żebyś podchodził
+do automatyzacji kompleksowo i świadomie.
+
+<CardGrid>
+  <ConceptCard icon="fa-circle-check" title="Działa, nie tylko ładnie wygląda">
+    Workflow, które realnie robią robotę, a nie tylko dobrze prezentują się na screenie.
+  </ConceptCard>
+  <ConceptCard icon="fa-shield-halved" title="Bezpieczeństwo od początku">
+    Twoje dane i systemy są najważniejsze - myślę o nich od pierwszego kroku.
+  </ConceptCard>
+  <ConceptCard icon="fa-database" title="Backup i plan B">
+    Zawsze wiesz, co zrobić, gdy coś się zepsuje, i jak to przywrócić.
+  </ConceptCard>
+  <ConceptCard icon="fa-triangle-exclamation" title="Przewidywalna obsługa błędów">
+    Automaty mają być niezawodne, a nie losowo padać po cichu.
+  </ConceptCard>
+  <ConceptCard icon="fa-ban" title="Bez ślepego kopiowania">
+    Zagraniczni twórcy często dodają elementy bez sensu - uczysz się rozumieć, nie powielać.
+  </ConceptCard>
+  <ConceptCard icon="fa-users" title="Wspólne budowanie wiedzy">
+    Twoje pytania i doświadczenia kształtują to, co pojawia się na wiki.
+  </ConceptCard>
+</CardGrid>
+
+:::tip[W skrócie]
+To ma być miejsce, gdzie uczysz się świadomie, a nie tylko kopiujesz kod. Gdzie wiesz, co
+zrobić, gdy coś się zepsuje - i jak to naprawić.
+[Zapisz się na powiadomienia](#bądź-pierwszy-przy-nowych-materiałach), żeby nie przegapić
+kolejnych materiałów.
+:::
+
+## O autorze
+
+KursN8N.pl prowadzę sam - tu krótko o tym, kto za tym stoi i dlaczego.
+
+**Cześć, jestem Łukasz Podgórski.** Na co dzień projektuję i wdrażam automatyzacje - łączę
+aplikacje, API i AI tak, żeby realnie oszczędzały czas, a nie tylko ładnie wyglądały na demo.
+Z n8n pracuję przy własnych i klienckich projektach, m.in. pod marką
+[aitomate.pl](https://aitomate.pl/).
+
+Tę wiki tworzę z prostego powodu: brakowało mi po polsku materiału, który tłumaczy n8n
+świadomie - od fundamentów po produkcję - i nie każe ślepo kopiować cudzych workflow.
+Zbieram tu w jednym miejscu to, czego sam musiałem się douczyć: hosting, bezpieczeństwo,
+RODO, backupy, obsługę błędów i wzorce, które naprawdę działają.
+
+:::note[Kontakt i współpraca]
+Masz pytanie, pomysł na materiał albo potrzebujesz pomocy przy wdrożeniu n8n? Napisz -
+chętnie pomogę, a Twoje pytania biorę pod uwagę przy kolejnych rozdziałach.
+
+Więcej o mnie: [lukaszpodgorski.pl](https://lukaszpodgorski.pl/) · automatyzacje dla firm:
+[aitomate.pl](https://aitomate.pl/)
+:::

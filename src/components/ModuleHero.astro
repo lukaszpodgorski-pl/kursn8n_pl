@@ -1,0 +1,25 @@
+---
+/**
+ * Pasek metadanych pod tytulem modulu - dawne .hero .meta ze style.css.
+ * Sam tytul i opis renderuje Starlight z frontmattera, wiec tutaj
+ * zostaje wylacznie warstwa informacyjna.
+ */
+interface Props {
+	/** Np. "Moduł 0 · Poziom: początkujący". */
+	tag: string;
+	/** Np. "~15 min". */
+	readingTime: string;
+	/** Dodatkowa uwaga, np. "Bez instalacji - sama teoria". */
+	note?: string;
+}
+
+const { tag, readingTime, note } = Astro.props;
+---
+
+<div class="k-module-meta not-content">
+	<span class="k-module-tag">{tag}</span>
+	<span class="k-module-facts">
+		<span>Czas czytania: {readingTime}</span>
+		{note && <span>{note}</span>}
+	</span>
+</div>

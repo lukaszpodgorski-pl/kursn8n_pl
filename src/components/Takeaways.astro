@@ -1,0 +1,19 @@
+---
+/**
+ * Gradientowa karta podsumowania - dawne .takeaways ze style.css.
+ * Zamyka modul: zwykle lista punktow "co warto zapamietac".
+ */
+interface Props {
+	/** Domyslnie odwzorowuje tytul uzywany w oryginalnych modulach. */
+	title?: string;
+}
+
+const { title = 'Co warto zapamiętać z tego modułu' } = Astro.props;
+---
+
+<div class="k-takeaways">
+	<h3>{title}</h3>
+	<div class="k-takeaways-body">
+		<slot />
+	</div>
+</div>

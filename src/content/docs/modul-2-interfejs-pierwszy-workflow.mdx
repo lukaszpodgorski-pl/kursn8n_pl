@@ -1,0 +1,282 @@
+---
+title: Interfejs n8n i Twój pierwszy workflow
+description: "Interfejs n8n krok po kroku: kanwa, panel node'ów i panel parametrów, lista workflow i executions. Zbuduj pierwszy workflow, poznaj triggery Manual, Schedule i Webhook oraz debugowanie i pinning danych."
+head:
+  - tag: title
+    content: "Moduł 2: Interfejs n8n i Twój pierwszy workflow - kanwa, triggery, executions | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Moduł 2: Interfejs n8n i Twój pierwszy workflow"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Kanwa, panele, triggery (Manual, Schedule, Webhook), uruchamianie i debugowanie oraz pinning danych - buduj pierwszy workflow w n8n po polsku."
+datePublished: 2026-05-21
+educationalLevel: Beginner
+teaches:
+  - Elementy interfejsu edytora n8n - kanwa, panel node'ów, panel parametrów i ustawień node'a
+  - Budowa pierwszego workflow - Schedule Trigger, HTTP Request, Edit Fields (Set)
+  - Różnice między triggerami Manual, Schedule i Webhook
+  - Uruchamianie, debugowanie i pinning danych w edytorze
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: GitHub
+    sameAs: https://en.wikipedia.org/wiki/GitHub
+  - name: Cron
+    sameAs: https://en.wikipedia.org/wiki/Cron
+faq:
+  - q: "Czy workflow zadziała sam, jeśli go nie aktywuję?"
+    a: "Nie. Bez aktywacji (przełącznik Active) workflow działa wyłącznie w edytorze - uruchamiany ręcznie przyciskiem \"Execute workflow\". Triggery Schedule i Webhook reagują samodzielnie dopiero po aktywacji. Manual Trigger nigdy nie działa \"produkcyjnie\" - służy tylko do testów."
+  - q: "Czym różni się \"Execute workflow\" od \"Execute step\"?"
+    a: "\"Execute workflow\" uruchamia cały przepływ od triggera. \"Execute step\" to częściowe wykonanie - odpala tylko zaznaczony node, korzystając z danych z wcześniejszych kroków. Drugie jest szybsze, gdy poprawiasz pojedynczy node i nie chcesz przepuszczać wszystkiego od nowa."
+  - q: "Mój webhook działa w teście, ale nie na produkcji - dlaczego?"
+    a: "Najczęściej dlatego, że workflow nie jest aktywny lub system zewnętrzny używa Test URL zamiast Production URL. To dwa różne adresy. Aktywuj workflow przełącznikiem Active i skopiuj produkcyjny URL z node'a Webhook do systemu, który wysyła żądania."
+  - q: "Po co przypinać dane (pinning), skoro mogę po prostu uruchomić workflow?"
+    a: "Pinning \"zamraża\" wynik node'a, więc kolejne testy nie wywołują ponownie API - oszczędzasz czas i limity, a zarazem pracujesz na tym samym, stałym zestawie danych (łatwiej porównać efekty zmian). Pamiętaj jednak, że przypięte dane działają tylko w edytorze; produkcja zawsze pobiera dane na żywo."
+  - q: "Który trigger wybrać dla swojego pierwszego prawdziwego workflow?"
+    a: "Jeśli zadanie ma się dziać o określonych porach (raport, synchronizacja) - Schedule Trigger. Jeśli ma reagować na zdarzenie z innego systemu (formularz, płatność) - Webhook. Do nauki i ręcznych testów zostań przy Manual Triggerze. Więcej o przepływie samych danych pokażę w Module 3: Praca z danymi."
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Panel from '../../components/Panel.astro';
+import Takeaways from '../../components/Takeaways.astro';
+import TwoCol from '../../components/TwoCol.astro';
+
+<ModuleHero
+  tag="Moduł 2 · Poziom: początkujący"
+  readingTime="~18 min"
+  note="Z praktyką - budujesz pierwszy workflow"
+/>
+
+Masz już działającą instancję - czas ją oswoić. W tym module poznasz kanwę i wszystkie
+panele edytora, zbudujesz pierwszy działający przepływ, zrozumiesz różnice między
+triggerami i nauczysz się uruchamiać oraz debugować workflow tak, by widzieć, którędy płyną
+dane.
+
+## Przegląd interfejsu edytora
+
+Edytor n8n (Editor UI) to miejsce, w którym powstają wszystkie automatyzacje. Zanim
+zaczniesz klikać, warto wiedzieć, jak nazywają się jego elementy - będziemy się do nich
+odwoływać przez cały kurs, a oficjalna dokumentacja używa tych samych nazw.
+
+<CardGrid>
+  <ConceptCard icon="fa-diagram-project" title="Kanwa (canvas)">
+    Główna przestrzeń robocza, na której układasz node'y i łączysz je w przepływ. Przesuwasz
+    ją myszką, przybliżasz scrollem i widzisz tu połączenia między krokami.
+  </ConceptCard>
+  <ConceptCard icon="fa-plus" title="Panel node'ów (nodes panel)">
+    Otwiera się przyciskiem **+** w prawym górnym rogu (lub klawiszem `Tab`). Wyszukujesz w
+    nim node'y po nazwie i dodajesz je na kanwę - triggery, akcje i node'y logiki.
+  </ConceptCard>
+  <ConceptCard icon="fa-sliders" title="Panel node'a (parametry)">
+    Otwiera się po dwukliku na node. Tu ustawiasz **parametry** (co node ma zrobić) oraz
+    wybierasz credentials. Po lewej widzisz dane wejściowe (Input), po prawej wynik (Output).
+  </ConceptCard>
+  <ConceptCard icon="fa-gear" title="Ustawienia node'a (Settings)">
+    Zakładka obok parametrów. Tu zmienisz m.in. notatki, obsługę błędów (_Continue On Fail_),
+    zachowanie przy braku danych czy timeouty - przydaje się przy debugowaniu.
+  </ConceptCard>
+  <ConceptCard icon="fa-list" title="Lista workflow (Overview)">
+    Widok startowy aplikacji z wszystkimi Twoimi workflow. Stąd tworzysz nowy przepływ,
+    otwierasz istniejący, filtrujesz po tagach i folderach.
+  </ConceptCard>
+  <ConceptCard icon="fa-clock-rotate-left" title="Executions (wykonania)">
+    Historia uruchomień. Globalna lista "All executions" oraz zakładka **Executions** w
+    obrębie jednego workflow - kluczowe miejsce do podglądu i debugowania.
+  </ConceptCard>
+</CardGrid>
+
+### Toolbar nad kanwą
+
+U góry edytora znajdziesz nazwę workflow (kliknij, by ją zmienić), przełącznik **Active /
+Inactive** (aktywuje workflow dla produkcyjnych uruchomień), dostęp do tagów oraz przycisk
+**Save**. Workflow nieaktywny działa tylko w testach z edytora; dopiero aktywacja sprawia,
+że triggery typu Schedule czy Webhook reagują samodzielnie.
+
+:::note[Skróty, które warto znać od razu]
+
+- `Tab` - otwórz panel node'ów
+- `Ctrl/Cmd + S` - zapisz workflow
+- `Ctrl/Cmd + A` - zaznacz wszystkie node'y
+- Przeciągnij za połączenie i upuść na puste miejsce - dodasz kolejny node w łańcuchu
+
+:::
+
+## Twój pierwszy workflow - krok po kroku
+
+Zbudujesz prosty, ale realny przepływ: **Schedule Trigger → HTTP Request → Set (Edit
+Fields)**. Codziennie pobierze on dane z publicznego API i wyciągnie z odpowiedzi tylko to,
+co potrzebne. Każdy workflow zaczyna się od triggera - bez niego n8n nie wie, kiedy ruszyć.
+
+<Flow
+  title="moj-pierwszy-workflow"
+  alt="Schemat przepływu: Schedule Trigger, następnie HTTP Request, następnie Edit Fields"
+  caption="Przepływ, który zbudujesz w tej sekcji: trigger czasowy, pobranie danych z API i wyciągnięcie potrzebnych pól."
+>
+  <FlowNode icon="fa-clock" label="Schedule Trigger" sub="codziennie 7:00" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-globe" label="HTTP Request" sub="GET z API" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-pen-to-square" label="Edit Fields" sub="wybierz pola" from="#d97706" to="#b45309" />
+</Flow>
+
+1. **Utwórz nowy workflow.** Na liście workflow (Overview) kliknij **Create Workflow**.
+   Otworzy się pusta kanwa z polem _Add first step…_.
+2. **Dodaj trigger (Schedule Trigger).** Kliknij **Add first step** → wybierz _On a
+   schedule_. n8n doda node **Schedule Trigger**. W jego parametrach ustaw `Trigger Interval`
+   na _Days_ i godzinę, np. 7:00. To on będzie codziennie startował przepływ.
+3. **Dodaj node akcji (HTTP Request).** Najedź na trigger, kliknij **+** przy jego wyjściu i
+   wyszukaj **HTTP Request**. W polu `URL` wpisz adres przykładowego API, np.
+   `https://api.github.com/repos/n8n-io/n8n`, metoda `GET`.
+4. **Ustaw pola w node Set (Edit Fields).** Dodaj kolejny node **Edit Fields (Set)**. Włącz
+   tryb _Manual Mapping_ i utwórz pole `nazwa` z wartością z poprzedniego kroku, np.
+   wyrażenie `{{ $json.full_name }}`, oraz `gwiazdki` = `{{ $json.stargazers_count }}`.
+5. **Uruchom workflow.** Kliknij **Execute workflow** (przycisk u dołu kanwy). n8n wykona
+   przepływ od triggera w trybie testowym i pokoloruje node'y, które zakończyły się
+   sukcesem.
+6. **Sprawdź wynik i zapisz.** Otwórz node **Edit Fields** i spójrz na panel **Output** po
+   prawej - zobaczysz przygotowane pola `nazwa` i `gwiazdki`. Na końcu kliknij **Save** i
+   nadaj workflow czytelną nazwę.
+
+:::tip[Dlaczego akurat ta trójka]
+To minimalny, ale kompletny wzorzec niemal każdej automatyzacji: **kiedy** (trigger) →
+**skąd** (pobranie danych) → **co z tym zrobić** (transformacja). Gdy go zrozumiesz,
+podmienisz tylko klocki - np. HTTP Request na Gmail, a Set na zapis do bazy - i schemat
+zostanie ten sam.
+:::
+
+## Triggery: Manual, Schedule i Webhook
+
+Trigger to node, który _rozpoczyna_ workflow. Od jego wyboru zależy, kiedy i jak Twoja
+automatyzacja w ogóle ruszy. Na start wystarczy poznać trzy najczęstsze - różnią się tym,
+**co** wyzwala wykonanie.
+
+<CardGrid>
+  <ConceptCard icon="fa-hand-pointer" title="Manual Trigger">
+    **Ty** uruchamiasz przepływ klikając "Execute workflow". Idealny do nauki i testów - nie
+    reaguje na nic z zewnątrz i nie działa po aktywacji.
+  </ConceptCard>
+  <ConceptCard icon="fa-calendar-days" title="Schedule Trigger">
+    **Czas** uruchamia przepływ - co kilka sekund, minut, godzin, dni, tygodni, miesięcy lub
+    wg własnego wyrażenia cron. Do zadań cyklicznych: raporty, synchronizacje.
+  </ConceptCard>
+  <ConceptCard icon="fa-bolt" title="Webhook">
+    **Zdarzenie z zewnątrz** uruchamia przepływ - inny system wysyła żądanie HTTP na unikalny
+    URL. Do reakcji w czasie rzeczywistym (formularz, płatność, zdarzenie z innej aplikacji).
+  </ConceptCard>
+</CardGrid>
+
+### Kiedy którego użyć
+
+| Trigger | Co go wyzwala | Wymaga aktywacji workflow? | Typowe zastosowanie |
+| --- | --- | --- | --- |
+| **Manual Trigger** | Kliknięcie "Execute workflow" w edytorze | Nie - działa tylko w teście | Nauka, testy, jednorazowe uruchomienia |
+| **Schedule Trigger** | Harmonogram (interwał lub cron) | Tak - by uruchamiał się sam | Raporty cykliczne, synchronizacje, sprzątanie danych |
+| **Webhook** | Przychodzące żądanie HTTP na URL | Tak - produkcyjny URL działa po aktywacji | Formularze, płatności, integracje real-time, callbacki z API |
+
+:::note[Schedule Trigger - interwały]
+W parametrze `Trigger Interval` wybierasz jednostkę: _Seconds, Minutes, Hours, Days, Weeks,
+Months_ albo _Custom (Cron)_ dla pełnej kontroli (np. `0 7 * * 1-5` = o 7:00 w dni robocze).
+_Cron_ to standardowy, zwięzły zapis harmonogramu w formacie `minuta godzina dzień miesiąc dzień-tygodnia` -
+gwiazdka oznacza "każdy". To następca dawnego node'a "Cron".
+:::
+
+:::caution[Jeden trigger startowy na workflow]
+Workflow można mieć więcej niż jeden trigger, ale dane uruchomienie startuje od **jednego**
+z nich. Nie mieszaj bez potrzeby - najczytelniej jest, gdy przepływ ma jeden, świadomie
+wybrany punkt startu.
+:::
+
+## Uruchamianie i debugowanie
+
+Budowanie workflow to pętla: uruchom → zobacz dane → popraw. n8n daje do tego komplet
+narzędzi: pełne i częściowe wykonania, podgląd danych między node'ami, przypinanie danych
+oraz pełną historię executions.
+
+### Execute workflow vs Execute step
+
+- **Execute workflow** - uruchamia cały przepływ od triggera. Używasz, gdy chcesz sprawdzić
+  wszystko od początku do końca.
+- **Execute step** (częściowe wykonanie) - uruchamia tylko zaznaczony node, korzystając z
+  danych z poprzednich kroków. Bezcenne, gdy poprawiasz jeden node i nie chcesz znów
+  przepuszczać całego przepływu.
+
+### Podgląd danych między node'ami
+
+Po każdym uruchomieniu połączenia na kanwie pokazują liczbę przepuszczonych itemów, a w
+panelu node'a widzisz dane wejściowe (**Input**) i wynik (**Output**) w trzech widokach:
+_Table_, _JSON_ i _Schema_. To tutaj sprawdzasz, czy dane mają taki kształt, jakiego
+oczekujesz - większość błędów to po prostu inna nazwa pola niż się spodziewałeś.
+
+:::tip[Pinning danych - oszczędzaj czas i limity API]
+Opcją **Pin data** "zamrażasz" wynik node'a. Przy kolejnych testowych uruchomieniach n8n
+użyje przypiętych danych zamiast ponownie wołać API - szybciej, taniej i zawsze na tym samym
+zestawie danych (łatwiej porównywać efekty zmian). Przypięcie zdejmiesz przez **Unpin
+data**.
+
+**Ważne:** pinning działa tylko w edytorze, przy wykonaniach ręcznych i częściowych. Po
+aktywacji workflow przypięte dane są ignorowane - produkcja zawsze pobiera dane "na żywo".
+:::
+
+### Lista i szczegóły executions
+
+Zakładka **Executions** w workflow (i globalne "All executions") to dziennik uruchomień.
+Każde ma status - **Success**, **Error** lub **Running** - oraz tryb: _manual_, _trigger_
+(produkcyjne) albo częściowe. Klikając wykonanie, otwierasz jego kopię na kanwie z
+dokładnymi danymi z tamtego momentu - wręcz idealne do śledzenia, dlaczego coś poszło nie
+tak. Nieudane wykonania możesz też ponowić (**Retry**).
+
+### Webhook: tryb testowy vs produkcyjny
+
+Webhook ma **dwa URL-e**. **Test URL** działa po kliknięciu **Listen for test event** - n8n
+nasłuchuje pojedynczego żądania, żebyś zobaczył jego dane w edytorze. **Production URL**
+zaczyna działać dopiero, gdy workflow jest **aktywny** (przełącznik _Active_). To
+najczęstsza pułapka początkujących: testowy URL działał, a "na produkcji" cisza - bo
+workflow nie został aktywowany.
+
+:::caution[Częsty błąd przy webhookach]
+Test URL i Production URL to **różne adresy**. Po przejściu na produkcję skopiuj
+produkcyjny URL z node'a Webhook i wpisz go w systemie zewnętrznym oraz upewnij się, że
+workflow jest aktywny. Do odsyłania własnej odpowiedzi na żądanie służy osobny node
+**Respond to Webhook**.
+:::
+
+## Organizacja pracy - dobre praktyki od początku
+
+Jeden workflow ogarniesz z pamięci. Dwadzieścia - już nie. Im wcześniej wprowadzisz
+porządek, tym mniej czasu stracisz później na szukanie "tego przepływu, który coś robił z
+fakturami".
+
+<TwoCol>
+  <Panel variant="pros" title="Nazewnictwo i tagi">
+    - Nadawaj workflow **opisowe nazwy** (np. "Codzienny raport sprzedaży → Slack"), nie "My workflow 3".
+    - Używaj **tagów** do grupowania po kliencie, dziale lub statusie (np. `prod`, `test`, `finanse`).
+    - Jeśli Twoja wersja n8n ma **foldery** - układaj w nich workflow tematycznie, jak pliki w katalogach.
+  </Panel>
+  <Panel variant="neutral" title="Sticky notes na kanwie">
+    - Dodawaj **sticky note** (notatki), by opisać sekcje przepływu wprost na schemacie.
+    - Wyjaśniaj _dlaczego_, a nie tylko _co_ - przyszły Ty (lub kolega) podziękuje.
+    - Zaznaczaj nimi miejsca wymagające uwagi: limity API, dane testowe, kruche założenia.
+  </Panel>
+</TwoCol>
+
+:::tip[Higiena workflow]
+Nazywaj też **same node'y**, gdy ich rola nie jest oczywista (np. "Pobierz zamówienia z
+WooCommerce" zamiast "HTTP Request1"). Czytelne nazwy node'ów sprawiają, że wyrażenia
+odwołujące się do nich (`{{ $('Pobierz zamówienia').item.json... }}`) same się dokumentują.
+:::
+
+<Takeaways>
+  - Edytor n8n to: kanwa, panel node'ów (Tab / +), panel parametrów i ustawień node'a, lista workflow i executions.
+  - Każdy workflow startuje od triggera; uniwersalny wzorzec to "kiedy → skąd → co z tym zrobić".
+  - Manual = testy, Schedule = harmonogram/cron, Webhook = reakcja na zdarzenie z zewnątrz.
+  - "Execute workflow" uruchamia całość, "Execute step" tylko jeden node - szybsze poprawki.
+  - Pinning danych przyspiesza testy i oszczędza limity API, ale działa tylko w edytorze, nie na produkcji.
+  - Webhook ma osobny Test URL i Production URL; produkcyjny wymaga aktywnego workflow.
+  - Porządek od początku: opisowe nazwy, tagi, foldery i sticky notes.
+</Takeaways>

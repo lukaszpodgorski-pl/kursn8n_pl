@@ -1,0 +1,20 @@
+---
+import Default from '@astrojs/starlight/components/MarkdownContent.astro';
+import Faq from './Faq.astro';
+import type { FaqItem } from '../lib/structured-data';
+
+// FAQ ląduje WEWNĄTRZ kontenera treści (.sl-markdown-content), nie w stopce -
+// dzięki temu jest częścią artykułu i trafia do indeksu Pagefind.
+const data = Astro.locals.starlightRoute.entry.data;
+
+// `faqHidden` wyłącza tylko tę wygenerowaną sekcję (np. gdy artykuł sam w
+// sobie jest FAQ i sekcja powielałaby te same pytania) - blok FAQPage w
+// Head.astro powstaje niezależnie od tego, co renderuje ten komponent, więc
+// dane strukturalne zostają nietknięte.
+const faq = data.faqHidden ? undefined : (data.faq as FaqItem[] | undefined);
+---
+
+<Default>
+	<slot />
+	<Faq items={faq} />
+</Default>

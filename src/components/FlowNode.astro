@@ -1,0 +1,28 @@
+---
+/**
+ * Pojedynczy wezel diagramu przeplywu - dawne .node ze style.css.
+ * Gradient ikony sterowany zmiennymi --c1/--c2, jak w starym HTML.
+ */
+interface Props {
+	icon: string;
+	label: string;
+	sub?: string;
+	family?: 'fas' | 'fab';
+	/** Poczatek gradientu ikony. */
+	from?: string;
+	/** Koniec gradientu ikony. */
+	to?: string;
+}
+
+const { icon, label, sub, family = 'fas', from = '#6b7280', to = '#374151' } = Astro.props;
+---
+
+<div class="k-node">
+	<div class="k-node-ic" style={`--c1:${from};--c2:${to}`}>
+		<i aria-hidden="true" class={`${family} ${icon}`}></i>
+	</div>
+	<div class="k-node-tx">
+		<div class="k-node-label">{label}</div>
+		{sub && <div class="k-node-sub">{sub}</div>}
+	</div>
+</div>

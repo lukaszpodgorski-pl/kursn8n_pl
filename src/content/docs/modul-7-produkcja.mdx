@@ -1,0 +1,381 @@
+---
+title: n8n w produkcji - bezpiecznie i niezawodnie
+description: "n8n produkcyjnie i bezpiecznie: zabezpieczenie instancji (2FA, reverse proxy, SSL), RODO, backupy 3-2-1 i testowane odtwarzanie, monitoring i logi (N8N_LOG_LEVEL), tryb kolejkowy z workerami oraz środowiska dev/prod z wersjonowaniem."
+head:
+  - tag: title
+    content: "Moduł 7: Produkcja n8n - bezpieczeństwo, RODO, backupy, monitoring, queue mode | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Moduł 7: n8n w produkcji - bezpieczeństwo, RODO, backupy, skalowanie"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Jak uruchomić n8n produkcyjnie i bezpiecznie: zabezpieczenia, RODO, backupy 3-2-1, monitoring, tryb kolejkowy z workerami i środowiska dev/prod."
+datePublished: 2026-05-21
+educationalLevel: Advanced
+teaches:
+  - Jak zabezpieczyć instancję n8n - logowanie, 2FA, firewall, reverse proxy i SSL
+  - Jak podejść do RODO w automatyzacjach opartych o n8n
+  - Zasadę backupu 3-2-1 i dlaczego trzeba testować odtwarzanie
+  - Jak monitorować n8n - poziomy logów, healthchecki i dead man's switch
+  - Kiedy i jak włączyć tryb kolejkowy (queue mode) z workerami
+  - Jak rozdzielić środowiska dev/prod i wersjonować workflow w Git
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: RODO (GDPR)
+    sameAs: https://en.wikipedia.org/wiki/General_Data_Protection_Regulation
+  - name: Redis
+    sameAs: https://redis.io/
+  - name: PostgreSQL
+    sameAs: https://www.postgresql.org/
+  - name: Let's Encrypt
+    sameAs: https://letsencrypt.org/
+faq:
+  - q: "Czy do produkcji muszę używać PostgreSQL zamiast SQLite?"
+    a: "Dla pojedynczej, niewielkiej instancji SQLite bywa wystarczający, ale dla poważnej produkcji - a obowiązkowo w trybie kolejkowym - używaj PostgreSQL. Lepiej znosi obciążenie, równoległy dostęp i jest wymagany, gdy wiele procesów (main + workery) korzysta ze wspólnej bazy."
+  - q: "Co się stanie, jeśli zgubię N8N_ENCRYPTION_KEY?"
+    a: "Stracisz dostęp do wszystkich zapisanych credentials - n8n nie odszyfruje ich z bazy. Workflow zostaną, ale każde połączenie z usługą zewnętrzną trzeba będzie skonfigurować od nowa. Dlatego klucz backupujesz osobno (menedżer haseł) i to on jest najważniejszym elementem kopii."
+  - q: "Kiedy realnie potrzebuję trybu kolejkowego?"
+    a: "Gdy pomiary pokazują, że jeden proces n8n nie wyrabia: wykonania się piętrzą, potrzebujesz równoległości albo masz długie, ciężkie zadania blokujące resztę. Dopóki pojedyncza instancja sobie radzi, queue mode dodaje tylko niepotrzebną złożoność (Redis, wiele procesów)."
+  - q: "Jak wersjonować workflow bez planu Enterprise?"
+    a: "Eksportuj każdy workflow jako JSON i trzymaj te pliki w repozytorium Git. Dostajesz historię zmian, możliwość cofnięcia i prosty transfer między instancją dev a prod. Pełny Source Control z gałęziami i promocją środowisk to funkcja Enterprise, ale podstawową dyscyplinę zapewnisz samym eksportem do Gita."
+  - q: "Czy webhooki też muszą być schowane za logowaniem?"
+    a: "Nie - to dwie różne ścieżki. Panel n8n warto ograniczyć (IP / VPN / SSO + 2FA), ale endpointy webhooków zwykle muszą być publiczne, by usługi zewnętrzne mogły je wywołać. Zabezpiecz je inaczej: trudny do odgadnięcia URL, weryfikacja podpisu/sekretu w workflow i HTTPS."
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Moduł 7 · Poziom: zaawansowany"
+  readingTime="~20 min"
+  note="Produkcja i bezpieczeństwo"
+/>
+
+Działający workflow na laptopie a instancja, której powierzasz prawdziwe dane klientów i
+biznesowe procesy 24/7 - to dwa różne światy. W tym module przechodzimy w tryb "produkcyjnie
+i bezpiecznie": zabezpieczenie dostępu, RODO, backupy które naprawdę da się odtworzyć,
+monitoring, skalowanie przez tryb kolejkowy oraz dyscyplinę środowisk dev/prod.
+
+## Zabezpieczenie instancji
+
+Instancja n8n trzyma credentials (klucze API, tokeny OAuth) i może wykonywać dowolny kod
+oraz żądania w Twoim imieniu. To czyni ją łakomym celem. Zabezpieczenie to nie jedno
+ustawienie, lecz kilka warstw - od logowania, przez sieć, po aktualizacje.
+
+### Logowanie i użytkownicy
+
+Nigdy nie wystawiaj n8n bez uwierzytelniania. Od pierwszego startu skonfiguruj
+**właściciela instancji** (owner) i odrębne konta dla każdej osoby - wspólne hasło to
+proszenie się o kłopoty. W planach Enterprise dostępne są **RBAC** (role, projekty, role
+własne), **SSO** (SAML, OIDC) oraz **LDAP** do centralnego zarządzania kontami zgodnie
+z zasadą najmniejszych uprawnień.
+
+### 2FA (uwierzytelnianie dwuskładnikowe)
+
+Włącz **2FA** dla wszystkich kont, a przynajmniej dla właściciela i administratorów. Hasło,
+które wyciekło, samo w sobie nie wpuści wtedy atakującego do panelu pełnego credentials.
+
+### Ograniczenie dostępu i firewall
+
+Im mniej powierzchni ataku, tym lepiej. W praktyce:
+
+- **Nie otwieraj portu n8n (5678) na świat.** Na zewnątrz wystaw tylko reverse proxy (80/443), a do n8n niech proxy łączy się lokalnie.
+- **Firewall** (ufw / iptables / Security Group) - domyślnie blokuj wszystko, otwórz wyłącznie 22 (SSH), 80 i 443.
+- **Panel logowania ogranicz do swojego IP** lub schowaj za VPN, jeśli n8n ma być dostępny tylko wewnętrznie. Webhooki mogą pozostać publiczne - to dwie różne ścieżki.
+- **SSH na klucze**, bez logowania hasłem i bez roota.
+
+:::note[Po ludzku - firewall, port, SSH]
+
+- **Firewall** - "ochroniarz" serwera: przepuszcza ruch tylko na wybrane porty, a resztę blokuje. `ufw` i `iptables` to programy firewalla na Linuksie.
+- **Port** - numerowane "drzwi" usługi w sieci: 22 to SSH, 80 to zwykłe HTTP, 443 to HTTPS, a 5678 to n8n.
+- **SSH** - bezpieczny, zdalny dostęp do konsoli serwera (jak "pulpit zdalny", ale tekstowy). "Na klucze" znaczy logowanie kryptograficznym kluczem zamiast hasłem - znacznie trudniej je złamać.
+
+:::
+
+### Reverse proxy + SSL (Let's Encrypt)
+
+Produkcyjny n8n musi działać po **HTTPS z prawdziwym certyfikatem** - wymaga tego nie tylko
+bezpieczeństwo, ale i OAuth (Google, Microsoft, Slack odrzucają `http://` i certyfikaty
+samopodpisane). Standardowy układ to reverse proxy (Nginx, Caddy lub Traefik) terminujący
+TLS przed n8n. Certyfikat zdobędziesz darmowo z **Let's Encrypt** (Caddy i Traefik potrafią
+go pozyskać i odnawiać automatycznie).
+
+Ustaw też zmienne, by n8n wiedział, że stoi za proxy i pod jakim adresem:
+
+```ini
+N8N_HOST=n8n.twojadomena.pl
+N8N_PROTOCOL=https
+N8N_PORT=5678
+WEBHOOK_URL=https://n8n.twojadomena.pl/
+N8N_SECURE_COOKIE=true
+```
+
+`N8N_SECURE_COOKIE` (domyślnie włączone) pilnuje, by ciasteczko sesji było wysyłane tylko
+po HTTPS. Wyłączaj je wyłącznie w lokalnym dev - nie na produkcji.
+
+### Aktualizacje
+
+Nieaktualny n8n to znane podatności. Regularnie aktualizuj obraz/wersję - ale **najpierw
+zrób backup** (patrz sekcję "Backupy 3-2-1 i testowane odtwarzanie" niżej) i sprawdź
+changelog, bo nowsze wersje czasem wprowadzają migracje schematu bazy lub zmiany łamiące
+kompatybilność.
+
+:::tip[Checklist produkcyjnego zabezpieczenia]
+
+- Osobne konta + silne hasła + **2FA** dla wszystkich.
+- Port 5678 niewystawiony publicznie; na świat tylko reverse proxy.
+- HTTPS z certyfikatem Let's Encrypt; `N8N_SECURE_COOKIE=true`.
+- Firewall: tylko 22/80/443; SSH na klucze, bez roota.
+- `N8N_ENCRYPTION_KEY` wygenerowany raz i bezpiecznie przechowany.
+- Regularne aktualizacje - zawsze po wcześniejszym backupie.
+- Rozważ izolację wykonywania kodu (osobny kontener / ograniczone uprawnienia procesu).
+
+:::
+
+:::note[Pełny przewodnik bezpieczeństwa]
+n8n zbiera rekomendacje w jednym miejscu: [Securing n8n - overview](https://docs.n8n.io/hosting/securing/overview/)
+oraz konfigurację certyfikatu w [Set up SSL/TLS](https://docs.n8n.io/hosting/securing/set-up-ssl/).
+Przykłady izolacji środowiska wykonawczego znajdziesz w
+[Isolation](https://docs.n8n.io/hosting/configuration/configuration-examples/isolation/).
+:::
+
+## RODO / GDPR w automatyzacjach
+
+Jeśli przez n8n przepływają dane osobowe (maile, telefony, dane klientów, CV), podlegasz
+RODO. Self-hosting daje przewagę: dane fizycznie zostają tam, gdzie chcesz - ale
+odpowiedzialność też przechodzi na Ciebie.
+
+### Cztery pytania, które musisz sobie zadać
+
+- **Gdzie fizycznie leżą dane?** Hosting w UE/EOG to najprostsza ścieżka. Poza UE (USA, UK po Brexicie) potrzebujesz Standardowych Klauzul Umownych (SCC) i analizy ryzyka transferu.
+- **Administrator czy procesor?** Przy własnym hostingu zwykle jesteś **administratorem** danych, a dostawca infrastruktury jest tylko (pod)procesorem.
+- **Czy masz DPA?** Z dostawcą hostingu i z każdą usługą zewnętrzną, której powierzasz dane (np. dostawca LLM), podpisz **umowę powierzenia (DPA)**.
+- **Czy szyfrujesz credentials?** n8n szyfruje zapisane poświadczenia kluczem `N8N_ENCRYPTION_KEY` - bez bezpiecznego przechowania tego klucza ochrona jest pozorna.
+
+Pamiętaj o minimalizacji danych: nie loguj pełnych payloadów z danymi osobowymi "na
+wszelki wypadek" i kontroluj retencję wykonań (executions), by nie trzymać wrażliwych
+danych bez końca.
+
+:::tip[Głębiej o RODO i powierzeniu danych]
+Pełną rozprawkę o RODO przy n8n - gdzie leżą dane w 7 różnych środowiskach, administrator
+vs procesor, DPA, SCC i klucz szyfrujący - rozpisałem w
+[poradniku porównania hostingów (sekcja "Wspólne pojęcia: RODO, klucz szyfrujący, OAuth, backupy")](/porownanie-n8n-hostingow#wspólne-pojęcia-rodo-klucz-szyfrujący-oauth-backupy).
+Tu zostawiam esencję, tam masz konkrety per dostawca.
+:::
+
+## Backupy 3-2-1 i testowane odtwarzanie
+
+Self-hosting znaczy "backupy to Twoja sprawa". A backup ma jeden cel - żeby dało się z
+niego **odtworzyć** instancję. To brzmi oczywisto, dopóki nie nadejdzie dzień awarii.
+
+### Co konkretnie backupować
+
+1. **Klucz szyfrujący `N8N_ENCRYPTION_KEY`** - raz, do menedżera haseł. Bez niego backup bazy jest bezużyteczny, bo nie odszyfrujesz credentials.
+2. **Baza danych** - plik SQLite albo `pg_dump` z PostgreSQL. Tu mieszkają workflow, credentials (zaszyfrowane), historia wykonań.
+3. **Wolumen `~/.n8n`** (w kontenerze zwykle `/home/node/.n8n`) - config, dane binarne, ustawienia.
+4. **Konfiguracja wdrożenia** - `docker-compose.yml`, plik `.env`, konfiguracja reverse proxy i certyfikaty. To często "jest gdzieś", ale nie w backupie.
+
+### Zasada 3-2-1
+
+**Trzy** kopie danych, na **dwóch** różnych nośnikach, **jedna** poza lokalizacją
+(off-site). Off-site oznacza: backup nie może zginąć od tej samej awarii co produkcja -
+nie ta sama partycja, nie ten sam dysk VPS-a, najlepiej inny dostawca lub fizycznie inne
+miejsce.
+
+### "Backup, którego nie testujesz, nie istnieje"
+
+Sam plik `backup-2026-05-15.sql` w katalogu nic nie gwarantuje. Realne odtwarzanie
+wykonuj cyklicznie na czystej maszynie: tylko wtedy wiesz, że backup się przywraca, że
+masz wszystkie elementy (klucz, `.env`, certyfikaty, custom nodes) i że potrafisz to
+zrobić, zanim padnie produkcja.
+
+### RTO - ile możesz być offline
+
+**RTO (Recovery Time Objective)** to maksymalny akceptowalny czas przywrócenia usługi po
+awarii. Zanim ustalisz strategię backupu, odpowiedz: jeśli serwer padnie o 9:00, do
+której godziny n8n _musi_ znowu działać? Z tej odpowiedzi wynika, jak często robić kopie
+i jak szybko musisz umieć odtworzyć (czyli - czy odtwarzanie jest przećwiczone).
+
+:::danger[Typowe porażki backupu (z prawdziwego życia)]
+
+- Skrypt backupu rzucał błędem od pół roku - nikt nie czytał logów crona.
+- Skończyło się miejsce - nowe kopie nie zapisywały się, stare zostały nadpisane.
+- Backup robiony w trakcie zapisu do bazy - plik istniał, ale był uszkodzony.
+- Backup na tym samym dysku/serwerze co produkcja - padł razem z nim.
+- Zapisano bazę, ale **nie klucz** `N8N_ENCRYPTION_KEY` - credentials nie do odzyskania.
+- Wersja n8n na nowej maszynie nowsza niż w backupie - migracja schematu nie przeszła czysto.
+
+:::
+
+:::tip[Gotowa strategia backupu n8n]
+Konkretną, sprawdzoną strategię (co, jak często, retencja, monitoring procesu backupu,
+gdzie trzymać off-site) rozpisałem w
+[poradniku porównania hostingów - sekcja o backupach](/porownanie-n8n-hostingow#wspólne-pojęcia-rodo-klucz-szyfrujący-oauth-backupy).
+To rozszerzenie tego, co tu omawiam.
+:::
+
+## Monitoring, logi i healthchecks
+
+Produkcja bez monitoringu to jazda z zasłoniętymi oczami. Chodzi o dwie rzeczy: widzieć,
+co się dzieje (logi), i dostawać alarm, gdy coś przestaje działać (healthcheck).
+
+### Poziomy logów - `N8N_LOG_LEVEL`
+
+Szczegółowość logów ustawiasz zmienną `N8N_LOG_LEVEL`. Dostępne wartości (od najcichszej
+do najgłośniejszej):
+
+| Wartość | Co zobaczysz | Kiedy używać |
+| --- | --- | --- |
+| `silent` | Nic. | Raczej nigdy na produkcji. |
+| `error` | Tylko błędy. | Minimalny szum. |
+| `warn` | Błędy + ostrzeżenia. | Spokojna produkcja. |
+| `info` | Postęp + powyższe. **Domyślne.** | Sensowny standard. |
+| `debug` | Najwięcej szczegółów. | Diagnostyka problemu (czasowo). |
+
+### Gdzie trafiają logi
+
+Domyślnie n8n loguje do konsoli (`N8N_LOG_OUTPUT=console`) - w Dockerze odczytasz je
+przez `docker logs`. Możesz zapisywać też do pliku, ustawiając `N8N_LOG_OUTPUT=file` i
+lokalizację `N8N_LOG_FILE_LOCATION`. W planach Enterprise dostępny jest **log
+streaming** do zewnętrznych systemów (audyt zdarzeń).
+
+```ini
+N8N_LOG_LEVEL=info
+N8N_LOG_OUTPUT=console
+# zapis do pliku (opcjonalnie):
+# N8N_LOG_OUTPUT=file
+# N8N_LOG_FILE_LOCATION=/home/node/.n8n/logs/n8n.log
+```
+
+### Healthcheck i monitoring czasu działania
+
+n8n udostępnia endpoint `/healthz`, którym sprawdzisz, czy proces żyje. Dwa
+uzupełniające się podejścia:
+
+- **Uptime "z zewnątrz"** - [Uptime Kuma](https://uptime.kuma.pet/) (self-hosted) lub usługa zewnętrzna co minutę pinguje `/healthz` i alarmuje, gdy instancja przestaje odpowiadać.
+- **Monitoring zadań cyklicznych (dead man's switch)** - [healthchecks.io](https://healthchecks.io/): skrypt backupu / kluczowy workflow pinguje URL po sukcesie. _Brak_ pingu w oknie czasu = alarm. To wyłapuje ciche awarie, których zwykły uptime nie zauważy.
+
+:::caution[Monitoruj efekt, nie tylko proces]
+To, że proces n8n "żyje", nie znaczy, że workflow robią to, co mają. Najgorsze awarie to
+te ciche: workflow działa, ale od trzech dni nic nie zsynchronizował, bo wygasł token.
+Ustaw alerty na **brak oczekiwanego wyniku** (np. brak pingu z workflow), a nie tylko na
+padnięcie serwera.
+:::
+
+## Tryb kolejkowy (queue mode), workery i skalowanie
+
+Domyślnie jeden proces n8n robi wszystko - to wystarcza na większość wdrożeń. Gdy
+obciążenie rośnie (dużo wykonań naraz, długie zadania, potrzeba równoległości),
+przechodzisz na **tryb kolejkowy** i rozkładasz pracę na wiele workerów.
+
+### Kiedy go potrzebujesz
+
+- Duża liczba wykonań w krótkim czasie i wąskie gardło na jednym procesie.
+- Potrzeba **równoległego** przetwarzania wielu workflow.
+- Ciężkie/długie wykonania, które blokowałyby resztę.
+- Chcesz skalować poziomo (dokładać workery) i zwiększyć odporność.
+
+### Komponenty
+
+<CardGrid>
+  <ConceptCard icon="fa-server" title="Main (główny)">
+    Obsługuje UI, triggery i webhooki, a wykonania wrzuca do kolejki zamiast wykonywać sam.
+  </ConceptCard>
+  <ConceptCard icon="fa-people-carry-box" title="Workers (workery)">
+    Pobierają zadania z kolejki i faktycznie wykonują workflow. Możesz dokładać kolejne.
+  </ConceptCard>
+  <ConceptCard icon="fa-layer-group" title="Redis">
+    Bardzo szybka baza działająca w pamięci; tu pełni rolę kolejki zadań między main a
+    workerami (oparta o Bull). Niezbędna w tym trybie.
+  </ConceptCard>
+</CardGrid>
+
+<Flow
+  title="queue-mode"
+  alt="Schemat trybu kolejkowego: proces główny przekazuje zadania do Redis, a pula workerów pobiera je i wykonuje równolegle"
+  caption="Tryb kolejkowy: proces główny wrzuca wykonania do Redis, a pula workerów pobiera je i przetwarza równolegle. Dokładasz workery, by skalować poziomo."
+>
+  <FlowNode icon="fa-server" label="Main" sub="UI, triggery, kolejkuje" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-layer-group" label="Redis" sub="kolejka zadań (Bull)" from="#dc2626" to="#b91c1c" />
+  <FlowNode icon="fa-gears" label="Worker 1" sub="wykonuje workflow" from="#64748b" to="#475569" />
+  <FlowNode icon="fa-gears" label="Worker 2" sub="wykonuje workflow" from="#64748b" to="#475569" />
+  <FlowNode icon="fa-gears" label="Worker 3" sub="wykonuje workflow" from="#64748b" to="#475569" />
+</Flow>
+
+Tryb włączasz zmienną `EXECUTIONS_MODE=queue` na procesie głównym i na workerach,
+wskazujesz Redis i uruchamiasz workery komendą `n8n worker`:
+
+```ini
+EXECUTIONS_MODE=queue
+QUEUE_BULL_REDIS_HOST=redis
+QUEUE_BULL_REDIS_PORT=6379
+QUEUE_BULL_REDIS_PASSWORD=twoje-haslo
+# liczba równoległych zadań na workera:
+N8N_CONCURRENCY_PRODUCTION_LIMIT=10
+
+# start workera:
+# n8n worker
+```
+
+:::note[Workery muszą mieć ten sam `N8N_ENCRYPTION_KEY`]
+Każdy worker (i ewentualne procesy webhook) **musi** mieć identyczny
+`N8N_ENCRYPTION_KEY` co proces główny - inaczej nie odszyfruje credentials z bazy i
+workflow padną. Wszystkie komponenty łączą się też do **tej samej bazy danych**
+(PostgreSQL - SQLite tu nie wystarczy) i do tego samego Redis. Szczegóły:
+[Configuring queue mode](https://docs.n8n.io/hosting/scaling/queue-mode/).
+:::
+
+:::caution[Nie zaczynaj od queue mode "na zapas"]
+To realna złożoność operacyjna (Redis, wiele procesów, więcej rzeczy do monitorowania i
+backupu). Przechodź na tryb kolejkowy dopiero, gdy pomiary pokazują, że pojedynczy
+proces nie wyrabia - nie wcześniej.
+:::
+
+## Środowiska dev/prod i wersjonowanie
+
+Edycja workflow bezpośrednio na produkcji to przepis na katastrofę. Profesjonalne
+wdrożenie rozdziela **środowisko deweloperskie** (gdzie eksperymentujesz) od
+**produkcyjnego** (gdzie działają sprawdzone wersje) i wersjonuje zmiany.
+
+### Source control (Git) w n8n
+
+n8n w planach Enterprise oferuje **Source Control & Environments**: łączysz instancję
+z repozytorium Git (_Git_ to system kontroli wersji - przechowuje historię każdej
+zmiany i pozwala cofnąć się do wcześniejszej wersji), a workflow i credentials (jako
+referencje, nie sekrety) są pod kontrolą wersji. Pracujesz w gałęziach, przeglądasz
+zmiany i promujesz je z dev do prod w kontrolowany sposób. Dokumentacja:
+[Source control and environments](https://docs.n8n.io/source-control-environments/).
+
+### Eksport/import JSON - wersjonowanie dla każdego
+
+Nie masz Enterprise? Wersjonować i tak warto. Każdy workflow możesz wyeksportować jako
+**JSON** (z edytora) i trzymać w repozytorium Git. Daje to historię zmian, możliwość
+cofnięcia i odtworzenia workflow oraz prosty transfer między instancjami dev i prod.
+
+:::tip[Dyscyplina zmian na produkcji]
+
+- Buduj i testuj na **osobnej** instancji dev (lub kopii), nie na produkcji.
+- Zmiany trzymaj w Git (Source Control albo eksport JSON) - masz historię i cofkę.
+- Promuj do prod świadomie, po teście - nie "na żywca" w godzinach pracy.
+- Wartości specyficzne dla środowiska wyciągaj do **zmiennych** i credentials, nie wpisuj na sztywno.
+- Przed większą zmianą i przed aktualizacją n8n - backup (patrz sekcję "Backupy 3-2-1 i testowane odtwarzanie" wyżej).
+
+:::
+
+<Takeaways>
+  - Bezpieczeństwo to warstwy: konta + 2FA, reverse proxy + HTTPS, firewall, aktualizacje.
+  - Nie wystawiaj portu 5678 na świat - na zewnątrz tylko proxy z certyfikatem Let's Encrypt.
+  - Przy self-hostingu zwykle jesteś administratorem danych - zadbaj o DPA i szyfrowanie credentials (RODO).
+  - Backup 3-2-1 ma sens tylko, jeśli regularnie testujesz odtwarzanie; bez klucza szyfrującego backup bazy jest bezużyteczny.
+  - Monitoruj logi (`N8N_LOG_LEVEL`) i zdrowie (`/healthz`, Uptime Kuma, healthchecks.io) - także efekt, nie tylko proces.
+  - Queue mode (main + workery + Redis) skaluje pod obciążenie - wszystkie workery muszą mieć ten sam `N8N_ENCRYPTION_KEY`.
+  - Rozdziel dev od prod i wersjonuj workflow (Git / eksport JSON) - koniec z edycją na żywca.
+</Takeaways>

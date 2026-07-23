@@ -1,0 +1,11 @@
+# Adresy pomijane przez lychee. Jeden wzorzec (URL lub regex) na linię.
+#
+# Wpisuj tu wyłącznie linki, o których wiadomo, że są sprawne, a lychee zgłasza
+# je fałszywie. Martwe linki naprawiaj w treści, nie wyciszaj tutaj - inaczej ten
+# plik po cichu zamieni się w listę zepsutych źródeł.
+
+# McKinsey zrywa połączenie z klientami automatycznymi ("HTTP/2 protocol error").
+# Blokada jest sieciowa, nie treściowa: niedostępny jest też sam korzeń domeny
+# mckinsey.com, co wyklucza błąd 404 na tej konkretnej podstronie. Raport
+# "The State of AI" jest cytowany jako źródło w trzech artykułach.
+https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai

@@ -1,0 +1,392 @@
+---
+title: AI i agenci w n8n
+description: "n8n jako orkiestrator AI po polsku: węzły AI oparte na LangChain, cluster nodes (root + sub-node'y), AI Agent vs Chain, modele OpenAI/Anthropic/Ollama, pamięć i narzędzia, RAG z bazami wektorowymi oraz budowa chatbota i agentów 24/7."
+head:
+  - tag: title
+    content: "Moduł 6: AI i agenci w n8n - AI Agent, modele, pamięć, narzędzia i RAG | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Moduł 6: AI i agenci w n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "n8n jako orkiestrator AI: cluster nodes (LangChain), AI Agent, modele, pamięć, narzędzia, RAG oraz agenci 24/7 - po polsku, praktycznie."
+datePublished: 2026-05-21
+educationalLevel: Advanced
+teaches:
+  - "Jak działają cluster nodes: root node i sub-node'y (model, pamięć, narzędzia)"
+  - Różnicę między AI Agent (Tools Agent) a zwykłym Chainem
+  - Jak podłączyć modele OpenAI, Anthropic i Ollama do workflow
+  - "Budowę RAG: embeddingi, bazy wektorowe i chatbota na własnych danych"
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+  - name: LangChain
+    sameAs: https://en.wikipedia.org/wiki/LangChain
+  - name: Retrieval-augmented generation
+    sameAs: https://en.wikipedia.org/wiki/Retrieval-augmented_generation
+mentions:
+  - name: OpenAI
+    sameAs: https://en.wikipedia.org/wiki/OpenAI
+  - name: Anthropic
+    sameAs: https://en.wikipedia.org/wiki/Anthropic
+  - name: Ollama
+    sameAs: https://en.wikipedia.org/wiki/Ollama
+faq:
+  - q: "Czym różni się AI Agent od zwykłego node'a OpenAI?"
+    a: "Zwykły node modelu (lub Basic LLM Chain) wysyła prompt i zwraca odpowiedź - jedno wywołanie, koniec. AI Agent dostaje zestaw narzędzi i sam decyduje, których użyć, by rozwiązać zadanie; potrafi wykonać kilka kroków (rozumowanie → akcja → obserwacja) zanim odpowie. Agent jest mocniejszy, ale droższy i mniej przewidywalny."
+  - q: "Czy mogę używać AI w n8n bez płacenia OpenAI?"
+    a: "Tak - podepnij sub-node Ollama Chat Model i uruchom model lokalnie na własnym serwerze. Nie płacisz za tokeny, a dane nie opuszczają Twojej infrastruktury. Ceną jest wymagający sprzęt i zwykle niższa jakość niż topowe modele chmurowe."
+  - q: 'Po co mi RAG, skoro model i tak "dużo wie"?'
+    a: "Model nie zna Twoich danych - regulaminów, dokumentacji, bazy wiedzy firmy - i bywa, że je zmyśla. RAG przed odpowiedzią wyszukuje pasujące fragmenty Twoich dokumentów i dokłada je do promptu, dzięki czemu odpowiedzi są oparte na faktach z Twoich źródeł, a aktualizacja sprowadza się do dodania dokumentu do bazy."
+  - q: "Jaką pamięć wybrać dla chatbota?"
+    a: "Na naukę i prototyp wystarczy Simple Memory (window buffer) - trzyma ostatnie wiadomości, ale znika po restarcie. Do produkcji z wieloma użytkownikami użyj pamięci trwałej (Postgres/Redis/MongoDB Chat Memory) z kluczem sesji per użytkownik, by historie rozmów się nie mieszały i przetrwały restart."
+  - q: "Jak nie przepalić budżetu na agentach 24/7?"
+    a: "Ustaw limity i alerty zużycia, ogranicz liczbę iteracji agenta (max iterations) oraz timeouty, używaj tańszego modelu do prostych kroków, a droższego tylko tam, gdzie konieczny. Najwięcej oszczędza dobry dobór narzędzia: jeśli zadanie jest jednokrokowe, użyj Chaina zamiast agenta."
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Panel from '../../components/Panel.astro';
+import Takeaways from '../../components/Takeaways.astro';
+import TwoCol from '../../components/TwoCol.astro';
+
+<ModuleHero
+  tag="Moduł 6 · Poziom: zaawansowany"
+  readingTime="~20 min"
+/>
+
+n8n to nie tylko "spinanie API". To także pełnoprawny orkiestrator AI: na bazie LangChain
+budujesz tu asystentów, agentów decydujących o użyciu narzędzi oraz systemy RAG odpowiadające
+na Twoich danych. W tym module zrozumiesz, jak te klocki działają i - co ważniejsze - kiedy
+ich naprawdę potrzebujesz.
+
+## n8n jako orkiestrator AI
+
+Węzły AI w n8n są oparte na **LangChain** - frameworku, który dostarcza warstwę abstrakcji nad
+modelami językowymi, embeddingami, bazami wektorowymi i mechanizmami pobierania danych. Dzięki
+temu budujesz zaawansowane aplikacje AI bez pisania kodu integrującego - zamiast tego składasz
+gotowe klocki na kanwie.
+
+:::note[Po ludzku - LLM, prompt, token, framework]
+
+- **LLM (model językowy)** - "mózg" AI, np. GPT od OpenAI albo Claude od Anthropic. Dostaje
+  tekst i generuje odpowiedź.
+- **Prompt** - polecenie lub pytanie, które wysyłasz do modelu. Im jaśniejszy prompt, tym
+  lepsza odpowiedź.
+- **Token** - kawałek tekstu, na jaki model dzieli słowa (z grubsza ~4 znaki). Dostawcy liczą
+  koszt i limity właśnie w tokenach: dłuższy tekst = więcej tokenów = drożej.
+- **Framework** - gotowy "szkielet" z zestawem narzędzi (tu: LangChain), na którym budujesz,
+  zamiast pisać wszystko od zera.
+
+:::
+
+Kluczowe jest tu pojęcie, którego nie spotkasz w "zwykłych" node'ach: **cluster nodes**. To
+grupa node'ów, które działają razem jako jeden zespół. Składają się z dwóch warstw:
+
+<CardGrid>
+  <ConceptCard icon="fa-sitemap" title="Root node (węzeł główny)">
+    Główny węzeł orkiestrujący, np. **AI Agent**, **Basic LLM Chain** czy **Question and Answer
+    Chain**. To on stoi w głównym przepływie i steruje całością.
+  </ConceptCard>
+  <ConceptCard icon="fa-puzzle-piece" title="Sub-node'y (węzły podrzędne)">
+    Komponenty podpinane od spodu do roota: **chat model**, **memory** (pamięć), **tool**
+    (narzędzie), embeddings, vector store, output parser. Same nie uruchamiają workflow -
+    zasilają roota.
+  </ConceptCard>
+</CardGrid>
+
+### Jak to wygląda na kanwie
+
+Root node ma na dole specjalne porty (kropki z etykietami: _Chat Model_, _Memory_, _Tool_). Do
+każdego portu podpinasz odpowiedni sub-node. To inny sposób łączenia niż lewo→prawo, do którego
+przywykłeś z poprzednich modułów - sub-node nie jest "kolejnym krokiem", tylko **zdolnością**,
+którą wyposażasz roota.
+
+```text
+[Chat Trigger] ──► [AI Agent]  (root node, w głównym przepływie)
+                       ▲ ▲ ▲
+                       │ │ └── Tool        (np. Calculator, HTTP Request Tool)
+                       │ └──── Memory      (np. Simple Memory / Window Buffer)
+                       └────── Chat Model  (np. OpenAI / Anthropic / Ollama)
+```
+
+<Flow
+  title="ai-agent"
+  alt="Schemat klastra AI: węzeł główny AI Agent, a od spodu podpięte sub-node'y Chat Model, Memory i Tool - to nie są kolejne kroki, tylko zdolności dołączone do agenta"
+  caption="Cluster node: AI Agent (root) wyposażasz w zdolności, podpinając od spodu sub-node'y - model, pamięć i narzędzia. Wymieniasz je bez przebudowy reszty."
+>
+  <FlowNode icon="fa-robot" label="AI Agent" sub="root node - decyduje i orkiestruje" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-microchip" label="Chat Model" sub="OpenAI / Ollama" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-database" label="Memory" sub="kontekst rozmowy" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-screwdriver-wrench" label="Tool" sub="Calculator, HTTP" from="#d97706" to="#b45309" />
+</Flow>
+
+:::note[Dlaczego taka architektura]
+Rozdzielenie roota od sub-node'ów daje ogromną elastyczność: ten sam AI Agent możesz zasilić
+modelem od OpenAI dziś, a Ollamą jutro - bez przebudowy całego workflow. Wymieniasz jeden
+sub-node i działa dalej. Logika (root) jest niezależna od dostawcy (sub-node).
+:::
+
+## AI Agent node - model, który sam decyduje
+
+Najważniejsza różnica w całym module: **zwykłe wywołanie LLM** (Chain) wysyła prompt i odbiera
+tekst - koniec. **Agent** dostaje do dyspozycji zestaw narzędzi i sam decyduje, których użyć,
+w jakiej kolejności i czy w ogóle. To różnica między "odpowiedz na pytanie" a "rozwiąż problem".
+
+### Pętla rozumowania (ReAct)
+
+Agent nie generuje jednej odpowiedzi z marszu. Działa w cyklu **reasoning → action →
+observation**, który powtarza, dopóki nie osiągnie celu:
+
+1. **Reasoning** - analizuje żądanie i decyduje, jaki krok wykonać.
+2. **Action** - wybiera narzędzie z dostępnych (np. kalkulator, HTTP Request, sub-workflow) i je wywołuje.
+3. **Observation** - odbiera wynik narzędzia i ocenia, czy to wystarczy.
+4. **Powtórka lub finał** - jeśli trzeba więcej danych, wraca do kroku 1; jeśli nie - formułuje finalną odpowiedź.
+
+W praktyce: zapytaj agenta "Jaka jest dziś pogoda w Krakowie i czy brać parasol?" - sam
+zdecyduje, że musi wywołać narzędzie pogodowe (action), odczyta wynik (observation), a potem na
+jego podstawie napisze odpowiedź. Model bez narzędzi po prostu zmyśliłby pogodę.
+
+### Tools Agent - domyślny typ
+
+AI Agent node historycznie oferował kilka typów (Conversational, ReAct, OpenAI Functions, Plan
+and Execute, SQL). Dziś rekomendowany i domyślny jest **Tools Agent** - korzysta z natywnego
+mechanizmu "function/tool calling" nowoczesnych modeli, dzięki czemu wybór narzędzi jest
+bardziej niezawodny niż w starszym podejściu ReAct opartym na parsowaniu tekstu.
+
+<TwoCol>
+  <Panel variant="neutral" title="Kiedy zwykły Chain">
+    - Zadanie jest **jednokrokowe** i znasz dokładny przepływ
+    - Streszczenie tekstu, klasyfikacja, ekstrakcja danych, tłumaczenie
+    - Chcesz **przewidywalności** i niższych kosztów (jedno wywołanie modelu)
+    - Node'y: `Basic LLM Chain`, `Summarization Chain`, `Information Extractor`, `Text Classifier`
+  </Panel>
+  <Panel variant="neutral" title="Kiedy Agent">
+    - Zadanie wymaga **decyzji**: "użyć narzędzia czy nie? którego?"
+    - Wieloetapowe rozumowanie, dynamiczny przepływ
+    - Asystent, który może sięgnąć po dane na żywo (API, baza, wyszukiwarka)
+    - Node: `AI Agent` (Tools Agent)
+  </Panel>
+</TwoCol>
+
+:::caution[Agent to nie zawsze lepiej]
+Agent jest droższy (kilka wywołań modelu na jedną odpowiedź) i mniej przewidywalny niż Chain.
+Jeśli zadanie jest deterministyczne - streść ten tekst, sklasyfikuj to zgłoszenie - użyj Chaina.
+Agent rezerwuj na sytuacje, gdzie naprawdę potrzeba _decyzji_, a nie pojedynczego przekształcenia.
+:::
+
+## Modele: OpenAI, Anthropic i lokalne (Ollama)
+
+Model językowy podpinasz jako sub-node typu **Chat Model** do portu _Chat Model_ roota. n8n
+wspiera wielu dostawców - każdy z nich to osobny sub-node, który potrzebuje własnych
+**credentials** (klucz API lub adres lokalnego serwera).
+
+### Jak podpiąć dostawcę modelu
+
+1. Dodaj root node (np. `AI Agent` lub `Basic LLM Chain`).
+2. Kliknij port _Chat Model_ i wybierz sub-node dostawcy, np. **OpenAI Chat Model**, **Anthropic Chat Model** lub **Ollama Chat Model**.
+3. Skonfiguruj credentials: dla chmury klucz API, dla Ollamy adres lokalnego serwera (np. `http://localhost:11434`).
+4. Wybierz konkretny model (np. `gpt-4o-mini`, `claude-...`, `llama3`) i parametry (temperatura itp.).
+
+| Wymiar | OpenAI (chmura) | Anthropic (chmura) | Ollama (lokalnie) |
+| --- | --- | --- | --- |
+| Sub-node | OpenAI Chat Model | Anthropic Chat Model | Ollama Chat Model |
+| Credentials | Klucz API | Klucz API | Adres serwera (URL) |
+| Gdzie trafiają dane | Na serwery dostawcy | Na serwery dostawcy | Zostają u Ciebie |
+| Koszt | Per token (zmienny) | Per token (zmienny) | Tylko sprzęt/prąd |
+| Prywatność | Zależna od polityki dostawcy | Zależna od polityki dostawcy | Pełna - dane nie wychodzą |
+| Jakość / moc | Bardzo wysoka | Bardzo wysoka | Zależna od modelu i sprzętu |
+| Wymagania | Tylko klucz | Tylko klucz | Mocny serwer/GPU |
+| Najlepsze gdy… | Maksymalna jakość, szybki start | Długi kontekst, ostrożne odpowiedzi | RODO, dane wrażliwe, kontrola kosztów |
+
+:::tip[Dlaczego lokalne modele (Ollama)]
+Gdy przetwarzasz dane wrażliwe (medyczne, prawne, wewnętrzne dokumenty firmy), wysyłanie ich do
+chmury bywa problemem - RODO, tajemnica handlowa, polityka klienta. Ollama uruchamia model **na
+Twoim serwerze**: dane nie opuszczają infrastruktury, a koszt jest stały (sprzęt) zamiast rosnąć
+z każdym tokenem. Cena: potrzebujesz mocnego sprzętu, a jakość lokalnych modeli zwykle ustępuje
+topowym modelom chmurowym. To klasyczny kompromis prywatność/koszt vs jakość/wygoda.
+:::
+
+## Pamięć i narzędzia (memory & tools)
+
+Sam model nie pamięta poprzednich wiadomości - każde wywołanie jest "bez historii". Aby
+asystent prowadził rozmowę, podpinasz sub-node **Memory**. Aby mógł coś _zrobić_ (a nie tylko
+gadać), podpinasz **Tools**.
+
+### Pamięć (memory)
+
+Pamięć przechowuje historię konwersacji i dokleja ją do kolejnych zapytań, żeby agent
+"pamiętał kontekst". Typy w n8n:
+
+- **Simple Memory (Window Buffer)** - trzyma ostatnie N wiadomości w pamięci instancji.
+  Najprostsze, świetne na start; znika po restarcie.
+- **Postgres / Redis / MongoDB Chat Memory** - historia trwała w bazie. Potrzebna, gdy rozmowa
+  ma przetrwać restart i działać przy wielu użytkownikach (klucz sesji).
+
+"Window buffer" oznacza, że pamiętane jest **okno** ostatnich wiadomości - nie cała historia.
+To celowe: kontekst modelu jest ograniczony, a każdy doklejony token kosztuje. Im większe okno,
+tym więcej kontekstu, ale i wyższy koszt.
+
+### Narzędzia (tools)
+
+Narzędzia to zdolności, które agent może wywołać samodzielnie. Przykłady: `Calculator`, `HTTP
+Request Tool`, `Wikipedia`, `Vector Store QA Tool`, `Code Tool`, a także **inny workflow jako
+narzędzie** (Call n8n Workflow Tool).
+
+:::tip[Workflow jako tool - najmocniejszy wzorzec]
+To spina ten moduł z [Modułem 5](/modul-5-kod-sub-workflow): dowolny Twój sub-workflow (np.
+"dodaj klienta do CRM", "wystaw fakturę") możesz wystawić agentowi jako narzędzie. Agent sam
+zdecyduje, kiedy je wywołać i z jakimi parametrami. Cała moc n8n - setki integracji - staje się
+wtedy "rękami" agenta.
+:::
+
+## RAG: bazy wektorowe i embeddingi
+
+Model zna tylko to, na czym był trenowany - nie zna Twoich dokumentów, regulaminów ani bazy
+wiedzy. **RAG** (Retrieval-Augmented Generation) rozwiązuje to: zanim model odpowie, najpierw
+_wyszukuje_ pasujące fragmenty Twoich danych i dokłada je do promptu. Efekt: odpowiedzi oparte
+na Twoich danych, z mniejszą skłonnością do zmyślania.
+
+### Trzy pojęcia, które musisz znać
+
+<CardGrid>
+  <ConceptCard icon="fa-vector-square" title="Embeddings">
+    Zamiana tekstu na wektor liczb oddający jego _znaczenie_. Podobne treści mają podobne
+    wektory - to pozwala wyszukiwać "po sensie", nie po słowach kluczowych.
+  </ConceptCard>
+  <ConceptCard icon="fa-database" title="Vector store">
+    Baza wektorowa (np. Pinecone, Qdrant, PGVector, Supabase, Chroma) przechowująca embeddingi
+    fragmentów i umożliwiająca szybkie wyszukiwanie najbliższych.
+  </ConceptCard>
+  <ConceptCard icon="fa-magnifying-glass" title="Retrieval">
+    Pobranie z bazy fragmentów najbardziej zbliżonych znaczeniowo do pytania. To one trafiają do
+    promptu jako kontekst dla modelu.
+  </ConceptCard>
+</CardGrid>
+
+### Przepływ RAG - od dokumentu do odpowiedzi
+
+RAG dzieli się na dwie fazy. Najpierw **jednorazowo (lub cyklicznie) wczytujesz dane** do bazy
+(ingest), a potem **przy każdym pytaniu** z niej korzystasz.
+
+1. **Ingest - wczytaj dokumenty**
+
+   Pobierz źródła (pliki, strony, baza, Google Drive) i podziel je na fragmenty (text splitter),
+   bo całych dokumentów się nie wektoryzuje.
+
+2. **Embed - zamień na wektory**
+
+   Każdy fragment przepuść przez sub-node Embeddings (np. OpenAI / Ollama), żeby otrzymać
+   wektor znaczenia.
+
+3. **Store - zapisz w bazie wektorowej**
+
+   Wektory wraz z tekstem trafiają do vector store. Tę fazę robisz raz przy starcie i powtarzasz,
+   gdy dochodzą nowe dane.
+
+4. **Retrieve - wyszukaj przy pytaniu**
+
+   Pytanie użytkownika też zamieniasz na wektor i pobierasz z bazy najbliższe fragmenty
+   (retriever / Vector Store QA Tool).
+
+5. **Answer - odpowiedz na kontekście**
+
+   Pobrane fragmenty + pytanie trafiają do modelu (Question and Answer Chain lub agent z
+   narzędziem QA), który formułuje odpowiedź opartą na Twoich danych.
+
+:::note[RAG kontra dotrenowanie modelu]
+Często słyszysz "wytrenuj model na naszych danych". W większości przypadków RAG jest tańszy,
+szybszy i łatwiejszy do aktualizacji - dorzucasz nowy dokument do bazy i gotowe, bez kosztownego
+treningu. RAG nie zmienia modelu; podaje mu właściwy kontekst we właściwym momencie.
+:::
+
+## Budowa chatbota / asystenta
+
+Mając już klocki (root, model, pamięć, narzędzia, RAG), zbudowanie asystenta to kwestia ich
+poskładania. Wejściem rozmowy jest **Chat Trigger** - node, który uruchamia workflow z okna
+czatu i przekazuje wiadomość użytkownika dalej.
+
+### Prosty asystent - minimalny zestaw
+
+1. **Chat Trigger**
+
+   Dodaj `Chat Trigger` jako wyzwalacz. Daje wbudowane okno czatu do testów i przyjmuje kolejne
+   wiadomości.
+
+2. **AI Agent (root)**
+
+   Podłącz `AI Agent` do triggera. To on poprowadzi rozmowę i zdecyduje o użyciu narzędzi.
+
+3. **Chat Model + Memory**
+
+   Do agenta podepnij sub-node modelu (np. OpenAI/Anthropic/Ollama) i pamięć (Simple Memory), by
+   rozmowa miała kontekst.
+
+4. **Narzędzia (opcjonalnie)**
+
+   Dodaj narzędzia - np. **Vector Store QA Tool** wskazujący na bazę z Twoimi dokumentami, by
+   asystent odpowiadał na własnej wiedzy (RAG).
+
+:::tip[Co dalej]
+Działający w oknie czatu asystent to dopiero prototyp. Dalej: podmień Chat Trigger na
+**Webhook** i podłącz front (strona, Slack, Telegram, WhatsApp), dodaj trwałą pamięć
+(Postgres/Redis) z kluczem sesji per użytkownik, oraz **system prompt** definiujący rolę i
+granice asystenta. Wdrożenie produkcyjne omawiam w [Module 7](/modul-7-produkcja).
+:::
+
+## Agenci 24/7 - wzorce i pułapki
+
+Asystent w czacie reaguje na człowieka. Agent 24/7 działa **sam**: wyzwalany zdarzeniem lub
+harmonogramem, podejmuje decyzje i wykonuje akcje bez nadzoru. To potężne - i właśnie dlatego
+wymaga ostrożności.
+
+### Typowy wzorzec
+
+```text
+[Trigger]  ──►  [AI Agent]  ──►  [akcja / zapis wyniku]
+ webhook,         ▲ ▲ ▲
+ schedule,        │ │ └── Tools  (HTTP, sub-workflow, baza, QA na dokumentach)
+ nowy mail        │ └──── Memory (kontekst sesji, jeśli potrzebny)
+                  └────── Chat Model
+```
+
+Przykłady: agent klasyfikujący i wstępnie odpowiadający na maile wsparcia, agent monitorujący
+zgłoszenia i eskalujący pilne, agent zbierający dane i tworzący codzienny raport. Wzorzec ten
+sam: _trigger → agent → narzędzia → akcja_.
+
+:::caution[Świadomie, nie ślepo - pułapki agentów bez nadzoru]
+
+- **Koszty tokenów** - agent robi kilka wywołań modelu na jedno zadanie, a działa 24/7. Bez
+  limitów rachunek potrafi eksplodować. Ustaw limity, monitoruj zużycie, taniej model do
+  prostych kroków.
+- **Pętle** - agent może wpaść w cykl "myśl → działaj → myśl..." bez końca. Ustaw **max
+  iterations** i timeouty.
+- **Halucynacje** - model potrafi pewnie zmyślać. Przy realnych akcjach (wysłanie maila, zmiana
+  danych) to ryzykowne. Ratunkiem jest RAG, walidacja i ograniczone narzędzia.
+- **Brak kontroli nad akcjami** - agent z narzędziem "usuń rekord" może go użyć błędnie. Dawaj
+  **najmniejszy potrzebny zestaw narzędzi**, a akcje nieodwracalne chowaj za potwierdzeniem
+  człowieka (human-in-the-loop).
+
+:::
+
+:::note[Zasada wdrożenia]
+Zacznij od agenta, który **proponuje**, a nie **wykonuje**: niech generuje szkic odpowiedzi czy
+listę akcji do akceptacji. Gdy zaufasz jego decyzjom na danych produkcyjnych, stopniowo zdejmuj
+ręczne potwierdzenia. Autonomię nadawaj _etapami_, nie od razu.
+:::
+
+<Takeaways>
+  - Węzły AI w n8n bazują na LangChain i działają jako cluster nodes: root node + sub-node'y (model, memory, tools).
+  - Sub-node to "zdolność" podpinana do roota od spodu - wymieniasz dostawcę modelu bez przebudowy workflow.
+  - Chain = jednokrokowe, przewidywalne, tańsze. Agent = sam decyduje o użyciu narzędzi, wieloetapowy, droższy.
+  - Tools Agent to dziś domyślny, najbardziej niezawodny typ agenta.
+  - Modele podpinasz jako Chat Model + credentials; Ollama (lokalnie) = prywatność i stały koszt vs jakość chmury.
+  - RAG = embeddings + vector store + retrieval; przepływ: ingest → embed → store → retrieve → answer.
+  - Chatbota startujesz od Chat Trigger + AI Agent + model + pamięć; narzędzia i RAG dokładasz wedle potrzeb.
+  - Agenci 24/7: pilnuj kosztów, pętli (max iterations), halucynacji i kontroli nad akcjami - autonomię nadawaj etapami.
+</Takeaways>

@@ -1,0 +1,24 @@
+name: 🐛 Błąd lub literówka
+description: Coś jest nie tak na istniejącej stronie (literówka, błąd merytoryczny, zepsuty link)
+labels: ['błąd']
+body:
+  - type: input
+    id: strona
+    attributes:
+      label: Której strony dotyczy problem?
+      description: Wklej adres URL strony
+      placeholder: https://kursn8n.pl/modul-0-fundamenty
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Co jest nie tak?
+      description: Zacytuj fragment i opisz problem. Przy błędzie merytorycznym (np. nieaktualne zachowanie node'a) podaj źródło poprawnej informacji.
+    validations:
+      required: true
+  - type: textarea
+    id: propozycja
+    attributes:
+      label: Propozycja poprawki (opcjonalnie)
+      description: Jeśli wiesz, jak powinno brzmieć poprawnie - napisz. Możesz też od razu otworzyć pull request przyciskiem "Edytuj stronę".

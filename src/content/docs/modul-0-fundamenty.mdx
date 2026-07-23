@@ -1,0 +1,264 @@
+---
+title: Fundamenty automatyzacji w n8n
+description: "Fundamenty n8n po polsku: czym jest n8n i automatyzacja, porównanie z Make/Zapier/Power Automate, licencja Sustainable Use License oraz słownik pojęć (workflow, node, trigger, execution, credentials)."
+# Nadpisuje WYŁĄCZNIE znacznik <title> (mechanizm Starlight: `head` w
+# frontmatterze scala się z domyślnym head po kluczu `tag`, więc dokładnie
+# jeden <title> trafia do wyjścia - patrz node_modules/@astrojs/starlight/utils/head.ts,
+# funkcje `hasTag`/`mergeHead`). H1 widoczny na stronie i tak dalej steruje
+# pole `title` powyżej (Starlight czyta je osobno przy renderze treści) -
+# ten override zmienia tylko to, co trafia do <head>. Treść poniżej to
+# zaindeksowany <title> ze starej strony (public_html/content/modul-0-fundamenty.head.php),
+# przepisany 1:1 razem z sufiksem "| KursN8N.pl" (Starlight go NIE dokłada
+# ponownie przy nadpisaniu przez `head:` - to inny mechanizm niż domyślne
+# `${title} ${titleDelimiter} ${siteTitle}`). Wzorzec dla kolejnych 8 modułów:
+# skopiuj literalny <title> z odpowiadającego *.head.php.
+head:
+  - tag: title
+    content: "Moduł 0: Fundamenty automatyzacji w n8n - czym jest n8n, słownik, licencja | KursN8N.pl"
+  # og:title i og:description nadpisane tym samym mechanizmem co <title> (dedup
+  # Starlight po parze tag+property). Karta social odzyskuje prefiks "Moduł N:"
+  # i krótszy, dedykowany opis - dokładnie jak na żywej stronie
+  # (public_html/content/modul-0-fundamenty.head.php, znaczniki og:title/og:description).
+  # Bez tego og:title spadłby do samego H1 ("Fundamenty..."), a og:description
+  # do długiego opisu meta. Wzorzec dla 8 modułów: przepisz oba z *.head.php.
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Moduł 0: Fundamenty automatyzacji w n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Czym jest n8n, porównanie z Make/Zapier/Power Automate, licencja i słownik pojęć - fundamenty automatyzacji po polsku."
+# Data pierwszej publikacji na żywej stronie (head.php, LearningResource.datePublished) -
+# przywraca historię sprzed migracji zamiast pozwolić, by dateModified
+# (data ostatniego commita) udawała datę powstania artykułu.
+datePublished: 2026-05-21
+educationalLevel: Beginner
+teaches:
+  - Czym jest n8n i do czego służy
+  - Kiedy automatyzacja się opłaca
+  - Różnice między n8n a Make, Zapier i Power Automate
+  - Model licencyjny Sustainable Use License
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Zapier
+    sameAs: https://en.wikipedia.org/wiki/Zapier
+  - name: Make
+    sameAs: https://www.make.com/
+faq:
+  - q: "Czy muszę umieć programować, żeby używać n8n?"
+    a: "Nie. Większość workflow zbudujesz przeciągając gotowe node'y i ustawiając pola. Kod (wyrażenia, Code Node) przydaje się dopiero przy bardziej zaawansowanych przekształceniach - i też pokażę go w kolejnych modułach."
+  - q: "Czy n8n jest darmowy?"
+    a: "Self-hosted n8n możesz używać za darmo do własnych i wewnętrznych celów (na licencji Sustainable Use License). n8n Cloud jest płatny (abonament). Komercyjne oferowanie n8n jako usługi dla klientów wymaga licencji Enterprise/Embed."
+  - q: "n8n czy Zapier/Make - co wybrać na początek?"
+    a: "Jeśli zależy Ci na kontroli nad danymi, własnym hostingu i braku opłat za każde wykonanie - n8n. Jeśli chcesz absolutnie najprostszego startu bez zaplecza technicznego, Zapier bywa szybszy. Ten kurs zakłada, że stawiasz na n8n."
+  - q: "Od czego zacząć po tym module?"
+    a: "Od postawienia własnej instancji n8n. Przejdź do Modułu 1: Instalacja i hosting - pokażę n8n Cloud, Dockera i self-hosting krok po kroku."
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Panel from '../../components/Panel.astro';
+import Takeaways from '../../components/Takeaways.astro';
+import TwoCol from '../../components/TwoCol.astro';
+
+<ModuleHero
+  tag="Moduł 0 · Poziom: początkujący"
+  readingTime="~15 min"
+  note="Bez instalacji - sama teoria"
+/>
+
+Zanim klikniesz pierwszy node, warto zrozumieć, czym n8n właściwie jest, kiedy ma sens,
+na jakiej licencji działa i jakim językiem się posługuje. Ten moduł daje Ci wspólny
+słownik i mapę pojęć na resztę kursu.
+
+## Czym jest n8n
+
+n8n (czytane "n-eight-n", od _nodemation_) to platforma do automatyzacji procesów
+(workflow automation). Pozwala łączyć aplikacje i usługi oraz budować przepływy pracy,
+które wykonują się automatycznie - wizualnie, metodą "klocków", a w razie potrzeby
+z domieszką kodu.
+
+W praktyce n8n stoi gdzieś pomiędzy prostymi narzędziami no-code a pełnoprawnym
+programowaniem. Możesz zacząć całkowicie bez kodu, przeciągając gotowe bloki, ale gdy
+zajdzie potrzeba - masz pod ręką wyrażenia i node'y z kodem (JavaScript/Python). To
+dlatego n8n bywa opisywany jako **low-code**: niski próg wejścia, ale wysoki sufit
+możliwości.
+
+### Co potrafi n8n
+
+<CardGrid>
+  <ConceptCard icon="fa-plug" title="Integracje">
+    Setki gotowych połączeń z aplikacjami: bazy danych, narzędzia SaaS, komunikatory,
+    usługi chmurowe.
+  </ConceptCard>
+  <ConceptCard icon="fa-diagram-project" title="Wizualny edytor">
+    Logikę automatyzacji projektujesz na kanwie, łącząc node'y w przepływ - widzisz,
+    którędy płyną dane.
+  </ConceptCard>
+  <ConceptCard icon="fa-wand-magic-sparkles" title="Przetwarzanie danych">
+    Filtrowanie, mapowanie, łączenie i transformacja danych między krokami workflow.
+  </ConceptCard>
+  <ConceptCard icon="fa-robot" title="AI i agenci">
+    Wbudowane node'y AI (LangChain) pozwalają budować asystentów i agentów na własnych
+    danych.
+  </ConceptCard>
+  <ConceptCard icon="fa-clock" title="Wyzwalanie i harmonogram">
+    Uruchamianie na zdarzenie (webhook), o określonej godzinie albo ręcznie podczas testów.
+  </ConceptCard>
+  <ConceptCard icon="fa-server" title="Self-hosting">
+    Możesz uruchomić n8n na własnym serwerze i trzymać dane w pełni u siebie.
+  </ConceptCard>
+</CardGrid>
+
+:::note[Dla kogo jest n8n]
+Dla osób biznesowych automatyzujących powtarzalne zadania, dla zespołów technicznych
+budujących integracje, oraz dla firm, które potrzebują rozwiązania self-hosted i kontroli
+nad danymi (np. ze względu na RODO). Ale n8n to nie tylko narzędzie dla firm i organizacji -
+równie dobrze sprawdza się prywatnie. Bardzo wiele osób automatyzuje nim codzienne, życiowe
+sprawy: przypomnienia, porządkowanie maili, zapisywanie notatek czy powiadomienia o ważnych
+zdarzeniach - często wystarczy połączyć kilka bloczków paroma kliknięciami. Nie musisz być
+programistą, żeby zacząć - ale jeśli nim jesteś, n8n nie postawi Ci sztucznego sufitu.
+:::
+
+## Dlaczego automatyzacja (i kiedy ma sens)
+
+Automatyzacja opłaca się tam, gdzie zadanie jest powtarzalne, ma jasne reguły i wykonujesz
+je regularnie. n8n przejmuje "klikanie tego samego" i robi to niezawodnie 24/7.
+
+### Dobre kandydaty na automatyzację
+
+- **Synchronizacja danych** między narzędziami (np. nowy rekord w formularzu → wiersz w arkuszu → powiadomienie na Slacku).
+- **Powiadomienia i alerty** - gdy coś się wydarzy w systemie A, daj znać w systemie B.
+- **Przetwarzanie wiadomości i plików** - odbieranie maili, parsowanie załączników, zapisywanie do bazy.
+- **Raporty cykliczne** - codziennie o 7:00 zbierz dane i wyślij podsumowanie.
+- **Integracje API** - spinanie usług, które "same się nie gadają".
+- **Procesy z AI** - klasyfikacja zgłoszeń, streszczenia, odpowiedzi asystenta na bazie Twoich dokumentów.
+
+<Flow
+  title="przyklad-synchronizacji"
+  alt="Schemat przepływu: formularz, następnie arkusz, następnie powiadomienie na Slacku"
+  caption="Przykład: nowe zgłoszenie z formularza trafia do arkusza i odpala powiadomienie na Slacku."
+>
+  <FlowNode icon="fa-clipboard-list" label="Formularz" sub="nowe zgłoszenie" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-table-cells" label="Arkusz" sub="dodaj wiersz" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-slack" family="fab" label="Slack" sub="powiadom zespół" from="#6d28d9" to="#4c1d95" />
+</Flow>
+
+:::caution[Kiedy automatyzacja to zły pomysł]
+Gdy proces zmienia się przy każdym wykonaniu, wymaga ludzkiego osądu na każdym kroku,
+albo robisz go raz na pół roku. Czas na zbudowanie i utrzymanie automatu musi się zwrócić -
+automatyzacja jednorazowego zadania zwykle się nie opłaca.
+:::
+
+## n8n vs Make, Zapier i Power Automate
+
+Wszystkie te narzędzia automatyzują przepływy, ale różnią się modelem licencyjnym,
+możliwością self-hostingu i głębią techniczną. Poniżej skrót, który pomoże Ci zrozumieć,
+gdzie n8n jest mocny.
+
+| Wymiar | n8n | Zapier | Make | Power Automate |
+| --- | --- | --- | --- | --- |
+| Self-hosting | Tak (fair-code) | Nie (tylko SaaS) | Nie (tylko SaaS) | Nie (chmura MS) |
+| Dostęp do kodu | Tak - Code Node (JS/Python) | Ograniczony | Ograniczony | Wyrażenia / Office Scripts |
+| Model cenowy | Wg wykonań / darmowy self-host | Wg "tasków" | Wg operacji | Wg licencji/użytkownika |
+| Próg wejścia | Niski-średni | Bardzo niski | Niski | Średni |
+| Kontrola nad danymi | Pełna (self-host) | U dostawcy | U dostawcy | W ekosystemie MS |
+| AI / agenci | Wbudowane (LangChain) | Tak (AI actions) | Tak | Copilot |
+| Najlepszy gdy… | Chcesz kontroli, kodu i własnego hostingu | Maksymalna prostota | Wizualne, złożone scenariusze | Jesteś w ekosystemie Microsoft 365 |
+
+:::tip[W skrócie]
+Jeśli zależy Ci na **kontroli nad danymi, własnym hostingu i możliwości zejścia do kodu**
+bez płacenia za każde wykonanie - n8n jest naturalnym wyborem. Jeśli chcesz "klik i działa"
+bez żadnego zaplecza technicznego, Zapier bywa szybszy na start. Ceny i limity zmieniają się
+często, więc zawsze sprawdzaj aktualny cennik u źródła.
+:::
+
+## Licencja: Sustainable Use License (fair-code)
+
+n8n nie jest klasycznym Open Source (jak MIT/Apache). Korzysta z modelu **fair-code**
+i licencji **Sustainable Use License**: kod jest dostępny i możesz go modyfikować, ale
+komercyjne "odsprzedawanie" n8n jako usługi jest ograniczone.
+
+<TwoCol>
+  <Panel variant="pros" title="Co wolno (za darmo)">
+    - Używać n8n do **własnych celów** - osobistych i wewnętrznych w firmie
+    - Self-hostować na własnej infrastrukturze
+    - Przeglądać i modyfikować kod źródłowy na własny użytek
+    - Automatyzować wewnętrzne procesy swojej organizacji
+  </Panel>
+  <Panel variant="cons" title="Co jest ograniczone">
+    - Oferowanie n8n jako **hostowanej usługi** dla klientów zewnętrznych
+    - Wbudowywanie n8n jako silnika w komercyjny produkt (SaaS)
+    - Budowa produktu konkurencyjnego wobec n8n
+    - Usuwanie brandingu w komercyjnych dystrybucjach
+  </Panel>
+</TwoCol>
+
+:::caution[Planujesz biznes na n8n?]
+Jeśli chcesz **świadczyć usługi automatyzacji**, stawiając n8n klientom, albo osadzić n8n
+we własnym produkcie - potrzebujesz licencji **Enterprise** lub **Embed**. W razie
+wątpliwości najlepiej zapytać n8n bezpośrednio. Pełny tekst:
+[docs.n8n.io/sustainable-use-license](https://docs.n8n.io/sustainable-use-license/).
+:::
+
+## Słownik pojęć - wspólny język na resztę kursu
+
+Te terminy będą wracać w każdym module. Naucz się ich teraz, a reszta kursu będzie dużo
+łatwiejsza.
+
+| Pojęcie | Co oznacza |
+| --- | --- |
+| **Workflow** (przepływ) | Cały zautomatyzowany proces - zbiór node'ów połączonych w logiczną sekwencję. Podstawowa jednostka, którą tworzysz i zapisujesz. |
+| **Node** (węzeł) | Pojedynczy klocek wykonujący konkretne zadanie: wywołanie API, przekształcenie danych, warunek. Łączysz je, by zbudować workflow. |
+| **Trigger** (wyzwalacz) | Specjalny node, który _rozpoczyna_ workflow. Może reagować na zdarzenie (webhook), harmonogram (Schedule) albo ręczne uruchomienie (Manual). |
+| **Execution** (wykonanie) | Pojedyncze uruchomienie workflow. n8n zapisuje wykonania (ręczne, częściowe, produkcyjne) - możesz je przeglądać i debugować. |
+| **Credentials** (poświadczenia) | Bezpiecznie przechowywane dane logowania (klucze API, tokeny OAuth), dzięki którym node'y łączą się z usługami zewnętrznymi. |
+| **Item** (element) | Pojedyncza porcja danych płynąca przez workflow. Node'y zwykle przetwarzają listę itemów, zachowując powiązania między nimi. |
+| **Expression** (wyrażenie) | Krótki kod w składni `{{ }}`, który odwołuje się do danych z innych node'ów i je przekształca - bez pełnego node'a z kodem. |
+| **Pinned data** (przypięte dane) | Zamrożone wyjście node'a używane podczas budowania i testowania, by nie wywoływać API przy każdym uruchomieniu. |
+| **Sub-workflow** | Workflow wywoływany z innego workflow - pozwala budować modułowo i nie powtarzać tej samej logiki. |
+| **Canvas** (kanwa) | Wizualna przestrzeń robocza, na której układasz i łączysz node'y. |
+| **Sticky note** | Notatka przyklejana na kanwie - dokumentujesz nią workflow wprost na schemacie. |
+
+## n8n Cloud vs self-hosted - którą drogą iść
+
+To samo n8n możesz uruchomić na dwa sposoby. Wybór zależy od tego, jak ważna jest dla
+Ciebie wygoda kontra kontrola nad danymi i kosztami.
+
+<TwoCol>
+  <Panel variant="neutral" title="n8n Cloud">
+    - Najszybszy start - zero instalacji i utrzymania
+    - Aktualizacje, backupy i HTTPS po stronie n8n
+    - Płacisz abonament; dane są u dostawcy
+    - Idealne, by się **nauczyć** i szybko zweryfikować pomysł
+  </Panel>
+  <Panel variant="pros" title="Self-hosted">
+    - Pełna kontrola nad danymi (ważne dla RODO)
+    - Brak opłat per wykonanie - tylko koszt serwera/prądu
+    - Dowolne rozszerzenia, własne node'y, integracje lokalne
+    - Ty odpowiadasz za aktualizacje, backupy i bezpieczeństwo
+  </Panel>
+</TwoCol>
+
+:::tip[Rekomendacja na start]
+Uczysz się? Zacznij od n8n Cloud (trial) albo lokalnego Dockera - szybko zobaczysz efekty.
+Myślisz o wdrożeniu z prawdziwymi danymi i kontrolą kosztów? Przejdź na self-hosting.
+Wszystkie ścieżki hostingu rozkładam na czynniki pierwsze w
+[Module 1: Instalacja i hosting](/modul-1-instalacja-hosting) oraz w
+[poradniku porównania hostingów](/porownanie-n8n-hostingow).
+:::
+
+<Takeaways>
+  - n8n to platforma low-code do automatyzacji: niski próg wejścia, wysoki sufit (kod, gdy potrzeba).
+  - Automatyzuj rzeczy powtarzalne i regułowe - nie jednorazowe lub wymagające ciągłego osądu.
+  - Największe atuty n8n vs konkurencja: self-hosting, dostęp do kodu, kontrola nad danymi.
+  - Licencja to fair-code (Sustainable Use License): własny użytek wolny, "n8n jako usługa dla klientów" wymaga licencji.
+  - Kluczowe pojęcia: workflow, node, trigger, execution, credentials, item, expression.
+  - Cloud = wygoda na naukę; self-hosted = kontrola i koszty pod własnym dachem.
+</Takeaways>

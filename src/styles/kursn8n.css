@@ -1,0 +1,385 @@
+/*
+ * Mostek: tokeny kursn8n -> zmienne Starlighta + style komponentow.
+ *
+ * Ten plik jest CELOWO bezwarstwowy. Starlight trzyma swoje style
+ * w @layer starlight.*, a pliki z `customCss` sa importowane bez warstwy.
+ * Bezwarstwowy CSS wygrywa z warstwowym niezaleznie od specyficznosci -
+ * dlatego proste selektory ponizej nadpisuja Starlight bez !important.
+ * Nie owijaj tego pliku w @layer.
+ */
+
+/* --- Skala akcentu: motyw ciemny (Starlight traktuje go jako bazowy) --- */
+:root {
+	--sl-color-accent-low: #16364e;
+	--sl-color-accent: #4a9fdd;
+	--sl-color-accent-high: #a8d4f0;
+}
+
+/*
+ * Motyw jasny odwraca skale: -high jest najciemniejszy, bo sluzy za kolor
+ * tekstu na jasnym tle. Zachowujemy konwencje Starlight.
+ */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #dcebf8;
+	--sl-color-accent: #378ccf;
+	/* Ciemny odcien akcentu - sluzy za kolor tekstu linkow na jasnym tle.
+	   Kontrast wzgledem tla #f7f7f5 wynosi ok. 7:1 (WCAG AA dla tekstu). */
+	--sl-color-accent-high: #1d4f78;
+}
+
+/* --- Kafelki Starlighta: jeden kolor zamiast teczy --- */
+.card {
+	--sl-card-border: var(--k-accent);
+	--sl-card-bg: var(--k-accent-soft);
+}
+
+.sl-link-card {
+	transition: border-color 0.15s ease;
+}
+
+.sl-link-card:hover {
+	border-color: var(--k-accent);
+}
+
+/* --- Numeracja sekcji (dawne <span class="num">) --- */
+.sl-markdown-content {
+	counter-reset: k-section;
+}
+
+/*
+ * `.faq *` wyklucza naglowek FAQ (Faq.astro renderuje
+ * <section class="faq"><h2 id="czeste-pytania">) - w oryginale (body.php) sekcja
+ * "Najczestsze pytania" byla jedynym h2 bez numeru, celowe rozroznienie tresci
+ * merytorycznej (numerowanej) od FAQ (bez numeru).
+ */
+.sl-markdown-content h2:not(:where(.not-content *, .faq *)) {
+	counter-increment: k-section;
+}
+
+.sl-markdown-content h2:not(:where(.not-content *, .faq *))::before {
+	content: counter(k-section);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.7em;
+	height: 1.7em;
+	margin-inline-end: 0.5em;
+	border-radius: var(--k-radius-sm);
+	background: var(--k-accent-soft);
+	color: var(--k-accent-dark);
+	font-size: 0.7em;
+	font-weight: 700;
+	vertical-align: middle;
+}
+
+/* --- Tabele: poziome przewijanie zamiast rozpychania strony --- */
+.sl-markdown-content table {
+	display: block;
+	overflow-x: auto;
+	max-width: 100%;
+}
+
+/* ============ ConceptCard ============ */
+.k-concept-card {
+	background: var(--k-surface);
+	border: 1px solid var(--k-border);
+	border-top: 3px solid var(--k-accent);
+	border-radius: var(--k-radius-sm);
+	padding: 18px;
+}
+
+.k-concept-ic {
+	width: 40px;
+	height: 40px;
+	border-radius: 10px;
+	background: var(--k-accent-soft);
+	color: var(--k-accent-dark);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 17px;
+	margin-bottom: 10px;
+}
+
+.k-concept-card h4 {
+	margin: 0 0 6px;
+	font-size: 16px;
+}
+
+.k-concept-card p {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--k-text-muted);
+}
+
+/* ============ Flow (diagram w stylu edytora n8n) ============ */
+/* Rama jest zawsze ciemna, niezaleznie od motywu - odwzorowuje kanwe n8n. */
+.k-flow {
+	background: #15171c;
+	background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+	background-size: 18px 18px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 14px;
+	box-shadow: 0 14px 38px rgba(0, 0, 0, 0.34);
+	overflow: hidden;
+	margin: 20px 0 6px;
+}
+
+.k-flow-bar {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	padding: 9px 14px;
+	background: rgba(255, 255, 255, 0.04);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.k-flow-bar .k-d {
+	width: 11px;
+	height: 11px;
+	border-radius: 50%;
+}
+
+.k-flow-bar .k-r { background: #ff5f57; }
+.k-flow-bar .k-y { background: #febc2e; }
+.k-flow-bar .k-g { background: #28c840; }
+
+.k-flow-title {
+	margin-left: 8px;
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.55);
+	font-weight: 600;
+}
+
+.k-flow-stage {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 22px;
+	overflow-x: auto;
+}
+
+.k-flow-cap {
+	font-size: 13px;
+	color: var(--k-text-muted);
+	margin: 0 0 24px;
+	text-align: center;
+	font-style: italic;
+}
+
+/* ============ FlowNode ============ */
+.k-node {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	background: #23262e;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 12px;
+	padding: 11px 14px;
+	min-height: 52px;
+	position: relative;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.k-node-ic {
+	width: 34px;
+	height: 34px;
+	border-radius: 9px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font-size: 15px;
+	background: linear-gradient(135deg, var(--c1, #6b7280), var(--c2, #374151));
+	flex-shrink: 0;
+}
+
+/* min-width:0 pozwala dlugim etykietom sie skrocic zamiast rozpychac node. */
+.k-node-tx {
+	min-width: 0;
+}
+
+.k-node-label {
+	font-size: 13px;
+	font-weight: 700;
+	color: #fff;
+	white-space: nowrap;
+}
+
+.k-node-sub {
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.5);
+	white-space: nowrap;
+}
+
+/* Lacznik dokladany automatycznie miedzy wezlami. */
+.k-flow-stage > .k-node:not(:last-child)::after {
+	content: '';
+	position: absolute;
+	right: -30px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 30px;
+	height: 2px;
+	background: linear-gradient(90deg, #6b7280, var(--k-accent));
+}
+
+.k-flow-stage > .k-node:not(:last-child) {
+	margin-right: 30px;
+}
+
+/* Porty wejscia/wyjscia. */
+.k-flow-stage > .k-node::before {
+	content: '';
+	position: absolute;
+	left: -5px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: #6b7280;
+}
+
+.k-flow-stage > .k-node:first-child::before {
+	display: none;
+}
+
+/* ============ ModuleHero ============ */
+.k-module-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 2rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--k-border);
+}
+
+.k-module-tag {
+	align-self: flex-start;
+	padding: 4px 12px;
+	border-radius: 999px;
+	background: var(--k-accent-soft);
+	color: var(--k-accent-dark);
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.k-module-facts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	font-size: 0.875rem;
+	color: var(--k-text-muted);
+}
+
+/* ============ TwoCol (kontener dwukolumnowy) ============ */
+.k-two-col {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 16px;
+	margin: 16px 0;
+}
+
+@media (min-width: 50rem) {
+	.k-two-col {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+/* ============ Panel (dawne .callout-pros / .callout-cons / .callout-tip) ============ */
+.k-panel {
+	border-radius: var(--k-radius-sm);
+	padding: 16px 20px;
+	margin: 0;
+	border-left: 4px solid;
+}
+
+.k-panel h4 {
+	margin: 0 0 10px;
+	font-size: 14px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.k-panel-body :is(ul, ol) {
+	margin: 0 0 0 22px;
+}
+
+.k-panel-body li {
+	margin-bottom: 4px;
+	font-size: 14px;
+}
+
+.k-panel-body p {
+	margin-bottom: 8px;
+}
+
+.k-panel-body p:last-child {
+	margin-bottom: 0;
+}
+
+.k-panel-pros {
+	background: rgba(22, 163, 74, 0.06);
+	border-color: var(--k-good);
+}
+
+.k-panel-pros h4 {
+	color: var(--k-good);
+}
+
+.k-panel-cons {
+	background: rgba(220, 38, 38, 0.06);
+	border-color: var(--k-bad);
+}
+
+.k-panel-cons h4 {
+	color: var(--k-bad);
+}
+
+.k-panel-neutral {
+	background: var(--k-accent-soft);
+	border-color: var(--k-accent);
+}
+
+.k-panel-neutral h4 {
+	color: var(--k-accent-dark);
+}
+
+/* ============ Takeaways (karta podsumowania zamykajaca modul) ============ */
+.k-takeaways {
+	background: linear-gradient(135deg, var(--k-accent-soft), var(--k-surface));
+	border: 1px solid var(--k-border);
+	border-left: 4px solid var(--k-accent);
+	border-radius: var(--k-radius-sm);
+	padding: 22px 26px;
+	margin: 16px 0;
+}
+
+.k-takeaways h3 {
+	margin: 0 0 12px;
+	font-size: 18px;
+}
+
+.k-takeaways-body ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.k-takeaways-body li {
+	position: relative;
+	padding: 6px 0 6px 28px;
+	font-size: 14.5px;
+}
+
+.k-takeaways-body li::before {
+	content: '✓';
+	position: absolute;
+	left: 4px;
+	color: var(--k-good);
+	font-weight: 700;
+}

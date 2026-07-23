@@ -1,0 +1,57 @@
+---
+// Nadpisanie oficjalnego komponentu Starlighta (schemat `components.ThemeProvider`
+// w node_modules/@astrojs/starlight/schemas/components.ts).
+//
+// Kontrakt zachowany 1:1 wzgledem oryginalu
+// (node_modules/@astrojs/starlight/components/ThemeProvider.astro):
+// - ten sam klucz w localStorage ("starlight-theme"),
+// - to samo globalne API `window.StarlightThemeProvider.updatePickers()`,
+// - ten sam <template id="theme-icons"> z ikonami sun/moon/laptop, na ktorym
+//   opiera sie ThemeSelect przy podmianie ikony w przelaczniku.
+//
+// Jedyna zmiana: gdy nie ma zapisanego wyboru w localStorage, motywem
+// domyslnym jest "light" - a NIE wynik `matchMedia('(prefers-color-scheme)')`.
+// Wymog specyfikacji (sekcja "Tozsamosc wizualna"):
+// "Motyw: zachowujemy przelacznik Starlighta, ale jasny jest domyslny,
+// zgodnie z zywa strona."
+//
+// Ta sama zmiana domyslnego fallbacku (bez matchMedia) jest powielona w
+// nadpisaniu ThemeSelect.astro - inaczej jego wlasny getPreferredColorScheme()
+// nadpisalby ten wybor z powrotem na motyw systemowy zaraz po zaladowaniu
+// strony (ThemeSelect.astro renderuje sie w Header i uruchamia sie PO tym
+// skrypcie).
+import { Icon } from '@astrojs/starlight/components';
+---
+
+{/* Inline celowo - zapobiega FOUC (flash of unstyled content). */}
+<script is:inline>
+	window.StarlightThemeProvider = (() => {
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme = storedTheme || 'light';
+		document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					/** @type {HTMLTemplateElement | null} */
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script>
+
+<template id="theme-icons">
+	<Icon name="sun" class="light" />
+	<Icon name="moon" class="dark" />
+	<Icon name="laptop" class="auto" />
+</template>

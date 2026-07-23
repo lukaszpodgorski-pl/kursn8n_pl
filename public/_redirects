@@ -1,0 +1,17 @@
+# Przekierowania 301 ze starych plaskich URL-i (.html) na czyste adresy.
+# Odpowiednik regul RewriteRule z public_html/.htaccess starej strony PHP.
+# Cele BEZ koncowego ukosnika - spojnie z trailingSlash: 'never' (astro.config.mjs).
+# Format Cloudflare: <source> <destination> <code>
+
+/modul-0-fundamenty.html                /modul-0-fundamenty                301
+/modul-1-instalacja-hosting.html        /modul-1-instalacja-hosting        301
+/modul-2-interfejs-pierwszy-workflow.html /modul-2-interfejs-pierwszy-workflow 301
+/modul-3-praca-z-danymi.html            /modul-3-praca-z-danymi            301
+/modul-4-integracje-api.html            /modul-4-integracje-api            301
+/modul-5-kod-sub-workflow.html          /modul-5-kod-sub-workflow          301
+/modul-6-ai-agenci.html                 /modul-6-ai-agenci                 301
+/modul-7-produkcja.html                 /modul-7-produkcja                 301
+/modul-8-wzorce-wdrozenia.html          /modul-8-wzorce-wdrozenia          301
+/porownanie-n8n-hostingow.html          /porownanie-n8n-hostingow          301
+/regulamin.html                         /regulamin                         301
+/prywatnosc.html                        /prywatnosc                        301

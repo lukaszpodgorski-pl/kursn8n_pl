@@ -1,0 +1,24 @@
+{
+  "name": "kursn8n-pl",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "verify:geo": "node scripts/verify-geo.mjs",
+    "verify:urls": "node scripts/verify-urls.mjs",
+    "verify:brand": "node scripts/verify-brand.mjs"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.3",
+    "@astrojs/starlight": "^0.41.3",
+    "astro": "^7.0.2",
+    "astro-og-canvas": "^0.13.0",
+    "sharp": "^0.35.3",
+    "starlight-llms-txt": "^0.11.0"
+  }
+}

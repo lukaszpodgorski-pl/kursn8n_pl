@@ -1,0 +1,23 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default><slot /></Default>
+<p class="made-with-love">
+	made with ❤️ by <a href="https://aitomate.pl">aitomate.pl</a> - Łukasz Podgórski
+</p>
+
+<style>
+	.made-with-love {
+		margin: 0.5rem 0 0;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+		text-align: center;
+	}
+	.made-with-love a {
+		color: var(--sl-color-gray-2);
+	}
+	.made-with-love a:hover {
+		color: var(--sl-color-white);
+	}
+</style>
