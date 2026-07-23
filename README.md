@@ -59,7 +59,7 @@ Szczerze: **najwięcej zyskuje ten, kto pisze.** Żeby wytłumaczyć jakiś node
 3. Popraw tekst i kliknij **"Propose changes"** → **"Create pull request"**.
 4. Napiszę Ci komentarz. Jeśli coś wymaga dopracowania, dostaniesz życzliwą podpowiedź, nie odrzucenie.
 
-Nie czujesz się na siłach edytować? [Zgłoś issue](https://github.com/lukaszpodgorski-pl/kursn8n/issues/new/choose) - są gotowe szablony na błąd, propozycję treści i nieaktualną informację.
+Nie czujesz się na siłach edytować? [Zgłoś issue](https://github.com/lukaszpodgorski-pl/kursn8n_pl/issues/new/choose) - są gotowe szablony na błąd, propozycję treści i nieaktualną informację.
 
 Pełna instrukcja: **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
@@ -140,4 +140,4 @@ Wysyłając pull request zgadzasz się na publikację swojego wkładu na tych li
 
 ---
 
-Bieżące zadania i propozycje: [Issues](https://github.com/lukaszpodgorski-pl/kursn8n/issues) · Masz pytanie albo pomysł? Napisz przez [lukaszpodgorski.pl](https://lukaszpodgorski.pl/).
+Bieżące zadania i propozycje: [Issues](https://github.com/lukaszpodgorski-pl/kursn8n_pl/issues) · Masz pytanie albo pomysł? Napisz przez [lukaszpodgorski.pl](https://lukaszpodgorski.pl/).

@@ -16,7 +16,7 @@ Drobne literówki i błędy możesz zgłaszać od razu jako pull request - bez z
 
 ## Zgłaszanie problemów (Issues)
 
-Nie czujesz się na siłach, by edytować samodzielnie? Załóż [issue](https://github.com/lukaszpodgorski-pl/kursn8n/issues/new/choose) - mamy gotowe szablony:
+Nie czujesz się na siłach, by edytować samodzielnie? Załóż [issue](https://github.com/lukaszpodgorski-pl/kursn8n_pl/issues/new/choose) - mamy gotowe szablony:
 
 - **Błąd lub literówka** - coś jest nie tak na istniejącej stronie
 - **Propozycja treści** - pomysł na nowy moduł, poradnik lub przykład workflow

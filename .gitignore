@@ -73,11 +73,9 @@ $RECYCLE.BIN/
 /docs/
 # Stara strona PHP - material zrodlowy migracji, trzymany LOKALNIE, poza repo.
 # Nie publikujemy starego zrodla w publicznym repozytorium: zawiera klucz
-# IndexNow, zbedny bloat (llms-full.txt, hihi.gif) i podwaja tresc. Jedyna
-# potrzebna referencja - stara sitemapa - jest skopiowana do
-# scripts/stara-sitemapa.xml (czyta ja verify-urls). Historycznie katalog
-# analytics/ mial tu HASLO DO BAZY Matomo (config/config.ini.php) - kolejny
-# powod, by cale public_html/ trzymac poza repo.
+# IndexNow, zbedny bloat (llms-full.txt, hihi.gif) i podwaja tresc.
+# Historycznie katalog analytics/ mial tu HASLO DO BAZY Matomo
+# (config/config.ini.php) - kolejny powod, by cale public_html/ trzymac poza repo.
 public_html/
 /CLAUDE.md
 /TODO.md

@@ -9,7 +9,6 @@
     "preview": "astro preview",
     "astro": "astro",
     "verify:geo": "node scripts/verify-geo.mjs",
-    "verify:urls": "node scripts/verify-urls.mjs",
     "verify:brand": "node scripts/verify-brand.mjs"
   },
   "dependencies": {

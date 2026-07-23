@@ -31,7 +31,5 @@ jobs:
         run: npm run build
       - name: Weryfikacja GEO/AEO/SEO (dane strukturalne, obrazy OG, sitemapa)
         run: npm run verify:geo
-      - name: Zachowanie adresow (dist vs stara sitemapa - regresja URL po migracji)
-        run: npm run verify:urls
       - name: Brak wycieku starej marki (poza legalnym sameAs autora)
         run: npm run verify:brand

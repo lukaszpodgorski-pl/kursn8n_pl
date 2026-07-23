@@ -7,7 +7,7 @@ import { lastModMap } from './scripts/sitemap-lastmod.mjs';
 import { forceLightTheme } from './scripts/force-light-theme.mjs';
 import { MODULES, GUIDE_SLUG } from './src/config/modules';
 
-const GITHUB_REPO = 'https://github.com/lukaszpodgorski-pl/kursn8n';
+const GITHUB_REPO = 'https://github.com/lukaszpodgorski-pl/kursn8n_pl';
 
 // Mapa liczona raz, na starcie builda - nie per URL.
 const LAST_MOD = lastModMap();
