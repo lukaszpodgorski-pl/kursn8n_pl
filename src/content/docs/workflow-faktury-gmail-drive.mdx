@@ -145,7 +145,10 @@ nawyków nazewniczych faktur.
      i Google Drive API, a w polu "Authorized redirect URIs" wklejasz dokładnie adres **OAuth
      Redirect URL** pokazany w panelu credentiala n8n. Ten adres musi być publiczny i po HTTPS -
      zasady konfiguracji domeny i `WEBHOOK_URL` rozkładam w
-     [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+     [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting). Wyjątek:
+     [dokumentacja Google OAuth w n8n](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
+     dopuszcza `localhost` bez publicznej domeny i SSL na potrzeby lokalnego developmentu - nie
+     dotyczy to jednak triggera pollującego w tle, który i tak potrzebuje działającej instancji.
 
    Pełna procedura zakładania projektu krok po kroku:
    [Google OAuth2 single service](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
@@ -177,8 +180,11 @@ nawyków nazewniczych faktur.
    Da to np. `2026-07 - Acme Sp. z o.o. - faktura_1234.pdf` - rok i miesiąc z daty maila, nadawca
    (nazwa albo, gdy jej brak, sam adres) i oryginalna nazwa pliku. W **Parent Folder** wskaż
    folder "Faktury" (z listy albo po ID). Jeśli zostawisz pole **File Name** puste, Google Drive
-   użyje oryginalnej nazwy załącznika - też działa, tylko mniej porządkuje. Zweryfikowane nazwy
-   pól: [dokumentacja node'a Google Drive](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/).
+   użyje oryginalnej nazwy załącznika - też działa, tylko mniej porządkuje ([kod node'a Google
+   Drive na GitHubie](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Google/Drive/v2/actions/file/upload.operation.ts)
+   potwierdza to wprost: `name || originalFilename`, a opis pola w źródle brzmi "If not
+   specified, the original file name will be used"). Zweryfikowane nazwy pól:
+   [dokumentacja node'a Google Drive](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/).
 
 5. **Przetestuj, zanim aktywujesz.** Gmail Trigger to trigger typu polling (odpytuje Gmaila w
    interwałach ustawionych w polu **Poll Times**), a nie webhook - dlatego nie ma osobnego "Test
@@ -202,7 +208,9 @@ fakturami i jak długo je tam trzymasz.
 
 - **`redirect_uri_mismatch` przy łączeniu credentials.** Adres, który n8n wysyła jako redirect
   URI, nie zgadza się z żadnym z adresów zarejestrowanych w Google Cloud Console. Najczęściej
-  self-hosting bez publicznego HTTPS albo literówka przy wklejaniu. Naprawa: skopiuj **OAuth
+  self-hosting bez publicznego HTTPS (lokalny development na `localhost` to
+  [udokumentowany wyjątek](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/))
+  albo literówka przy wklejaniu. Naprawa: skopiuj **OAuth
   Redirect URL** dokładnie z panelu credentiala n8n (łącznie z protokołem i portem) i wklej go
   bez zmian w "Authorized redirect URIs" w Google Cloud Console - zasady HTTPS/`WEBHOOK_URL` przy
   self-hostingu opisuję w [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
@@ -218,17 +226,21 @@ fakturami i jak długo je tam trzymasz.
   większość takich przypadków, a node Filter z kroku 3 dodatkowo odrzuci itemy bez żadnego
   pobranego załącznika binarnego. Jeśli mimo to trafiają się fałszywe trafienia, dopisz do
   zapytania kolejne warunki (np. `-filename:png -filename:jpg`).
-- **Duplikaty przy ponownym imporcie albo restarcie workflow.** Gmail Trigger trzyma informację o
-  ostatnio sprawdzonym momencie w danych statycznych workflow, zapisanych w bazie n8n - zwykły
-  restart instancji n8n (przy aktywnym workflow) tego nie kasuje, więc trigger normalnie nie
-  wraca do już przetworzonych maili
-  ([kod triggera na GitHubie](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Google/Gmail/GmailTrigger.node.ts) -
+- **Duplikaty, gdy dwa workflowy nasłuchują tej samej skrzynki.** Gmail Trigger trzyma moment
+  ostatniego sprawdzenia (`lastTimeChecked`) w danych statycznych workflow, zapisanych w bazie
+  n8n - zwykły restart instancji n8n (przy aktywnym workflow) tego nie kasuje. Reimport z tego
+  pliku JSON (nowy workflow = nowy, pusty stan) też nie zaleje Cię starą pocztą: świeży stan
+  ustawia punkt odniesienia na "teraz" i pierwszy poll pyta Gmaila tylko o maile od tego momentu
+  - dokładnie tak samo jak przy pierwszej aktywacji (patrz punkt wyżej)
+  ([`poll()` triggera na GitHubie](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Google/Gmail/GmailTrigger.node.ts) -
   ten szczegół zachowania nie jest opisany w oficjalnej dokumentacji, tylko w źródle node'a).
-  Ryzyko duplikatu pojawia się, gdy zaimportujesz workflow od nowa z tego pliku JSON (nowy
-  workflow = nowy, pusty stan) albo ręcznie usuniesz i dodasz trigger ponownie - wtedy licz się z
-  tym, że pierwszy poll po takim reset zobaczy więcej maili niż zwykle. Google Drive nie
-  blokuje duplikatów nazw plików, więc w skrajnym przypadku dostaniesz dwie kopie tej samej
-  faktury w folderze.
+  Realne ryzyko duplikatu jest inne: **dwa aktywne workflowy nasłuchujące tej samej skrzynki
+  naraz** - typowo wtedy, gdy aktywujesz reimportowaną kopię tego gotowca i zapomnisz
+  dezaktywować starą wersję. Każdy z nich trzyma własny `lastTimeChecked` i niezależnie złapie tę
+  samą nową wiadomość, więc oba zapiszą kopię faktury na Dysku. Naprawa: przed aktywacją
+  reimportowanej kopii zawsze dezaktywuj (albo usuń) poprzedni workflow z tym samym Gmail
+  Triggerem. Google Drive nie blokuje duplikatów nazw plików, więc w skrajnym przypadku
+  dostaniesz dwie kopie tej samej faktury w folderze.
 - **Błąd 401 "Client is unauthorized" przy pierwszym uruchomieniu.** Zwykle oznacza, że w Google
   Cloud Console nie włączyłeś jeszcze Gmail API (albo Google Drive API) dla danego projektu.
   Naprawa: w konsoli wejdź w **APIs & Services → Library**, wyszukaj brakujące API i włącz je -

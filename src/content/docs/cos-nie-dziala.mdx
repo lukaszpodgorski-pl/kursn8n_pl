@@ -34,13 +34,13 @@ mentions:
     sameAs: https://en.wikipedia.org/wiki/Raspberry_Pi
 faq:
   - q: "Czy mogę odzyskać poświadczenia bez oryginalnego klucza N8N_ENCRYPTION_KEY?"
-    a: "Nie wprost - bez tego samego klucza n8n nie odszyfruje zapisanych poświadczeń i trzeba wprowadzić je od nowa. Jedyny ratunek to znalezienie kopii tego samego klucza, np. w backupie wolumenu danych, i podanie go tej samej instancji przed uruchomieniem."
+    a: "Nie wprost - to szyfrowanie symetryczne, więc bez tego samego klucza n8n nie ma jak odszyfrować zapisanych poświadczeń i trzeba wprowadzić je od nowa. Jedyny ratunek to znalezienie kopii tego samego klucza, np. w backupie wolumenu danych, i podanie go tej samej instancji przed uruchomieniem."
   - q: "Dlaczego mój workflow nie uruchamia się sam, mimo że w teście działał?"
     a: "Najczęściej workflow nie jest aktywny (przełącznik Active) albo korzysta z Manual Trigger, który nigdy nie startuje sam z siebie. Do samodzielnego uruchamiania służą aktywowany Schedule Trigger albo aktywowany Webhook."
   - q: "Jak sprawdzić, co dokładnie poszło nie tak w konkretnym uruchomieniu?"
     a: "Otwórz zakładkę Executions, znajdź wykonanie ze statusem Error i kliknij je - n8n pokaże kopię workflow z dokładnymi danymi z tamtego momentu, node po nodzie."
   - q: "Czy testowego URL-a webhooka można używać na produkcji?"
-    a: "Nie na dłuższą metę. Test URL działa tylko po kliknięciu \"Listen for test event\" w edytorze i obsługuje jedno żądanie. Do integracji zewnętrznej zawsze potrzebujesz Production URL i aktywnego workflow."
+    a: "Nie na dłuższą metę. Test URL zaczyna nasłuchiwać dopiero po kliknięciu \"Listen for test event\" albo po \"Execute workflow\" na nieaktywnym workflow - to nie jest stały adres. Do integracji zewnętrznej zawsze potrzebujesz Production URL i aktywnego workflow."
   - q: "Ile pamięci RAM potrzebuje n8n, żeby nie zwalniać?"
     a: "Nie ma jednej uniwersalnej liczby - zależy od liczby i wielkości executions oraz obciążenia workflow. Na słabszym sprzęcie, jak Raspberry Pi, najbardziej pomaga włączony pruning historii wykonań i pilnowanie rozmiaru danych przechodzących przez workflow."
   - q: "Nie znalazłem swojego problemu na tej liście - co teraz?"
@@ -52,7 +52,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Troubleshooting · wszystkie poziomy"
-  readingTime="~12 min"
+  readingTime="~9 min"
   note="Wracaj tu, gdy coś się zepsuje"
 />
 
@@ -67,9 +67,10 @@ Twojego problemu tu nie ma, [daj mi znać](/#o-autorze), a dopiszę go razem z r
 "Listen for test event" - ale po podłączeniu prawdziwej usługi zewnętrznej cisza: żadnego
 nowego wykonania w zakładce Executions.
 
-**Przyczyna:** Webhook ma dwa różne adresy. Test URL działa tylko po kliknięciu "Listen
-for test event" i obsługuje jedno żądanie, a Production URL zaczyna działać dopiero, gdy
-workflow jest **aktywny** - potwierdza to
+**Przyczyna:** Webhook ma dwa różne adresy. Test URL zaczyna nasłuchiwać dopiero, gdy w
+edytorze klikniesz "Listen for test event" albo uruchomisz workflow przez "Execute
+workflow" na nieaktywnym workflow, a Production URL zaczyna działać dopiero, gdy workflow
+jest **aktywny** - potwierdza to
 [dokumentacja node'a Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/).
 To najczęstsza pułapka początkujących: zewnętrznej usłudze wpisano adres testowy albo
 zapomniano aktywować workflow.
@@ -142,8 +143,15 @@ ich od nowa.
 
 **Przyczyna:** n8n szyfruje poświadczenia kluczem `N8N_ENCRYPTION_KEY`. Jeśli nie ustawisz
 go ręcznie, n8n przy pierwszym uruchomieniu wygeneruje go losowo i zapisze w katalogu
-danych. Nowa instancja (świeży kontener, inny wolumen, reinstalacja bez zachowania tego
-pliku) dostaje inny klucz - a bez oryginalnego n8n nie odszyfruje starych poświadczeń.
+danych - potwierdza to
+[dokumentacja o ustawianiu własnego klucza szyfrowania](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/set-a-custom-encryption-key/).
+To szyfrowanie symetryczne: ten sam klucz służy do zaszyfrowania i odszyfrowania danych.
+Nowa instancja (świeży kontener, inny wolumen, reinstalacja bez zachowania tego pliku)
+dostaje inny, losowy klucz - a n8n nie ma jak nim odszyfrować poświadczeń zapisanych
+wcześniej innym kluczem. Dlatego dokumentacja CLI n8n każe eksportować poświadczenia w
+jawnym tekście (`export:credentials --decrypted`) właśnie przy migracji do instalacji z
+innym kluczem szyfrowania - w formie zaszyfrowanej by się tam nie odczytały. Potwierdza to
+[dokumentacja komend CLI n8n](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line/).
 
 **Naprawa:**
 1. Sprawdź, czy masz kopię oryginalnego klucza (backup wolumenu `.n8n`, zmienna
@@ -178,8 +186,12 @@ konfiguracji, opisanej w
    proxy.
 3. Upewnij się, że proxy przekazuje nagłówki `X-Forwarded-For`, `X-Forwarded-Host` i
    `X-Forwarded-Proto`.
-4. Sprawdź, czy konfiguracja proxy poprawnie obsługuje długotrwałe połączenia do edytora -
-   to typowa pułapka gotowych, nieskastomizowanych szablonów Nginx.
+4. Edytor n8n w przeglądarce łączy się przez WebSockety, więc proxy musi przepuszczać
+   upgrade połączenia - w Nginx dodaj `proxy_http_version 1.1;` oraz nagłówki
+   `proxy_set_header Upgrade $http_upgrade;` i `proxy_set_header Connection "upgrade";`,
+   zgodnie z
+   [dokumentacją Nginx o proxowaniu WebSocketów](https://nginx.org/en/docs/http/websocket.html).
+   To typowa pułapka gotowych, nieskastomizowanych szablonów Nginx.
 5. Zrestartuj n8n po zmianie zmiennych środowiskowych - same nie działają "na gorąco".
 
 **Głębiej:** [Moduł 1 - HTTPS, domena, reverse proxy i Cloudflare
@@ -254,7 +266,10 @@ większości przypadków sam znajdziesz odpowiedź szybciej, niż ktoś zdąży 
   pojedynczym, podejrzanym node'ie.
 - **Sprawdź dane wejściowe na oku, nie w wyobraźni.** Otwórz
   [panel danych](/modul-2-interfejs-pierwszy-workflow#podgląd-danych-między-nodeami) w
-  widoku JSON i zobacz naprawdę, co przyszło - nie zakładaj kształtu danych z pamięci.
+  widoku JSON i zobacz naprawdę, co przyszło - nie zakładaj kształtu danych z pamięci. Jeśli
+  struktura items i JSON-a wciąż Cię gubi, wróć do [Moduł 3 - Jak n8n przechowuje dane -
+  items i struktura
+  JSON](/modul-3-praca-z-danymi#jak-n8n-przechowuje-dane---items-i-struktura-json).
 - **Powtórz na pinned data.** Przypnij dane wejściowe (Pin data), żeby testować wielokrotnie
   na tym samym zestawie bez ponownego odpytywania zewnętrznych API i limitów - to opisane w
   tej samej sekcji Modułu 2 o podglądzie danych.

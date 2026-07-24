@@ -163,6 +163,9 @@ Node **HTML** w operacji **Extract HTML Content** wyciąga zawartość wskazaną
 zapisuje ją pod nazwanym kluczem - w gotowcu jest to pole `cena_tekst`, z ustawionym typem zwracanej
 wartości **Text**. Pełny opis operacji i jej parametrów znajdziesz w
 [dokumentacji node'a HTML](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.html/).
+Zanim przejdziesz dalej, zerknij w panel danych poprzedniego node'a (HTTP Request) i sprawdź, czy
+pole z pobranym HTML-em faktycznie nazywa się `data` - to domyślna nazwa, ale warto się upewnić - a
+w polu **JSON Property** (sekcja **Source Data**) node'a HTML wskazujesz dokładnie tę samą nazwę.
 Na tym etapie `cena_tekst` to wciąż tekst, zwykle z symbolem waluty i separatorem tysięcy - np.
 `"1 299,99 zł"` - dlatego kolejny krok go czyści.
 
@@ -232,8 +235,12 @@ weźmiesz swój Chat ID, jeśli jeszcze go nie znasz.
 
 - **Objaw:** node HTTP Request kończy się poprawnie (status 200), ale w pobranym HTML nigdzie nie
   ma ceny - selektor CSS "nie znajduje" elementu, bo go tam po prostu nie ma.
-- **Przyczyna:** część sklepów dogrywa cenę dopiero po stronie przeglądarki, skryptem JavaScript -
-  HTTP Request pobiera wyłącznie surowy HTML z serwera, zanim ten skrypt zdąży się wykonać.
+- **Przyczyna:** część sklepów dogrywa cenę dopiero po stronie przeglądarki, skryptem JavaScript.
+  Zwykłe żądanie HTTP - takie jak to, które wysyła node HTTP Request - dostaje od serwera dokładnie
+  to, co ten zwróci w odpowiedzi; to dopiero przeglądarka parsuje ten HTML i wykonuje osadzone w nim
+  skrypty, jak opisuje [MDN w artykule o działaniu przeglądarek](https://developer.mozilla.org/en-US/docs/Web/Performance/How_browsers_work).
+  Bez silnika przeglądarki te skrypty się nie uruchomią, więc cena dogrywana przez JS nie trafia do
+  pobranego HTML.
 - **Naprawa:** nie ma tu gwarancji uniwersalnego rozwiązania. Zajrzyj w DevTools do zakładki
   **Network** podczas ładowania strony - często cena przychodzi z osobnego zapytania do
   wewnętrznego API sklepu w formacie JSON, które możesz odpytać bezpośrednio zamiast parsować

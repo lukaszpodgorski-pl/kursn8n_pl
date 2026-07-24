@@ -1,13 +1,19 @@
 import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
-import { MODULES, GUIDE_SLUG, QUICK_WINS, TROUBLESHOOTING_SLUG } from '../config/modules';
+import {
+	MODULES,
+	GUIDE_SLUG,
+	QUICK_WINS,
+	QUICK_WINS_HUB_SLUG,
+	TROUBLESHOOTING_SLUG,
+} from '../config/modules';
 
 /**
  * Kanal RSS 2.0 - odpowiednik dawnego public_html/partials/feed.php.
- * Pozycje: hub gotowcow + troubleshooting + 3 gotowe workflow + flagowy
- * poradnik hostingowy + 9 modulow kursu, zasilane z jednego rejestru
- * src/config/modules.ts (to samo zrodlo co sidebar i dane strukturalne
- * Course).
+ * Pozycje (najnowsze na gorze): 3 gotowe workflow + troubleshooting + hub
+ * gotowcow, potem flagowy poradnik hostingowy + 9 modulow kursu - zasilane
+ * z jednego rejestru src/config/modules.ts (to samo zrodlo co sidebar i dane
+ * strukturalne Course).
  *
  * Adresy pozycji BEZ koncowego ukosnika - zgodnie z trailingSlash: 'never'
  * i stara sitemapa. `site` z astro.config.mjs dostarcza bazowy URL.
@@ -38,7 +44,7 @@ export async function GET(context: APIContext) {
 		},
 		{
 			title: 'Gotowe workflow do pobrania - ucz się wdrażając',
-			link: new URL('/gotowe-workflow', site).href,
+			link: new URL(`/${QUICK_WINS_HUB_SLUG}`, site).href,
 			description:
 				'Gotowe workflow n8n do pobrania: JSON do importu i budowa krok po kroku dla każdego gotowca. Sprawdź na karcie, po którym module kursu jesteś gotowy go wdrożyć.',
 			pubDate: NEW_CONTENT_PUB_DATE,

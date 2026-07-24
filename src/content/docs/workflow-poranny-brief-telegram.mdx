@@ -1,6 +1,6 @@
 ---
 title: "Gotowy workflow: poranny brief na Telegram"
-description: "Gotowy workflow n8n: codziennie o 7:00 pogoda i plan dnia na Telegramie. Schedule Trigger, HTTP Request, Telegram - zero OAuth i kluczy API, wystarczy Moduł 2."
+description: "Gotowy workflow n8n: codziennie o 7:00 brief pogodowy na Telegramie. Schedule Trigger, HTTP Request, Telegram - zero OAuth i kluczy API, wystarczy Moduł 2."
 head:
   - tag: title
     content: "Gotowy workflow: poranny brief na Telegram (n8n) | KursN8N.pl"
@@ -11,7 +11,7 @@ head:
   - tag: meta
     attrs:
       property: og:description
-      content: "Codziennie o 7:00 pogoda i plan dnia prosto na Telegram. Gotowy workflow n8n do pobrania - Schedule Trigger, HTTP Request, Telegram. Zero OAuth, wystarczy Moduł 2."
+      content: "Codziennie o 7:00 krótki brief pogodowy prosto na Telegram - Schedule Trigger, HTTP Request, Telegram. Zero OAuth, wystarczy Moduł 2. Łatwo rozbudować o kalendarz."
 datePublished: 2026-07-24
 educationalLevel: Beginner
 teaches:
@@ -59,11 +59,13 @@ import Takeaways from '../../components/Takeaways.astro';
   note="Wdrożenie: ~20-30 min"
 />
 
-Zamiast rano otwierać osobno prognozę pogody i kalendarz, dostajesz jedną wiadomość na
-Telegramie: co dziś w pogodzie i co Cię czeka. To gotowy, minimalny przykład takiego briefu
-do pobrania - złożysz go z czterech node'ów, które już częściowo znasz z
+Zamiast rano samemu sprawdzać prognozę pogody w osobnej aplikacji, dostajesz jedną wiadomość
+na Telegramie: dzisiejsza temperatura i szansa na opady. To gotowy, minimalny przykład
+takiego briefu do pobrania - złożysz go z czterech node'ów, które już częściowo znasz z
 [Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow). Zero kluczy API,
-zero logowania OAuth - tylko import, kilka pól do uzupełnienia i aktywacja.
+zero logowania OAuth - tylko import, kilka pól do uzupełnienia i aktywacja. Gotowiec łatwo
+rozbudować - pogodę możesz uzupełnić o kalendarz czy listę zadań, pokazuję jak w sekcji
+"Jak to rozbudować" niżej.
 
 ## Czego potrzebujesz
 
@@ -148,6 +150,11 @@ suma opadów), a `timezone=auto` każe dopasować dobę do strefy czasowej wynik
 współrzędnych, a nie do UTC. Zero kluczy, zero rejestracji - tak działa
 [dokumentacja API Open-Meteo](https://open-meteo.com/en/docs) dla użytku niekomercyjnego.
 
+Nadaj node'owi czytelną nazwę **Pobierz pogodę** zamiast domyślnego "HTTP Request" - dokładnie
+tak nazywa się ten sam node w gotowym pliku JSON do importu, a i tak przyda Ci się w sekcji
+"Co może pójść nie tak" niżej. To ta sama zasada czytelnych nazw node'ów, którą poznałeś w
+[Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow#organizacja-pracy---dobre-praktyki-od-początku).
+
 ### 3. Edit Fields (Set) - złóż wiadomość
 
 Dodaj node **Edit Fields (Set)** i utwórz jedno pole tekstowe o nazwie `wiadomosc`. Jako
@@ -182,9 +189,10 @@ oraz [oficjalnej dokumentacji BotFather](https://core.telegram.org/bots/features
 
 ### 5. Znajdź swój Chat ID
 
-Zanim bot Cię odnajdzie, to Ty musisz odnaleźć jego rozmowę - Telegram nie pozwala botom
-pisać pierwszym do użytkownika. Otwórz w Telegramie czat ze swoim nowym botem i wyślij
-dowolną wiadomość, np. `/start`.
+Zanim bot Cię odnajdzie, to Ty musisz odnaleźć jego rozmowę - [Telegram wprost zastrzega,
+że boty nie mogą same rozpoczynać rozmowy z użytkownikiem, dopóki ten nie doda ich do grupy
+albo nie napisze do nich pierwszy](https://core.telegram.org/bots#how-are-bots-different-from-users).
+Otwórz w Telegramie czat ze swoim nowym botem i wyślij dowolną wiadomość, np. `/start`.
 
 Następnie w przeglądarce otwórz adres (podmieniając `TWÓJ_TOKEN` na token od BotFather):
 
@@ -215,38 +223,38 @@ klikniesz **Execute workflow** ręcznie.
 
 ### Bot milczy, mimo że workflow zakończył się bez błędu
 
-**Objaw:** node Telegram kończy się błędem, a na Telegramie nic nie przychodzi.
-**Przyczyna:** bot nigdy nie dostał od Ciebie wiadomości - Telegram nie pozwala botom pisać
-pierwszym do użytkownika (błąd wygląda np. tak: `Forbidden: bot can't initiate conversation
-with a user`).
-**Naprawa:** otwórz w Telegramie czat z botem i wyślij `/start`, dopiero potem uruchom
-workflow ponownie.
+- **Objaw:** node Telegram kończy się błędem, a na Telegramie nic nie przychodzi.
+- **Przyczyna:** bot nigdy nie dostał od Ciebie wiadomości - [Telegram wprost zastrzega, że
+  boty nie mogą pierwsze pisać do użytkowników](https://core.telegram.org/bots#how-are-bots-different-from-users)
+  (błąd wygląda np. tak: `Forbidden: bot can't initiate conversation with a user`).
+- **Naprawa:** otwórz w Telegramie czat z botem i wyślij `/start`, dopiero potem uruchom
+  workflow ponownie.
 
 ### Brief nie przychodzi wcale, mimo że test ręczny działa
 
-**Objaw:** minęła 7:00, na Telegramie cisza, ale kliknięcie **Execute workflow** w edytorze
-działa bez zarzutu.
-**Przyczyna:** workflow nie jest aktywny - Schedule Trigger reaguje samodzielnie dopiero po
-włączeniu workflow.
-**Naprawa:** włącz przełącznik **Active** w prawym górnym rogu edytora (patrz krok 7 wyżej).
+- **Objaw:** minęła 7:00, na Telegramie cisza, ale kliknięcie **Execute workflow** w edytorze
+  działa bez zarzutu.
+- **Przyczyna:** workflow nie jest aktywny - Schedule Trigger reaguje samodzielnie dopiero po
+  włączeniu workflow.
+- **Naprawa:** włącz przełącznik **Active** w prawym górnym rogu edytora (patrz krok 7 wyżej).
 
 ### Brief przychodzi o innej godzinie niż ustawione 7:00
 
-**Objaw:** wiadomość przychodzi np. o 13:00 zamiast o 7:00, mimo poprawnych ustawień w
-Schedule Trigger.
-**Przyczyna:** strefa czasowa instancji n8n (zmienna `GENERIC_TIMEZONE`) różni się od Twojej
-lokalnej strefy.
-**Naprawa:** ustaw `GENERIC_TIMEZONE` na poziomie instancji albo zmień strefę w Settings
-workflow (menu trzech kropek na kanwie) - patrz
-[dokumentacja strefy czasowej](https://docs.n8n.io/hosting/configuration/configuration-examples/time-zone/).
+- **Objaw:** wiadomość przychodzi np. o 13:00 zamiast o 7:00, mimo poprawnych ustawień w
+  Schedule Trigger.
+- **Przyczyna:** strefa czasowa instancji n8n (zmienna `GENERIC_TIMEZONE`) różni się od Twojej
+  lokalnej strefy.
+- **Naprawa:** ustaw `GENERIC_TIMEZONE` na poziomie instancji albo zmień strefę w Settings
+  workflow (menu trzech kropek na kanwie) - patrz
+  [dokumentacja strefy czasowej](https://docs.n8n.io/hosting/configuration/configuration-examples/time-zone/).
 
 ### HTTP Request zwraca błąd albo puste dane
 
-**Objaw:** node Pobierz pogodę kończy się błędem albo zwraca dane bez pól
-`temperature_2m_max` / `temperature_2m_min`.
-**Przyczyna:** w URL zostały niepodmienione placeholdery `TWOJA_SZEROKOSC` / `TWOJA_DLUGOSC`.
-**Naprawa:** wpisz rzeczywiste współrzędne swojej miejscowości w polu `URL` node'a HTTP
-Request.
+- **Objaw:** node **Pobierz pogodę** kończy się błędem albo zwraca dane bez pól
+  `temperature_2m_max` / `temperature_2m_min`.
+- **Przyczyna:** w URL zostały niepodmienione placeholdery `TWOJA_SZEROKOSC` / `TWOJA_DLUGOSC`.
+- **Naprawa:** wpisz rzeczywiste współrzędne swojej miejscowości w polu `URL` node'a HTTP
+  Request (nazwanego **Pobierz pogodę** - patrz krok 2 wyżej).
 
 ## Jak to rozbudować
 
