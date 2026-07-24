@@ -85,10 +85,6 @@
             {
               "name": "Authorization",
               "value": "Bearer TWOJ_KLUCZ_API_OPENAI"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
             }
           ]
         },

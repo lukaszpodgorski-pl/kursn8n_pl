@@ -38,7 +38,7 @@ faq:
   - q: "Czym różni się workflow od node'a w n8n?"
     a: "Workflow to cały zautomatyzowany proces - zbiór node'ów połączonych w logiczną sekwencję, który zapisujesz jako jedną całość. Node to pojedynczy \"klocek\" w tym procesie: jedno konkretne zadanie, np. wywołanie API albo warunek. Innymi słowy, workflow składa się z wielu node'ów, nie odwrotnie."
   - q: "Co to jest trigger i czym różni się od zwykłego node'a?"
-    a: "Trigger to specjalny node, który rozpoczyna workflow - reaguje na zdarzenie (webhook), harmonogram albo ręczne uruchomienie. Zwykłe node'y wykonują akcje w środku przepływu, ale same go nie uruchamiają. Każdy workflow zaczyna się od dokładnie jednego triggera startowego."
+    a: "Trigger to specjalny node, który rozpoczyna workflow - reaguje na zdarzenie (webhook), harmonogram albo ręczne uruchomienie. Zwykłe node'y wykonują akcje w środku przepływu, ale same go nie uruchamiają. Workflow może mieć więcej niż jeden trigger, ale każde jego wykonanie startuje zawsze od dokładnie jednego z nich."
   - q: "Czym jest item i dlaczego n8n operuje na liście itemów, a nie pojedynczym rekordzie?"
     a: "Item to pojedyncza porcja danych płynąca przez workflow. n8n zawsze przekazuje między node'ami listę (tablicę) itemów, nawet gdy zawiera tylko jeden element - dzięki temu ten sam node bez zmian obsłuży zarówno jeden rekord, jak i tysiąc, wykonując się raz dla każdego z nich."
   - q: "Czym różni się API key od OAuth2 w n8n?"
@@ -111,7 +111,7 @@ konkretnym przykładzie.
   [Moduł 2](/modul-2-interfejs-pierwszy-workflow#uruchamianie-i-debugowanie).
 - **Binaria (dane binarne)** - pliki (PDF, obrazy, CSV, archiwa) przechowywane w kluczu
   `binary` itemu, osobno od `json`, wraz z metadanymi (`mimeType`, `fileName`). Konwersje
-  między plikiem a danymi `json` opisuje [Moduł 3](/modul-3-praca-z-danymi#pliki-binarne-pdf-obrazy-csv).
+  między plikiem a danymi `json` opisuje [Moduł 3](/modul-3-praca-z-danymi#pliki-binarne---pdf-obrazy-csv).
 - **Merge** - node scalający dane z kilku gałęzi lub źródeł w jeden strumień: trybem
   Append (doklejenie) albo Combine (po kluczu, po pozycji lub wszystkie kombinacje) -
   podobnie do JOIN-a w SQL. Szczegóły trybów - [Moduł 3](/modul-3-praca-z-danymi#merge---łączenie-danych-z-wielu-źródeł).
@@ -171,7 +171,9 @@ konkretnym przykładzie.
 - **AI Agent** - root node, który dostaje zestaw narzędzi i sam decyduje, których użyć
   i w jakiej kolejności, zanim sformułuje odpowiedź (cykl reasoning → action →
   observation). Różni się od zwykłego wywołania modelu tym, że potrafi wykonać kilka
-  kroków, nie jeden. Wyjaśnienie - [Moduł 6](/modul-6-ai-agenci#ai-agent-node---model-który-sam-decyduje).
+  kroków, nie jeden. Jak wszystkie węzły AI w n8n, opiera się na frameworku LangChain,
+  który dostarcza wspólną warstwę abstrakcji nad modelami, pamięcią i narzędziami.
+  Wyjaśnienie - [Moduł 6](/modul-6-ai-agenci#ai-agent-node---model-który-sam-decyduje).
 - **Chain** - jednokrokowe wywołanie modelu (np. Basic LLM Chain): wysyła prompt
   i zwraca odpowiedź, koniec. Prostsze, tańsze i bardziej przewidywalne niż Agent - dobre
   do zadań deterministycznych (streszczenie, klasyfikacja). Porównanie z Agentem -

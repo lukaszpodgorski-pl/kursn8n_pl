@@ -62,8 +62,8 @@ w gąszczu wiadomości.
 
 Ten gotowiec łączy trzy tematy z dalszej części kursu: reagowanie na zdarzenia z zewnętrznego
 serwisu (Telegram Trigger), transkrypcję mową-na-tekst przez model AI (OpenAI Whisper) i zapis do
-zewnętrznej bazy danych (Notion). To dobry poligon na sensowny "quick win" po
-[Moduł 6: AI i agenci](/modul-6-ai-agenci) - korzysta z node'a OpenAI, ale bez pełnego ciężaru
+zewnętrznej bazy danych (Notion). To dobry poligon na sensowny "quick win" po ukończeniu
+[Modułu 6: AI i agenci](/modul-6-ai-agenci) - korzysta z node'a OpenAI, ale bez pełnego ciężaru
 AI Agenta czy pamięci konwersacji.
 
 ## Czego potrzebujesz
@@ -128,6 +128,14 @@ z prostszym modelem "baza danych". Jeśli Twoja instancja pokaże inne etykiety 
 (np. "Data Source" zamiast "Database"), sprawdź
 [dokumentację node'a Notion](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.notion/)
 - koncepcja (udostępnienie integracji, mapowanie właściwości) zostaje ta sama.
+
+Ta sama zasada dotyczy dwóch pozostałych node'ów zewnętrznych w tym pliku: **OpenAI**
+(`typeVersion: 1.8` zamiast aktualnie domyślnej `2.3`) i **Telegram Trigger**
+(`typeVersion: 1.1` zamiast aktualnie domyślnej `1.5`) - to również świadomie starsze, w pełni
+wspierane wersje, nie przeoczenie. Pola, z których korzysta ten gotowiec przy obu node'ach
+(`resource`/`operation`/`binaryPropertyName` przy transkrypcji, `updates` przy triggerze) są
+identyczne w nowszych wersjach, więc dodanie tych node'ów ręcznie od zera - z domyślną, nowszą
+wersją, którą zaproponuje n8n - da dokładnie ten sam efekt.
 :::
 
 ## Budowa krok po kroku
@@ -150,9 +158,11 @@ i `mime_type` - to właśnie `file_id` posłuży w kolejnym kroku do pobrania sa
 Gdy przyjdzie zwykła wiadomość tekstowa, pola `message.voice` po prostu nie ma - stąd potrzebny
 jest kolejny node.
 
-### 2. Guard IF - tylko wiadomości głosowe
+### 2. To wiadomość głosowa? - Guard IF
 
-Dodaj node **IF** i ustaw warunek: typ danych **Object**, lewa strona wyrażenie
+Dodaj node **IF** i nadaj mu nazwę **To wiadomość głosowa?** - dokładnie tak, jak ten sam node
+nazywa się w gotowym pliku JSON do importu, żeby pasowało do dalszych odwołań w sekcji "Co może
+pójść nie tak" i FAQ. Ustaw warunek: typ danych **Object**, lewa strona wyrażenie
 `{{ $json.message.voice }}`, operator **exists**. Bez tego warunku workflow próbowałby pobrać
 plik audio z każdej wiadomości - łącznie z tekstową, w której pola `voice` po prostu nie ma - i
 kolejny node zakończyłby się błędem zamiast po cichu zignorować taką wiadomość.
@@ -176,9 +186,11 @@ mechanizm `json` / `binary`, który poznałeś w
 zakładkę **Binary** - powinieneś tam zobaczyć plik z `mimeType` w rodzaju `audio/ogg`, bo
 Telegram domyślnie koduje notatki głosowe w formacie OGG/Opus.
 
-### 4. Transkrybuj audio - OpenAI (Whisper)
+### 4. Transkrybuj notatkę - OpenAI (Whisper)
 
-Dodaj node **OpenAI**, podłącz credentials z kluczem API (patrz krok 5 niżej), ustaw
+Dodaj node **OpenAI** i nadaj mu nazwę **Transkrybuj notatkę** - tak samo jak w gotowym pliku
+JSON, żeby zgadzało się z dalszymi odwołaniami w sekcji "Co może pójść nie tak" i FAQ. Podłącz
+credentials z kluczem API (patrz krok 5 niżej), ustaw
 **Resource** na **Audio** i **Operation** na **Transcribe a Recording**. Pole **Input Data Field
 Name** zostaw domyślne `data` - to dokładnie ta sama nazwa, pod którą poprzedni node zapisał plik
 binarny. W sekcji opcji możesz dodatkowo ustawić **Language of the Audio File** na `pl` (kod

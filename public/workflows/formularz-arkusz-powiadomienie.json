@@ -3,7 +3,6 @@
   "nodes": [
     {
       "parameters": {
-        "path": "formularz-zgloszenia",
         "formTitle": "Zapisz się",
         "formDescription": "Zostaw swoje dane, a odezwiemy się najszybciej, jak to możliwe.",
         "formFields": {
@@ -31,6 +30,7 @@
         "responseMode": "onReceived",
         "options": {
           "buttonLabel": "Wyślij zgłoszenie",
+          "path": "formularz-zgloszenia",
           "respondWithOptions": {
             "values": {
               "respondWith": "text",
@@ -82,7 +82,44 @@
             "Data zgłoszenia": "={{ $json.data_zgloszenia }}"
           },
           "matchingColumns": [],
-          "schema": []
+          "schema": [
+            {
+              "id": "Imię",
+              "displayName": "Imię",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Wiadomość",
+              "displayName": "Wiadomość",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Data zgłoszenia",
+              "displayName": "Data zgłoszenia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
         },
         "options": {}
       },

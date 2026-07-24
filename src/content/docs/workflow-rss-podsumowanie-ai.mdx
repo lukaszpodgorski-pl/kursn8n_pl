@@ -201,7 +201,7 @@ danych statycznych workflow - dokładnie ten mechanizm pokazuję w
 
 ### 4. Połącz wpisy - Aggregate
 
-Node **Aggregate** w trybie **Aggregate All Item Data** bierze wszystkie pozostałe itemy i
+Node **Aggregate** w trybie **All Item Data** bierze wszystkie pozostałe itemy i
 składa je w jeden - z jednym polem `wpisy` zawierającym tablicę obiektów (tytuł, link, zajawka
 treści i data każdego wpisu). Wybrałem Aggregate zamiast Code Node z Modułu 5, bo to zadanie
 ("połącz itemy w jeden") ma gotowy, wyspecjalizowany node - nie trzeba pisać ani jednej linii
@@ -215,8 +215,10 @@ promptu (`title, link, contentSnippet, isoDate`) - pomija pełne, często dużo 
 Node **HTTP Request** wysyła żądanie `POST` pod adres
 `https://api.openai.com/v1/chat/completions` - standardowy punkt wejścia
 [API OpenAI do generowania odpowiedzi czatu](https://platform.openai.com/docs/api-reference/chat).
-W nagłówkach ustawiasz `Authorization: Bearer TWOJ_KLUCZ_API_OPENAI` oraz
-`Content-Type: application/json`. Treść żądania (JSON Body) to wyrażenie budujące prompt:
+W nagłówkach ustawiasz `Authorization: Bearer TWOJ_KLUCZ_API_OPENAI` - ręczne dopisywanie
+nagłówka `Content-Type: application/json` nie jest tu potrzebne, bo node HTTP Request ustawia go
+sam, gdy treść żądania wysyłasz w trybie **JSON Body**, dokładnie tak jak w tym gotowcu. Treść
+żądania (JSON Body) to wyrażenie budujące prompt:
 
 ```javascript
 {{ JSON.stringify({
@@ -310,8 +312,9 @@ jeśli jeszcze go nie znasz.
 ## Jak to rozbudować
 
 - **Wiele kanałów naraz** - zamiast jednego adresu na stałe, przygotuj listę adresów RSS i
-  przepuść ją w pętli przez ten sam ciąg node'ów (patrz
-  [Moduł 3: Praca z danymi](/modul-3-praca-z-danymi)), a wyniki połącz przed podsumowaniem AI.
+  przepuść ją przez ten sam ciąg node'ów; n8n domyślnie przetworzy każdy kanał z listy jako
+  osobny item, bez dodatkowej pętli (patrz [Moduł 3: Praca z danymi](/modul-3-praca-z-danymi)),
+  a wyniki połącz przed podsumowaniem AI.
 - **Archiwum podsumowań w arkuszu** - zamiast tylko wysyłać podsumowanie, dopisuj je razem z datą
   do arkusza Google Sheets, by mieć historię tego, co AI streściło danego dnia. Integrację z
   zewnętrznymi API opisuje [Moduł 4: Integracje i API](/modul-4-integracje-api).
