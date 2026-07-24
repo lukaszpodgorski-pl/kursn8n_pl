@@ -48,15 +48,17 @@
 
 /*
  * `.faq *` wyklucza naglowek FAQ (Faq.astro renderuje
- * <section class="faq"><h2 id="czeste-pytania">) - w oryginale (body.php) sekcja
- * "Najczestsze pytania" byla jedynym h2 bez numeru, celowe rozroznienie tresci
- * merytorycznej (numerowanej) od FAQ (bez numeru).
+ * <section class="faq"><h2 id="czeste-pytania">), a `.k-next-module *` naglowek
+ * karty "Nastepny krok" (NextModule.astro, <div class="k-next-module"><h2>) -
+ * w oryginale (body.php) sekcja "Najczestsze pytania" byla jedynym h2 bez
+ * numeru, celowe rozroznienie tresci merytorycznej (numerowanej) od kart
+ * nawigacyjnych FAQ i "Nastepny krok" (bez numeru).
  */
-.sl-markdown-content h2:not(:where(.not-content *, .faq *)) {
+.sl-markdown-content h2:not(:where(.not-content *, .faq *, .k-next-module *)) {
 	counter-increment: k-section;
 }
 
-.sl-markdown-content h2:not(:where(.not-content *, .faq *))::before {
+.sl-markdown-content h2:not(:where(.not-content *, .faq *, .k-next-module *))::before {
 	content: counter(k-section);
 	display: inline-flex;
 	align-items: center;
