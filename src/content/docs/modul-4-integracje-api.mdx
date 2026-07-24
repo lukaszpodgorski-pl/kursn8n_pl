@@ -367,6 +367,44 @@ zgubi danych po drodze. Obsługę błędów na poważnie (Error Trigger, Stop an
 [Module 7: Produkcja](/modul-7-produkcja).
 :::
 
+## Sprawdź się
+
+Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na
+kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
+
+1. Twoje self-hostowane n8n działa na `localhost` bez żadnego publicznego adresu. Dlaczego
+   uwierzytelnianie API key skonfigurujesz bez problemu, a OAuth2 do Google czy Slacka - nie?
+   Jeśli nie masz pewności -
+   [Uwierzytelnianie: API key vs OAuth2](#uwierzytelnianie-api-key-vs-oauth2).
+2. Jaka jest różnica między "n8n odbiera webhook" a "n8n wysyła dane do cudzego webhooka" -
+   jakiego node'a użyjesz w każdym z tych dwóch kierunków? Jeśli nie masz pewności -
+   [Webhooki: odbieranie i wysyłanie](#webhooki-odbieranie-i-wysyłanie).
+3. Dostajesz do ręki node aplikacji dla usługi, której nigdy wcześniej nie widziałeś. Jakie
+   dwa pola sprawdzisz najpierw, żeby się zorientować, co on robi - i dlaczego ten sam trik
+   działa niemal w każdym gotowym node'ie aplikacji w n8n? Jeśli nie masz pewności -
+   [Node'y aplikacji - gotowe integracje](#nodey-aplikacji---gotowe-integracje).
+4. Podpiąłeś raz swoje konto Google jako credential w n8n. Czy w kolejnym workflow, który
+   też go potrzebuje, musisz przechodzić całą autoryzację OAuth2 od nowa? Dlaczego tak albo
+   nie? Jeśli nie masz pewności - [Jak działają credentials w n8n](#jak-działają-credentials-w-n8n).
+
+<details>
+<summary>Mini-zadanie: zbuduj mały endpoint webhookiem</summary>
+
+Potrzebujesz działającej instancji n8n i kilkunastu minut.
+
+1. Dodaj node **Webhook** - metoda `GET`, dowolny `Path` (np. `status`), a w polu
+   **Respond** wybierz _Using 'Respond to Webhook' Node_.
+2. Podłącz za nim node **Respond to Webhook** - ustaw Body na `JSON` i wpisz np.
+   `{ "status": "ok" }`.
+3. Kliknij **Listen for test event** i otwórz Test URL w przeglądarce - powinieneś zobaczyć
+   swoją odpowiedź JSON.
+4. Aktywuj workflow (**Active**) i otwórz tym razem **Production URL** - efekt powinien być
+   identyczny, ale bez klikania "Listen".
+5. Dorzuć w ustawieniach node'a Webhook prostą **Authentication** (np. Header Auth), żeby
+   nie każdy mógł wywołać Twój endpoint.
+
+</details>
+
 <Takeaways>
   - Node'y aplikacji działają według schematu **Resource → Operation** - opanuj go raz i obsłużysz każdy nowy node.
   - Credentials tworzysz raz i podpinasz wielokrotnie; n8n trzyma je zaszyfrowane (encryption key).

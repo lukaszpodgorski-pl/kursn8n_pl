@@ -424,6 +424,43 @@ node'y:
 
 :::
 
+## Sprawdź się
+
+Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na
+kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
+
+1. Na wejście node'a HTTP Request trafia 50 itemów, a Ty nie dodałeś żadnej pętli. Ile razy
+   wykona się ten node i dlaczego nie musisz sam pisać pętli, żeby obsłużyć wszystkie 50?
+   Jeśli nie masz pewności - [Domyślne przetwarzanie itemów](#domyślne-przetwarzanie-itemów).
+2. To samo pole w node'ie ustawiasz raz w trybie Fixed, raz w trybie Expression. Czym będzie
+   się różnić zachowanie tych dwóch pól, gdy workflow przetworzy po kolei dwa różne itemy?
+   Jeśli nie masz pewności - [Tryb Fixed vs Expression](#tryb-fixed-vs-expression).
+3. Masz itemy z polem `status`, które przyjmuje pięć różnych wartości, i każda ma trafić w
+   inne miejsce workflow. Lepiej użyć kilku node'ów IF z rzędu, czy jednego Switcha?
+   Dlaczego? Jeśli nie masz pewności - [Logika: IF, Switch, Filter](#logika-if-switch-filter).
+4. Pobierasz z API 10 000 rekordów, a usługa ogranicza jedno zapytanie do maksymalnie 100
+   rekordów. Które narzędzie z tego modułu pozwoli Ci to sensownie obsłużyć i na czym
+   dokładnie polega jego działanie? Jeśli nie masz pewności -
+   [Loop Over Items (Split in Batches)](#loop-over-items-split-in-batches).
+
+<details>
+<summary>Mini-zadanie: rozgałęź dane warunkiem IF</summary>
+
+Potrzebujesz działającej instancji n8n i kilkunastu minut.
+
+1. Dodaj **Manual Trigger**, a po nim **Edit Fields** - utwórz w nim 3-4 testowe pola, np.
+   `imie`, `kwota`, `kraj` (wpisz wartości na stałe, tryb Fixed).
+2. Dodaj node **IF** z warunkiem `{{ $json.kwota }} > 100`.
+3. Na gałęzi **true** dodaj kolejny Edit Fields, który ustawia pole `komunikat` na
+   "Rabat 10%".
+4. Na gałęzi **false** dodaj analogiczny Edit Fields z polem `komunikat` ustawionym na
+   "Standardowa cena".
+5. Uruchom **Execute workflow** i sprawdź w panelu Output obu gałęzi, że dane trafiły tam,
+   gdzie się spodziewałeś - a potem zmień wartość `kwota` w kroku 1 i uruchom ponownie, żeby
+   zobaczyć, jak przełącza się gałąź.
+
+</details>
+
 <Takeaways>
   - Dane w n8n to lista itemów; każdy item ma klucz `json` i opcjonalnie `binary`.
   - Wyrażenia w `{{ }}` sięgają po dane: `$json`, `$node`, `$input`, `$now` - przełącz pole z Fixed na Expression.

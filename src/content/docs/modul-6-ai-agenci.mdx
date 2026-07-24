@@ -380,6 +380,37 @@ listę akcji do akceptacji. Gdy zaufasz jego decyzjom na danych produkcyjnych, s
 ręczne potwierdzenia. Autonomię nadawaj _etapami_, nie od razu.
 :::
 
+## Sprawdź się
+
+Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
+Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
+
+1. Czym różni się root node od sub-node'a w cluster node - i dlaczego sub-node sam nie uruchamia
+   workflow? Jeśli nie masz pewności - [Jak to wygląda na kanwie](#jak-to-wygląda-na-kanwie).
+2. Umiesz opisać własnymi słowami cykl **reasoning → action → observation**, w którym działa
+   agent, zanim sformułuje finalną odpowiedź? Jeśli nie masz pewności - [Pętla rozumowania
+   (ReAct)](#pętla-rozumowania-react).
+3. Dlaczego "okno" pamięci (window buffer) nie przechowuje całej historii rozmowy - i co się
+   dzieje z kosztem zapytań, gdy zbyt mocno je rozszerzysz? Jeśli nie masz pewności - [Pamięć
+   (memory)](#pamięć-memory).
+4. Które kroki przepływu RAG wykonujesz tylko raz (albo cyklicznie), a które przy każdym pytaniu
+   użytkownika? Jeśli nie masz pewności - [Przepływ RAG - od dokumentu do
+   odpowiedzi](#przepływ-rag---od-dokumentu-do-odpowiedzi).
+
+<details>
+<summary>Mini-zadanie: sprawdź, czy pamięć agenta naprawdę pamięta</summary>
+
+1. Zbuduj prosty workflow: **Chat Trigger** → **AI Agent** (root) z podpiętym dowolnym Chat
+   Modelem (OpenAI, Anthropic albo lokalna Ollama) i sub-node'em **Simple Memory** - bez żadnych
+   narzędzi.
+2. Otwórz okno czatu i napisz: "Zapamiętaj liczbę 7."
+3. W kolejnej wiadomości, bez przypominania liczby, napisz: "Pomnóż zapamiętaną liczbę przez 3."
+4. Jeśli agent poda 21, pamięć działa - kontekst poprzedniej wiadomości realnie trafił do
+   kolejnego zapytania. Jeśli nie, sprawdź, czy sub-node Memory jest podpięty do właściwego portu
+   roota (patrz [Jak to wygląda na kanwie](#jak-to-wygląda-na-kanwie)).
+
+</details>
+
 <Takeaways>
   - Węzły AI w n8n bazują na LangChain i działają jako cluster nodes: root node + sub-node'y (model, memory, tools).
   - Sub-node to "zdolność" podpinana do roota od spodu - wymieniasz dostawcę modelu bez przebudowy workflow.

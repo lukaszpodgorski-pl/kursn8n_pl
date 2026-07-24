@@ -370,6 +370,38 @@ cofnięcia i odtworzenia workflow oraz prosty transfer między instancjami dev i
 
 :::
 
+## Sprawdź się
+
+Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
+Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
+
+1. Potrafisz wymienić przynajmniej trzy niezależne warstwy zabezpieczeń instancji n8n - i
+   wyjaśnić, czemu samo silne hasło do panelu nie wystarczy? Jeśli nie masz pewności -
+   [Zabezpieczenie instancji](#zabezpieczenie-instancji).
+2. Kiedy przy self-hostingu jesteś administratorem danych osobowych, a kiedy tylko procesorem -
+   i dlaczego to rozróżnienie ma znaczenie dla RODO? Jeśli nie masz pewności - [Cztery pytania,
+   które musisz sobie zadać](#cztery-pytania-które-musisz-sobie-zadać).
+3. Masz plik `backup-2026-05-15.sql` w katalogu - dlaczego to samo w sobie "nic nie gwarantuje"?
+   Co musisz zrobić, by mieć pewność, że backup zadziała w dniu awarii? Jeśli nie masz pewności -
+   [testowane odtwarzanie backupu](#backup-którego-nie-testujesz-nie-istnieje).
+4. Healthcheck pokazuje, że n8n "żyje", ale kluczowa automatyzacja od trzech dni nic nie
+   zsynchronizowała - jak to możliwe, i jakiego mechanizmu monitoringu Ci brakuje? Jeśli nie masz
+   pewności - [Healthcheck i monitoring czasu działania](#healthcheck-i-monitoring-czasu-działania).
+
+<details>
+<summary>Mini-zadanie: przetestuj dead man's switch na swojej instancji</summary>
+
+1. Załóż darmowe konto na [healthchecks.io](https://healthchecks.io/) i utwórz nowy check z
+   oczekiwanym interwałem (np. co godzinę).
+2. W dowolnym cyklicznym workflow (albo nowym, testowym ze Schedule Triggerem) dodaj na końcu
+   **HTTP Request**, który pinguje wygenerowany URL checku po udanym wykonaniu.
+3. Uruchom workflow raz ręcznie i sprawdź w panelu healthchecks.io, że status zmienił się na "Up".
+4. Wyłącz workflow (albo poczekaj dłużej niż ustawiony interwał) i sprawdź, czy przychodzi alert
+   o braku pingu - to właśnie różnica między "proces żyje" a "workflow robi to, co ma", opisana w
+   sekcji [Healthcheck i monitoring czasu działania](#healthcheck-i-monitoring-czasu-działania).
+
+</details>
+
 <Takeaways>
   - Bezpieczeństwo to warstwy: konta + 2FA, reverse proxy + HTTPS, firewall, aktualizacje.
   - Nie wystawiaj portu 5678 na świat - na zewnątrz tylko proxy z certyfikatem Let's Encrypt.
