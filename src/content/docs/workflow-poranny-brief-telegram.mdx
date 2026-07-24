@@ -111,9 +111,9 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 
 | Placeholder | Gdzie | Co wpisać |
 | --- | --- | --- |
-| `TWOJA_SZEROKOSC` | node HTTP Request (pole URL) | szerokość geograficzna Twojej miejscowości |
-| `TWOJA_DLUGOSC` | node HTTP Request (pole URL) | długość geograficzna Twojej miejscowości |
-| `TWOJ_CHAT_ID` | node Telegram (pole Chat ID) | ID czatu, na który ma trafić brief |
+| `TWOJA_SZEROKOSC` | node Pobierz pogodę (HTTP Request, pole URL) | szerokość geograficzna Twojej miejscowości |
+| `TWOJA_DLUGOSC` | node Pobierz pogodę (HTTP Request, pole URL) | długość geograficzna Twojej miejscowości |
+| `TWOJ_CHAT_ID` | node Wyślij na Telegram (Telegram, pole Chat ID) | ID czatu, na który ma trafić brief |
 
 Na koniec podepnij pod node'em Telegram swoje credentials (bota założonego przez BotFather,
 patrz krok 4 niżej) - bez tego node zgłosi błąd uwierzytelniania przy pierwszym uruchomieniu.

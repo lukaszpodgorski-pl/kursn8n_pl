@@ -155,7 +155,8 @@ nawyków nazewniczych faktur.
    w dokumentacji n8n - nie przepisuję jej tutaj, bo dokładnie to samo credentiale obsłużą oba
    node'y (Gmail i Drive to jeden i ten sam typ konta Google).
 
-3. **Node: Filter - zabezpieczenie przed pustym itemem.** Node Filter nie ma osobnego typu
+3. **Node: Filter (nazwij go "Czy jest załącznik PDF?", tak jak w gotowym pliku JSON) -
+   zabezpieczenie przed pustym itemem.** Node Filter nie ma osobnego typu
    warunku "ma załącznik" - jego dostępne typy danych to string, number, date & time, boolean,
    array i object, bez binarnego
    ([dokumentacja node'a Filter](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/)).
@@ -223,9 +224,9 @@ fakturami i jak długo je tam trzymasz.
 - **Załącznik nie jest PDF-em albo Filter go odrzuca mimo pasującego maila.** `has:attachment` w
   Gmailu łapie też małe obrazki osadzone w stopce podpisu maila (logo firmy, ikony social media) -
   to też, technicznie, załącznik. Zawężenie zapytania do `filename:pdf` w kroku 1 eliminuje
-  większość takich przypadków, a node Filter z kroku 3 dodatkowo odrzuci itemy bez żadnego
-  pobranego załącznika binarnego. Jeśli mimo to trafiają się fałszywe trafienia, dopisz do
-  zapytania kolejne warunki (np. `-filename:png -filename:jpg`).
+  większość takich przypadków, a node **Czy jest załącznik PDF?** (Filter) z kroku 3 dodatkowo
+  odrzuci itemy bez żadnego pobranego załącznika binarnego. Jeśli mimo to trafiają się fałszywe
+  trafienia, dopisz do zapytania kolejne warunki (np. `-filename:png -filename:jpg`).
 - **Duplikaty, gdy dwa workflowy nasłuchują tej samej skrzynki.** Gmail Trigger trzyma moment
   ostatniego sprawdzenia (`lastTimeChecked`) w danych statycznych workflow, zapisanych w bazie
   n8n - zwykły restart instancji n8n (przy aktywnym workflow) tego nie kasuje. Reimport z tego
