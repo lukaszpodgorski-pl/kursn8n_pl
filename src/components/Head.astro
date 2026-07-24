@@ -12,7 +12,7 @@ import {
 	AUTHOR,
 	type FaqItem,
 } from '../lib/structured-data';
-import { MODULE_SLUGS, GUIDE_SLUG } from '../config/modules';
+import { ARTICLE_SLUGS } from '../config/modules';
 
 const route = Astro.locals.starlightRoute;
 const data = route.entry.data;
@@ -20,12 +20,13 @@ const pathname = Astro.url.pathname;
 
 const isHome = pathname === '/';
 
-// Klasyfikacja jako allowlista oparta o rejestr modulow - strona spoza
+// Klasyfikacja jako allowlista oparta o rejestr ARTICLE_SLUGS - strona spoza
 // rejestru (404, regulamin, prywatnosc) nie dostaje bloku artykulu, co dla
 // danych strukturalnych jest bezpieczniejszym domyslnym zachowaniem.
-// Nowy modul dopisany do src/config/modules.ts klasyfikuje sie tu automatycznie.
+// Nowy modul/gotowiec dopisany do ARTICLE_SLUGS w src/config/modules.ts
+// klasyfikuje sie tu automatycznie.
 const slug = pathname.split('/').filter(Boolean)[0];
-const isArticle = slug !== undefined && (MODULE_SLUGS.has(slug) || slug === GUIDE_SLUG);
+const isArticle = slug !== undefined && ARTICLE_SLUGS.has(slug);
 
 // Obraz OG generowany per strona przez src/pages/og/[...route].ts wylacznie
 // dla wpisow kolekcji `docs`. Strona glowna (puste `id`) i 404 (spoza kolekcji)

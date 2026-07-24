@@ -1,12 +1,13 @@
 import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
-import { MODULES, GUIDE_SLUG } from '../config/modules';
+import { MODULES, GUIDE_SLUG, QUICK_WINS, TROUBLESHOOTING_SLUG } from '../config/modules';
 
 /**
  * Kanal RSS 2.0 - odpowiednik dawnego public_html/partials/feed.php.
- * Pozycje: flagowy poradnik hostingowy + 9 modulow kursu, zasilane
- * z jednego rejestru src/config/modules.ts (to samo zrodlo co sidebar
- * i dane strukturalne Course).
+ * Pozycje: hub gotowcow + troubleshooting + 3 gotowe workflow + flagowy
+ * poradnik hostingowy + 9 modulow kursu, zasilane z jednego rejestru
+ * src/config/modules.ts (to samo zrodlo co sidebar i dane strukturalne
+ * Course).
  *
  * Adresy pozycji BEZ koncowego ukosnika - zgodnie z trailingSlash: 'never'
  * i stara sitemapa. `site` z astro.config.mjs dostarcza bazowy URL.
@@ -15,10 +16,33 @@ import { MODULES, GUIDE_SLUG } from '../config/modules';
 // Data publikacji przepisana ze starego feed.php (2026-05-21 09:00).
 const PUB_DATE = new Date('2026-05-21T09:00:00Z');
 
+// Data publikacji sekcji gotowcow i troubleshootingu.
+const NEW_CONTENT_PUB_DATE = new Date('2026-07-24T09:00:00Z');
+
 export async function GET(context: APIContext) {
 	const site = context.site ?? new URL('https://kursn8n.pl');
 
 	const items = [
+		...QUICK_WINS.map((w) => ({
+			title: `Gotowy workflow: ${w.label}`,
+			link: new URL(`/${w.slug}`, site).href,
+			description: w.description,
+			pubDate: NEW_CONTENT_PUB_DATE,
+		})),
+		{
+			title: 'Coś nie działa? Typowe problemy z n8n i jak je naprawić',
+			link: new URL(`/${TROUBLESHOOTING_SLUG}`, site).href,
+			description:
+				'Typowe awarie n8n: webhook milczy na produkcji, OAuth zwraca redirect_uri_mismatch, zgubiony klucz szyfrowania, 502 za reverse proxy. Objaw, przyczyna, naprawa.',
+			pubDate: NEW_CONTENT_PUB_DATE,
+		},
+		{
+			title: 'Gotowe workflow do pobrania - ucz się wdrażając',
+			link: new URL('/gotowe-workflow', site).href,
+			description:
+				'Gotowe workflow n8n do pobrania: JSON do importu i budowa krok po kroku dla każdego gotowca. Sprawdź na karcie, po którym module kursu jesteś gotowy go wdrożyć.',
+			pubDate: NEW_CONTENT_PUB_DATE,
+		},
 		{
 			title: 'Porównanie hostingów n8n - kompletny poradnik 2026',
 			link: new URL(`/${GUIDE_SLUG}`, site).href,

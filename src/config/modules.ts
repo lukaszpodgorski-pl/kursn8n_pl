@@ -73,3 +73,60 @@ export const MODULE_SLUGS: ReadonlySet<string> = new Set(MODULES.map((m) => m.sl
 
 /** Flagowy poradnik - poza listą modułów, ale traktowany jak artykuł. */
 export const GUIDE_SLUG = 'porownanie-n8n-hostingow';
+
+/**
+ * Gotowe workflow (quick winy) - opisane automatyzacje do pobrania i wdrożenia.
+ * Zasilają sekcję "Gotowe workflow" w sidebarze, kanał RSS i kartę
+ * "Umiesz już dość" w NextModule.astro.
+ */
+export interface QuickWin {
+	readonly slug: string;
+	readonly label: string;
+	readonly description: string;
+	/** Numer modułu, po którym czytelnik jest gotowy wdrożyć ten workflow. */
+	readonly afterModule: number;
+}
+
+export const QUICK_WINS: ReadonlyArray<QuickWin> = [
+	{
+		slug: 'workflow-poranny-brief-telegram',
+		label: 'Poranny brief na Telegram',
+		description:
+			'Codziennie o 7:00 dostajesz na Telegramie krótki brief pogodowy - bez otwierania osobnej aplikacji.',
+		afterModule: 2,
+	},
+	{
+		slug: 'workflow-monitor-ceny-produktu',
+		label: 'Monitor ceny produktu',
+		description:
+			'n8n pilnuje ceny produktu za Ciebie i alarmuje na Telegramie, gdy spadnie poniżej Twojego progu.',
+		afterModule: 3,
+	},
+	{
+		slug: 'workflow-faktury-gmail-drive',
+		label: 'Faktury z Gmaila na Google Drive',
+		description:
+			'Załączniki faktur z Gmaila lądują automatycznie w uporządkowanym folderze na Google Drive.',
+		afterModule: 4,
+	},
+];
+
+/** Strona-hub sekcji gotowych workflow. */
+export const QUICK_WINS_HUB_SLUG = 'gotowe-workflow';
+
+/** Strona troubleshootingu "Coś nie działa". */
+export const TROUBLESHOOTING_SLUG = 'cos-nie-dziala';
+
+/**
+ * Wszystkie slugi traktowane jak artykuły (TechArticle + BreadcrumbList +
+ * obraz OG per strona) - klasyfikacja w Head.astro. Odpowiednik po stronie
+ * harnessu: isArticleSlug() w scripts/verify-geo.mjs (tam wzorce, nie import -
+ * patrz komentarz w tamtym pliku).
+ */
+export const ARTICLE_SLUGS: ReadonlySet<string> = new Set([
+	...MODULES.map((m) => m.slug),
+	GUIDE_SLUG,
+	QUICK_WINS_HUB_SLUG,
+	TROUBLESHOOTING_SLUG,
+	...QUICK_WINS.map((w) => w.slug),
+]);

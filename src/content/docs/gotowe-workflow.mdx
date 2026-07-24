@@ -1,0 +1,88 @@
+---
+title: "Gotowe workflow do pobrania - ucz się wdrażając"
+description: "Gotowe workflow n8n do pobrania: JSON do importu i budowa krok po kroku dla każdego gotowca. Sprawdź na karcie, po którym module kursu jesteś gotowy go wdrożyć."
+head:
+  - tag: title
+    content: "Gotowe workflow n8n do pobrania | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Gotowe workflow n8n do pobrania"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Trzy opisane automatyzacje n8n - JSON do pobrania i budowa krok po kroku. Sprawdź, po którym module kursu jesteś gotowy je wdrożyć."
+datePublished: 2026-07-24
+educationalLevel: Beginner
+teaches:
+  - Import gotowego workflow z pliku JSON do własnej instancji n8n
+  - Dopasowanie gotowca do etapu nauki - który wdrożyć po którym module
+  - Uzupełnianie placeholderów i podłączanie credentials przed pierwszym uruchomieniem
+  - Gdzie szukać pomocy, gdy import albo pierwsze uruchomienie się nie powiedzie
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Telegram
+    sameAs: https://en.wikipedia.org/wiki/Telegram_(software)
+  - name: Gmail
+    sameAs: https://en.wikipedia.org/wiki/Gmail
+  - name: Google Drive
+    sameAs: https://en.wikipedia.org/wiki/Google_Drive
+faq:
+  - q: "Czy gotowce są darmowe?"
+    a: "Tak - podobnie jak cały kurs, każdy gotowy workflow i plik JSON do pobrania są całkowicie darmowe, bez rejestracji i bez ukrytych opłat."
+  - q: "Co muszę umieć, zanim wdrożę gotowca?"
+    a: "To zależy od konkretnego gotowca - każda karta niżej pokazuje, po którym module kursu jesteś gotowy go złożyć, od Modułu 2 po Moduł 4. Wcześniejszy etap nauki zwykle oznacza, że zabraknie Ci jeszcze jednego mechanizmu (np. wyrażeń albo OAuth2)."
+  - q: "Jak zaimportować plik JSON do n8n?"
+    a: "W edytorze n8n kliknij ikonę trzech kropek w prawym górnym rogu i wybierz Import from File, a następnie wskaż pobrany plik JSON - pełny opis w [dokumentacji importu i eksportu](https://docs.n8n.io/build/manage-workflows/export-and-import)."
+  - q: "Co zrobić, gdy gotowiec nie działa?"
+    a: "Sprawdź [Coś nie działa? Typowe problemy z n8n](/cos-nie-dziala) - większość awarii przy pierwszym uruchomieniu to kilka powtarzających się przyczyn (nieaktywowany workflow, brak podłączonych credentials, niepodmieniony placeholder). Jeśli Twojego przypadku tam nie ma, [daj mi znać](/#o-autorze)."
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import ModuleHero from '../../components/ModuleHero.astro';
+import { QUICK_WINS } from '../../config/modules';
+
+<ModuleHero tag="Gotowe workflow · quick winy" readingTime="~5 min" note="Każdy gotowiec: JSON do pobrania + budowa krok po kroku" />
+
+Kurs uczy Cię budować automatyzacje od zera - gotowce to warstwa pomiędzy teorią a Twoim
+pierwszym prawdziwym wdrożeniem. Każdy z nich mówi wprost, po którym module jesteś gotowy go
+złożyć, co dokładnie automatyzuje i co najczęściej idzie nie tak przy pierwszym uruchomieniu.
+
+## Jak korzystać z gotowców
+
+1. Sprawdź, po którym module powstał dany gotowiec - karty niżej mówią to wprost, a
+   wcześniejszy etap nauki zwykle oznacza, że zabraknie jeszcze jednego mechanizmu.
+2. Pobierz plik JSON linkowany na stronie gotowca i zaimportuj go w edytorze n8n przez menu
+   trzech kropek (**Import from File**).
+3. Zamiast tylko uzupełnić placeholdery i uruchomić, przejdź całą sekcję "Budowa krok po
+   kroku" na stronie gotowca - to jedyny sposób, żeby naprawdę zrozumieć, co robi każdy node,
+   nie tylko skopiować gotowiec.
+
+## Dostępne gotowce
+
+<CardGrid>
+	{QUICK_WINS.map((w) => (
+		<LinkCard
+			href={`/${w.slug}`}
+			title={w.label}
+			description={`${w.description} Wdrożysz po Module ${w.afterModule}.`}
+		/>
+	))}
+</CardGrid>
+
+## Coś nie zadziałało?
+
+Import się nie powiódł albo workflow milczy po pierwszym uruchomieniu? Zajrzyj do
+[Coś nie działa? Typowe problemy z n8n](/cos-nie-dziala) - zbiór najczęstszych awarii w
+formacie objaw-przyczyna-naprawa. Twojego przypadku tam nie ma? [Daj mi znać](/#o-autorze),
+dopiszę rozwiązanie, żeby kolejna osoba nie utknęła w tym samym miejscu.
+
+## Kolejne gotowce w drodze
+
+Lista rośnie razem z kursem. W kolejce czekają między innymi: zgłoszenie z formularza trafiające
+prosto do arkusza albo CRM, podsumowanie kanału RSS przygotowane przez AI, transkrypcja notatki
+głosowej na tekst i automatyczny backup workflow do GitHuba.
+[Zapisz się na powiadomienia](/#bądź-pierwszy-przy-nowych-materiałach), żeby dowiedzieć się
+pierwszy, gdy nowy gotowiec się pojawi.

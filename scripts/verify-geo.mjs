@@ -11,23 +11,26 @@ const SITE_URL = 'https://kursn8n.pl';
 const results = [];
 
 /**
- * Rozpoznaje artykuły kursu (moduły + flagowy poradnik) po konwencji
- * nazewniczej sluga - moduły to `modul-<numer>-<opis>`, poradnik ma stały
- * slug `porownanie-n8n-hostingow` (patrz AGENTS.md). Celowo NIE importujemy
- * tu `src/config/modules.ts` (`MODULES`/`MODULE_SLUGS`/`GUIDE_SLUG`), z
- * którego korzysta Head.astro do tej samej klasyfikacji - ten skrypt
- * uruchamia się zwykłym `node scripts/verify-geo.mjs`, bez bundlera i bez
- * gwarancji, że każde środowisko CI ma włączone domyślne "strip types" dla
- * TypeScriptu, więc wzorzec sluga trzyma harness dependency-free i
- * deterministyczny. Kompromis: jeśli konwencja nazewnicza modułów kiedyś się
- * zmieni, trzeba zaktualizować `MODULE_SLUG_RE` razem z `src/config/modules.ts`
- * (tak samo jak SITE_URL powyżej musi ręcznie nadążać za structured-data.ts).
+ * Rozpoznaje artykuły kursu (moduły + flagowy poradnik + gotowe workflow +
+ * ich hub + troubleshooting) po konwencji nazewniczej sluga - moduły to
+ * `modul-<numer>-<opis>`, gotowce to `workflow-<opis>`, reszta to stałe slugi
+ * w `EXTRA_ARTICLE_SLUGS` (patrz AGENTS.md). Celowo NIE importujemy tu
+ * `src/config/modules.ts` (`MODULES`/`ARTICLE_SLUGS`/`GUIDE_SLUG`), z którego
+ * korzysta Head.astro do tej samej klasyfikacji - ten skrypt uruchamia się
+ * zwykłym `node scripts/verify-geo.mjs`, bez bundlera i bez gwarancji, że
+ * każde środowisko CI ma włączone domyślne "strip types" dla TypeScriptu,
+ * więc wzorzec sluga trzyma harness dependency-free i deterministyczny.
+ * Kompromis: jeśli konwencja nazewnicza modułów/gotowców albo zestaw stałych
+ * slugów kiedyś się zmieni, trzeba ręcznie zsynchronizować to z
+ * `ARTICLE_SLUGS` w `src/config/modules.ts` (tak samo jak SITE_URL powyżej
+ * musi ręcznie nadążać za structured-data.ts).
  */
 const MODULE_SLUG_RE = /^modul-\d+-[a-z0-9-]+$/;
-const GUIDE_SLUG = 'porownanie-n8n-hostingow';
+const WORKFLOW_SLUG_RE = /^workflow-[a-z0-9-]+$/;
+const EXTRA_ARTICLE_SLUGS = new Set(['porownanie-n8n-hostingow', 'gotowe-workflow', 'cos-nie-dziala']);
 
 function isArticleSlug(slug) {
-	return MODULE_SLUG_RE.test(slug) || slug === GUIDE_SLUG;
+	return MODULE_SLUG_RE.test(slug) || WORKFLOW_SLUG_RE.test(slug) || EXTRA_ARTICLE_SLUGS.has(slug);
 }
 
 function check(name, fn) {

@@ -1,0 +1,276 @@
+---
+title: "Gotowy workflow: poranny brief na Telegram"
+description: "Gotowy workflow n8n: codziennie o 7:00 pogoda i plan dnia na Telegramie. Schedule Trigger, HTTP Request, Telegram - zero OAuth i kluczy API, wystarczy Moduł 2."
+head:
+  - tag: title
+    content: "Gotowy workflow: poranny brief na Telegram (n8n) | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Gotowy workflow: poranny brief na Telegram"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Codziennie o 7:00 pogoda i plan dnia prosto na Telegram. Gotowy workflow n8n do pobrania - Schedule Trigger, HTTP Request, Telegram. Zero OAuth, wystarczy Moduł 2."
+datePublished: 2026-07-24
+educationalLevel: Beginner
+teaches:
+  - Import i konfigurację gotowego workflow z pliku JSON w n8n
+  - Pobieranie danych pogodowych z darmowego, bezkluczowego API Open-Meteo
+  - Założenie bota Telegram przez BotFather i znalezienie własnego chat ID
+  - Budowę prostej wiadomości tekstowej jednym wyrażeniem (expression)
+  - Typowe błędy przy pierwszym uruchomieniu i jak je naprawić
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Telegram
+    sameAs: https://en.wikipedia.org/wiki/Telegram_(software)
+  - name: Open-Meteo
+    sameAs: https://open-meteo.com/
+  - name: Google Calendar
+    sameAs: https://en.wikipedia.org/wiki/Google_Calendar
+  - name: Todoist
+    sameAs: https://en.wikipedia.org/wiki/Todoist
+faq:
+  - q: "Czy muszę już umieć wyrażenia (expressions), żeby złożyć ten workflow?"
+    a: "Nie - cały workflow używa jednego, bardzo prostego wyrażenia, które tylko wstawia trzy liczby z odpowiedzi API do tekstu wiadomości. Pełne wprowadzenie do wyrażeń, danych i pętli znajdziesz w Module 3: Praca z danymi."
+  - q: "Dlaczego mój bot nie wysyła wiadomości, mimo że workflow zakończył się bez błędu?"
+    a: "Najczęściej dlatego, że bot nigdy nie \"poznał\" Twojego czatu - Telegram nie pozwala botom pisać pierwszym do użytkownika. Otwórz w Telegramie rozmowę ze swoim botem, wyślij /start, a dopiero potem uruchom workflow ponownie."
+  - q: "Czy Open-Meteo jest naprawdę darmowe i nie wymaga klucza API?"
+    a: "Tak, do użytku niekomercyjnego (m.in. osobistych automatyzacji) Open-Meteo nie wymaga rejestracji ani klucza API - wystarczy zwykłe zapytanie GET ze współrzędnymi. Klucz i osobny adres API są potrzebne dopiero przy zastosowaniach komercyjnych."
+  - q: "Jak zmienić godzinę, o której przychodzi brief?"
+    a: "W node Schedule Trigger zmień pola Trigger at Hour i Trigger at Minute na dowolną porę. Godzina liczy się względem strefy czasowej instancji n8n (zmienna GENERIC_TIMEZONE) albo strefy ustawionej w Settings workflow - nie względem Twojej przeglądarki."
+  - q: "Czy mogę wysyłać brief na czat grupowy zamiast prywatnego?"
+    a: "Tak - dodaj bota do grupy i użyj ujemnego Chat ID grupy zamiast swojego prywatnego numeru. Reszta workflow zostaje bez zmian, bo node Telegram wysyła wiadomość na dowolny poprawny Chat ID, niezależnie czy to osoba, grupa czy kanał."
+  - q: "Co się stanie, jeśli zapomnę aktywować workflow?"
+    a: "Nic się nie wydarzy - Schedule Trigger nie uruchomi się sam, dopóki przełącznik Active w prawym górnym rogu edytora jest wyłączony. To ten sam mechanizm, który poznałeś w Module 2: Interfejs i 1. workflow."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Gotowy workflow · po Module 2"
+  readingTime="~10 min"
+  note="Wdrożenie: ~20-30 min"
+/>
+
+Zamiast rano otwierać osobno prognozę pogody i kalendarz, dostajesz jedną wiadomość na
+Telegramie: co dziś w pogodzie i co Cię czeka. To gotowy, minimalny przykład takiego briefu
+do pobrania - złożysz go z czterech node'ów, które już częściowo znasz z
+[Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow). Zero kluczy API,
+zero logowania OAuth - tylko import, kilka pól do uzupełnienia i aktywacja.
+
+## Czego potrzebujesz
+
+- **Poziom:** wystarczy ukończony [Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow) -
+  znasz kanwę, panel node'ów i umiesz aktywować workflow. Wyrażeń (Moduł 3) i OAuth2 (Moduł 4)
+  tu nie potrzebujesz.
+- **Działająca instancja n8n** - Cloud albo self-hosted, patrz
+  [Moduł 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+- **Konto Telegram** - do założenia własnego bota przez BotFather (pokażę krok po kroku).
+- **~20-30 minut** na import, uzupełnienie pól i pierwszy test.
+
+Świadomie zero kluczy API do pogody i zero OAuth2 - Open-Meteo (dostawca prognozy) działa
+bez rejestracji, a jedyne poświadczenia w całym workflow to token bota Telegram.
+
+## Jak to działa
+
+<Flow
+  title="poranny-brief-telegram"
+  alt="Schemat przepływu: Schedule Trigger uruchamia się codziennie o 7:00, HTTP Request pobiera prognozę pogody z Open-Meteo, Edit Fields składa treść wiadomości, a node Telegram wysyła ją na czat użytkownika"
+  caption="Cztery node'y od triggera czasowego po wysyłkę wiadomości - dokładnie tyle potrzeba do porannego briefu."
+>
+  <FlowNode icon="fa-clock" label="Schedule Trigger" sub="codziennie 7:00" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-globe" label="HTTP Request" sub="prognoza z Open-Meteo" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-pen-to-square" label="Edit Fields" sub="złóż wiadomość" from="#d97706" to="#b45309" />
+  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="wyślij na czat" from="#0ea5e9" to="#0369a1" />
+</Flow>
+
+## Pobierz gotowy workflow
+
+Cały workflow w formacie JSON, gotowy do zaimportowania:
+[poranny-brief-telegram.json](/workflows/poranny-brief-telegram.json).
+
+<Steps>
+
+1. Pobierz plik `poranny-brief-telegram.json` (link wyżej).
+2. W edytorze n8n kliknij ikonę trzech kropek (**...**) w prawym górnym rogu paska nawigacji
+   i wybierz **Import from File**, a następnie wskaż pobrany plik. Dokładny opis tej ścieżki
+   znajdziesz w
+   [dokumentacji eksportu i importu](https://docs.n8n.io/build/manage-workflows/export-and-import).
+3. Uzupełnij trzy placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
+
+</Steps>
+
+| Placeholder | Gdzie | Co wpisać |
+| --- | --- | --- |
+| `TWOJA_SZEROKOSC` | node HTTP Request (pole URL) | szerokość geograficzna Twojej miejscowości |
+| `TWOJA_DLUGOSC` | node HTTP Request (pole URL) | długość geograficzna Twojej miejscowości |
+| `TWOJ_CHAT_ID` | node Telegram (pole Chat ID) | ID czatu, na który ma trafić brief |
+
+Na koniec podepnij pod node'em Telegram swoje credentials (bota założonego przez BotFather,
+patrz krok 4 niżej) - bez tego node zgłosi błąd uwierzytelniania przy pierwszym uruchomieniu.
+
+:::note[Wersja n8n]
+Opis i typy node'ów bazują na n8n w gałęzi 2.x (stan na lipiec 2026, zgodnie z
+[wydaniami w repozytorium n8n](https://github.com/n8n-io/n8n/releases)). Nazwy pól w
+starszych wersjach mogą się nieznacznie różnić.
+:::
+
+## Budowa krok po kroku
+
+Jeśli wolisz zbudować workflow od zera zamiast tylko edytować zaimportowany plik - poniżej
+masz każdy node z dokładnymi wartościami.
+
+### 1. Schedule Trigger - godzina 7:00
+
+Dodaj node **Schedule Trigger** (tak samo jak w [Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow)).
+Ustaw `Trigger Interval` na _Days_, `Trigger at Hour` na 7, a `Trigger at Minute` na 0. Ten
+node wystartuje cały przepływ raz dziennie, o Twojej porannej porze.
+
+### 2. HTTP Request - prognoza z Open-Meteo
+
+Dodaj node **HTTP Request**, metoda `GET`, a w polu `URL` wklej:
+
+```text
+https://api.open-meteo.com/v1/forecast?latitude=TWOJA_SZEROKOSC&longitude=TWOJA_DLUGOSC&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto
+```
+
+Podmień `TWOJA_SZEROKOSC` i `TWOJA_DLUGOSC` na współrzędne swojej miejscowości - znajdziesz
+je np. w Google Maps (kliknij prawym przyciskiem na swoją lokalizację). Parametr `daily`
+mówi Open-Meteo, jakich wartości oczekujesz (maksymalna i minimalna temperatura dnia oraz
+suma opadów), a `timezone=auto` każe dopasować dobę do strefy czasowej wynikającej ze
+współrzędnych, a nie do UTC. Zero kluczy, zero rejestracji - tak działa
+[dokumentacja API Open-Meteo](https://open-meteo.com/en/docs) dla użytku niekomercyjnego.
+
+### 3. Edit Fields (Set) - złóż wiadomość
+
+Dodaj node **Edit Fields (Set)** i utwórz jedno pole tekstowe o nazwie `wiadomosc`. Jako
+wartość wpisz wyrażenie (przełącz pole w tryb _Expression_):
+
+```text
+Dzień dobry! Dzisiejsza pogoda: od {{ $json.daily.temperature_2m_min[0] }}°C do {{ $json.daily.temperature_2m_max[0] }}°C, opady: {{ $json.daily.precipitation_sum[0] }} mm. Miłego dnia!
+```
+
+To najprostsza możliwa forma wyrażenia - `{{ }}` po prostu wstawia wartość pola z danych
+poprzedniego node'a w miejsce nawiasów. `$json.daily.temperature_2m_min[0]` czyta pierwszą
+(jedyną, bo pytamy tylko o dziś) wartość z tablicy `temperature_2m_min` w odpowiedzi
+Open-Meteo. Skąd biorą się takie ścieżki i co jeszcze można nimi zrobić, pokazuję w
+[Moduł 3: Praca z danymi](/modul-3-praca-z-danymi) - tu wystarczy skopiować wzorzec.
+
+### 4. Załóż bota w Telegramie przez BotFather
+
+<Steps>
+
+1. Otwórz w Telegramie rozmowę z [@BotFather](https://t.me/botfather) i wyślij komendę
+   `/newbot`.
+2. Podaj nazwę bota (wyświetlaną w Telegramie) oraz jego nazwę użytkownika - musi mieć
+   5-32 znaki, składać się z liter łacińskich, cyfr i podkreśleń, i **kończyć się na
+   "bot"**.
+3. BotFather odpowie tokenem dostępu (Access Token) - długim ciągiem znaków. Skopiuj go,
+   to jedyne poświadczenie, jakiego potrzebujesz w tym workflow.
+
+</Steps>
+
+Zweryfikowane w [dokumentacji credentials Telegram w n8n](https://docs.n8n.io/integrations/builtin/credentials/telegram/)
+oraz [oficjalnej dokumentacji BotFather](https://core.telegram.org/bots/features#botfather).
+
+### 5. Znajdź swój Chat ID
+
+Zanim bot Cię odnajdzie, to Ty musisz odnaleźć jego rozmowę - Telegram nie pozwala botom
+pisać pierwszym do użytkownika. Otwórz w Telegramie czat ze swoim nowym botem i wyślij
+dowolną wiadomość, np. `/start`.
+
+Następnie w przeglądarce otwórz adres (podmieniając `TWÓJ_TOKEN` na token od BotFather):
+
+```text
+https://api.telegram.org/bot<TWÓJ_TOKEN>/getUpdates
+```
+
+W zwróconym JSON-ie znajdź pole `chat` i w nim `id` - to jest Twój Chat ID (liczba, czasem
+ujemna dla grup). Metoda `getUpdates` to standardowa część
+[Telegram Bot API](https://core.telegram.org/bots/api#getupdates), nie coś specyficznego
+dla n8n.
+
+### 6. Telegram - wyślij wiadomość
+
+Dodaj node **Telegram**, podłącz credentials z tokenem z kroku 4 (Access Token), ustaw
+`Resource` na _Message_ i `Operation` na _Send Message_. W polu `Chat ID` wklej numer z
+kroku 5, a w polu `Text` wpisz wyrażenie `{{ $json.wiadomosc }}` - to pole złożone w
+poprzednim node.
+
+### 7. Aktywuj workflow
+
+Na koniec przełącz **Active** w prawym górnym rogu edytora - dokładnie ten sam przełącznik,
+który poznałeś w [Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow).
+Bez aktywacji Schedule Trigger nie uruchomi się sam o 7:00 - zadziała tylko wtedy, gdy
+klikniesz **Execute workflow** ręcznie.
+
+## Co może pójść nie tak
+
+### Bot milczy, mimo że workflow zakończył się bez błędu
+
+**Objaw:** node Telegram kończy się błędem, a na Telegramie nic nie przychodzi.
+**Przyczyna:** bot nigdy nie dostał od Ciebie wiadomości - Telegram nie pozwala botom pisać
+pierwszym do użytkownika (błąd wygląda np. tak: `Forbidden: bot can't initiate conversation
+with a user`).
+**Naprawa:** otwórz w Telegramie czat z botem i wyślij `/start`, dopiero potem uruchom
+workflow ponownie.
+
+### Brief nie przychodzi wcale, mimo że test ręczny działa
+
+**Objaw:** minęła 7:00, na Telegramie cisza, ale kliknięcie **Execute workflow** w edytorze
+działa bez zarzutu.
+**Przyczyna:** workflow nie jest aktywny - Schedule Trigger reaguje samodzielnie dopiero po
+włączeniu workflow.
+**Naprawa:** włącz przełącznik **Active** w prawym górnym rogu edytora (patrz krok 7 wyżej).
+
+### Brief przychodzi o innej godzinie niż ustawione 7:00
+
+**Objaw:** wiadomość przychodzi np. o 13:00 zamiast o 7:00, mimo poprawnych ustawień w
+Schedule Trigger.
+**Przyczyna:** strefa czasowa instancji n8n (zmienna `GENERIC_TIMEZONE`) różni się od Twojej
+lokalnej strefy.
+**Naprawa:** ustaw `GENERIC_TIMEZONE` na poziomie instancji albo zmień strefę w Settings
+workflow (menu trzech kropek na kanwie) - patrz
+[dokumentacja strefy czasowej](https://docs.n8n.io/hosting/configuration/configuration-examples/time-zone/).
+
+### HTTP Request zwraca błąd albo puste dane
+
+**Objaw:** node Pobierz pogodę kończy się błędem albo zwraca dane bez pól
+`temperature_2m_max` / `temperature_2m_min`.
+**Przyczyna:** w URL zostały niepodmienione placeholdery `TWOJA_SZEROKOSC` / `TWOJA_DLUGOSC`.
+**Naprawa:** wpisz rzeczywiste współrzędne swojej miejscowości w polu `URL` node'a HTTP
+Request.
+
+## Jak to rozbudować
+
+Ten workflow to celowo minimalny szkielet - masz gdzie go rozwijać, gdy przejdziesz dalej
+w kursie:
+
+- **Dodaj wydarzenia z Google Calendar** - node Google Calendar pokaże dzisiejsze spotkania
+  obok pogody. Wymaga poświadczeń OAuth2, które omawiam w
+  [Moduł 4: Integracje i API](/modul-4-integracje-api).
+- **Dodaj zadania z Todoist** (albo innego menedżera zadań) - podobnie, osobny node i
+  własne OAuth2/API - też temat [Moduł 4: Integracje i API](/modul-4-integracje-api).
+- **Podsumowanie AI zamiast sztywnego szablonu** - zamiast ręcznie składanego tekstu, AI
+  Agent może połączyć pogodę, kalendarz i zadania w jeden naturalny akapit. Pokazuję to w
+  [Moduł 6: AI i agenci](/modul-6-ai-agenci).
+
+<Takeaways title="Co warto zapamiętać">
+  - Cztery node'y - Schedule Trigger, HTTP Request, Edit Fields (Set) i Telegram - wystarczą na kompletny, codzienny brief.
+  - Open-Meteo dostarcza prognozę bez klucza API i bez rejestracji przy użytku niekomercyjnym.
+  - Bot Telegram nie może napisać pierwszy - zanim uruchomisz workflow, wyślij mu `/start`.
+  - Chat ID znajdziesz przez metodę `getUpdates` Telegram Bot API, po wcześniejszej wiadomości do bota.
+  - Godzina wysyłki zależy od strefy czasowej instancji (`GENERIC_TIMEZONE`) albo strefy ustawionej w Settings workflow.
+  - Workflow trzeba aktywować (Active) - inaczej Schedule Trigger nigdy nie uruchomi się sam.
+</Takeaways>
+
+Ten przykład to jeden z wielu gotowców w kursie - zobacz
+[wszystkie gotowe workflow](/gotowe-workflow), jeśli szukasz kolejnych inspiracji do
+wdrożenia od razu.

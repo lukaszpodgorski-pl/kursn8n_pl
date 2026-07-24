@@ -1,0 +1,274 @@
+---
+title: "Gotowy workflow: faktury z Gmaila na Google Drive"
+description: "Gotowy workflow n8n: Gmail Trigger wyłapuje faktury PDF, filtr sprawdza
+  załącznik, a Google Drive zapisuje plik pod czytelną nazwą - z konfiguracją OAuth2."
+head:
+  - tag: title
+    content: "Gotowy workflow: faktury z Gmaila na Google Drive (n8n) | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Faktury z Gmaila na Google Drive - gotowy workflow n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Gmail Trigger + filtr załączników + Google Drive: gotowiec do pobrania, z
+        konfiguracją OAuth2 dla Gmaila i Dysku Google krok po kroku."
+datePublished: 2026-07-24
+educationalLevel: Intermediate
+teaches:
+  - OAuth2 w praktyce - wspólne credentials Google dla Gmaila i Google Drive
+  - Filtrowanie wiadomości Gmail i pracę z załącznikami (dane binarne)
+  - Budowanie nazwy pliku wyrażeniem na podstawie nadawcy, daty i oryginalnej nazwy
+  - Testowanie triggera na istniejącym mailu przed aktywacją workflow
+  - Porządkowanie plików faktur w Google Drive bez ręcznego przeklejania
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Gmail
+    sameAs: https://en.wikipedia.org/wiki/Gmail
+  - name: Google Drive
+    sameAs: https://en.wikipedia.org/wiki/Google_Drive
+  - name: OAuth
+    sameAs: https://en.wikipedia.org/wiki/OAuth
+faq:
+  - q: "Czy do uruchomienia tego workflow trzeba umieć programować?"
+    a: "Nie. Importujesz gotowy plik JSON, podłączasz swoje credentials Gmaila i Google Drive,
+      wskazujesz folder docelowy i aktywujesz workflow. Cała logika - trigger, filtr i zapis
+      pliku - jest już złożona."
+  - q: "Czy ten workflow zadziała zarówno na n8n Cloud, jak i na self-hostingu?"
+    a: "Tak, node'y są te same. Różnica jest w konfiguracji OAuth2: n8n Cloud oferuje Managed
+      OAuth2 (jedno kliknięcie \"Sign in with Google\", bez zakładania projektu w Google Cloud),
+      a self-hosting wymaga własnego projektu OAuth z publicznym adresem HTTPS jako redirect URL."
+  - q: "Co jeśli faktura przychodzi jako link do pobrania, a nie jako załącznik?"
+    a: "Ten gotowiec obsługuje tylko załączniki PDF. Fakturę spod linku trzeba by pobrać osobnym
+      krokiem HTTP Request, opisanym w Module 4 - to już wykracza poza ten quick win."
+  - q: "Co się stanie, jeśli w jednym mailu jest kilka załączników PDF naraz?"
+    a: "W wersji z tego artykułu do Google Drive trafia tylko pierwszy załącznik. Jeśli regularnie
+      dostajesz maile z kilkoma fakturami naraz, rozbuduj workflow o pętlę - patrz sekcja
+      \"Jak to rozbudować\"."
+  - q: "Czy da się automatycznie wyciągnąć z faktury kwotę i NIP?"
+    a: "Tak, ale to wymaga dodatkowego node'a OCR albo modelu AI czytającego treść PDF-a i
+      wykracza poza ten gotowiec. Podstawy pracy z AI w n8n są w Module 6: AI agenci."
+---
+
+import { CardGrid, Steps } from '@astrojs/starlight/components';
+import ConceptCard from '../../components/ConceptCard.astro';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Gotowy workflow · po Module 4"
+  readingTime="~12 min"
+  note="Wdrożenie: ~40 min (z konfiguracją OAuth)"
+/>
+
+Faktury przychodzą mailem i toną w skrzynce, aż ktoś przypomni sobie o nich tuż przed wysyłką do
+księgowości - i wtedy zaczyna się ręczne przeklejanie załączników do folderu. Ten gotowiec to
+likwiduje: pilnuje Gmaila, wyłapuje wiadomości z załącznikiem, który wygląda na fakturę, i sam
+odkłada PDF do uporządkowanego folderu na Google Drive pod czytelną nazwą. Zero klikania, zero
+zapominania.
+
+## Czego potrzebujesz
+
+Wystarczy [Moduł 4: Integracje i API](/modul-4-integracje-api) - znasz już node'y aplikacji i
+mechanikę OAuth2, a to jedyne zagadnienia, które ten workflow ćwiczy w praktyce. Poza tym:
+
+- działającą instancję n8n (Cloud albo self-hosted),
+- konto Google z dostępem do Gmaila i Google Drive,
+- kilka minut na skonfigurowanie credentials OAuth2 dla obu usług (sekcja niżej).
+
+## Jak to działa
+
+<Flow
+  title="faktury-gmail-drive"
+  alt="Diagram: Gmail Trigger nasłuchuje nowych maili z załącznikiem PDF wyglądającym na
+    fakturę, Filter przepuszcza tylko itemy z załącznikiem binarnym, Google Drive zapisuje plik
+    w folderze Faktury pod nazwą złożoną z daty, nadawcy i oryginalnej nazwy pliku."
+  caption="Trzy node'y: nasłuch Gmaila, zabezpieczenie filtrem i zapis na Dysku Google."
+>
+  <FlowNode icon="fa-envelope" label="Gmail Trigger" sub="has:attachment filename:pdf" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-filter" label="Filter" sub="ma załącznik binarny?" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-google-drive" family="fab" label="Google Drive" sub="folder Faktury" from="#16a34a" to="#15803d" />
+</Flow>
+
+## Pobierz gotowy workflow
+
+Plik gotowy do importu: [faktury-gmail-drive.json](/workflows/faktury-gmail-drive.json).
+
+W n8n wybierz **Import from File** (albo wklej zawartość przez **Import from URL**), a potem
+uzupełnij trzy rzeczy, zanim aktywujesz workflow:
+
+1. **Credentials Gmail** w node `Nowa wiadomość z fakturą` - Twoje połączenie OAuth2 z Gmailem.
+2. **Credentials Google Drive** w node `Zapisz na Google Drive` - Twoje połączenie OAuth2 z
+   Dyskiem.
+3. **ID folderu docelowego** - w polu **Parent Folder** node'a Google Drive podmień placeholder
+   `ID_FOLDERU_FAKTURY` na własny folder (najprościej: przełącz tryb pola z zakładki "ID" na
+   zakładkę "Folder" i wybierz folder z listy).
+
+Opcjonalnie dopasuj też zapytanie wyszukiwania w polu **Search** node'a Gmail Trigger do własnych
+nawyków nazewniczych faktur.
+
+## Budowa krok po kroku
+
+<Steps>
+
+1. **Node: Gmail Trigger.** Dodaj node **Gmail Trigger** i podłącz credentials Gmaila. W polu
+   **Simplify** wyłącz przełącznik - to ważne, bo dopiero przy wyłączonym Simplify n8n pokazuje
+   sekcję **Options** z opcjami załączników. W **Filters → Search** wpisz zapytanie w składni
+   wyszukiwania Gmaila, np. `has:attachment filename:pdf (faktura OR invoice OR rachunek)` -
+   dokładnie tak samo, jak wpisałbyś je w okienku wyszukiwania Gmaila
+   ([ściąga ze składnią](https://support.google.com/mail/answer/7190?hl=en)). Na koniec w
+   **Options** włącz **Download Attachments** - bez tego node w ogóle nie pobierze pliku, tylko
+   metadane wiadomości. Zweryfikowane pola i ich nazwy:
+   [dokumentacja node'a Gmail Trigger](https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.gmailtrigger/).
+
+   :::note[Skąd biorą się nazwy załączników w danych]
+   Przy włączonym **Download Attachments** n8n zapisuje każdy załącznik jako osobny klucz
+   binarny o nazwie `attachment_0`, `attachment_1` itd. (prefiks ustawiasz w polu **Attachment
+   Prefix**, domyślnie `attachment_`). Ten gotowiec zakłada jeden załącznik na maila i sięga po
+   `attachment_0` - rozbudowę na wiele załączników opisuję niżej, w sekcji "Jak to rozbudować".
+   :::
+
+2. **Credentials Google (Gmail + Drive).** Oba node'y - Gmail Trigger i Google Drive - łączą się
+   przez OAuth2, a procedurę zakładania takich credentials już znasz z sekcji
+   [Uwierzytelnianie: API key vs OAuth2](/modul-4-integracje-api#uwierzytelnianie-api-key-vs-oauth2)
+   w Module 4. Tu tylko skrót różnicy między środowiskami:
+
+   - **n8n Cloud** - dla Gmaila i Google Drive działa **Managed OAuth2**: w credentialu klikasz
+     "Sign in with Google" i gotowe, bez zakładania własnego projektu w Google Cloud Console.
+   - **Self-hosting** - Managed OAuth2 nie jest dostępny, więc zakładasz własny projekt OAuth w
+     Google Cloud Console (konsola → OAuth consent screen → OAuth client ID), włączasz Gmail API
+     i Google Drive API, a w polu "Authorized redirect URIs" wklejasz dokładnie adres **OAuth
+     Redirect URL** pokazany w panelu credentiala n8n. Ten adres musi być publiczny i po HTTPS -
+     zasady konfiguracji domeny i `WEBHOOK_URL` rozkładam w
+     [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+
+   Pełna procedura zakładania projektu krok po kroku:
+   [Google OAuth2 single service](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
+   w dokumentacji n8n - nie przepisuję jej tutaj, bo dokładnie to samo credentiale obsłużą oba
+   node'y (Gmail i Drive to jeden i ten sam typ konta Google).
+
+3. **Node: Filter - zabezpieczenie przed pustym itemem.** Node Filter nie ma osobnego typu
+   warunku "ma załącznik" - jego dostępne typy danych to string, number, date & time, boolean,
+   array i object, bez binarnego
+   ([dokumentacja node'a Filter](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/)).
+   Wybieranie konkretnego klucza binarnego z listy też nie ma sensu, bo nazwy są dynamiczne
+   (`attachment_0`, `attachment_1`...). Najprostsze i najbardziej odporne rozwiązanie to warunek
+   **Number**, w którym po lewej stronie wpisujesz wyrażenie zliczające klucze binarne itemu:
+   `{{ Object.keys($binary || {}).length }}`, operator **is greater than**, wartość `0`. To
+   przepuszcza każdy item z co najmniej jednym załącznikiem i odrzuca resztę - filtr Gmaila w
+   polu Search robi już większość roboty (ogranicza się do `has:attachment filename:pdf`), a ten
+   node jest tylko drugą linią obrony, gdyby jakiś mail przeszedł filtr wyszukiwania bez
+   realnego, pobranego załącznika.
+
+4. **Node: Google Drive (Upload).** Dodaj node **Google Drive**, ustaw **Resource: File** i
+   **Operation: Upload**, podłącz credentials Dysku. W **Input Data Field Name** wpisz
+   `attachment_0` (to nazwa klucza binarnego z kroku 1). W **File Name** wpisz wyrażenie budujące
+   czytelną nazwę pliku, np.:
+
+   ```text
+   {{ $json.date.slice(0, 7) }} - {{ $json.from.value[0].name || $json.from.value[0].address }} - {{ $binary.attachment_0.fileName }}
+   ```
+
+   Da to np. `2026-07 - Acme Sp. z o.o. - faktura_1234.pdf` - rok i miesiąc z daty maila, nadawca
+   (nazwa albo, gdy jej brak, sam adres) i oryginalna nazwa pliku. W **Parent Folder** wskaż
+   folder "Faktury" (z listy albo po ID). Jeśli zostawisz pole **File Name** puste, Google Drive
+   użyje oryginalnej nazwy załącznika - też działa, tylko mniej porządkuje. Zweryfikowane nazwy
+   pól: [dokumentacja node'a Google Drive](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/).
+
+5. **Przetestuj, zanim aktywujesz.** Gmail Trigger to trigger typu polling (odpytuje Gmaila w
+   interwałach ustawionych w polu **Poll Times**), a nie webhook - dlatego nie ma osobnego "Test
+   URL". Zamiast tego kliknij na sam node Gmail Trigger przycisk **Fetch Test Event**: n8n
+   pobierze jedną, najnowszą pasującą wiadomość z Twojej skrzynki - niezależnie od tego, czy
+   przyszła przed, czy po dodaniu triggera - dzięki czemu przetestujesz cały workflow na
+   prawdziwej fakturze z historii, bez czekania na nowego maila. Sprawdź w panelu danych, czy
+   pojawił się klucz `binary.attachment_0` i czy Filter faktycznie przepuszcza item dalej.
+   Dopiero potem włącz przełącznik **Active**.
+
+</Steps>
+
+:::note[RODO - dane osobowe kontrahentów]
+Faktury to dokumenty z danymi osobowymi kontrahentów (imię, nazwisko, adres). Testując workflow na
+własnym koncie Google nie robisz nic niezwykłego, ale przy wdrożeniu firmowym pamiętaj o zasadach
+przetwarzania danych z [Modułu 7: Produkcja](/modul-7-produkcja) - kto ma dostęp do Dysku z
+fakturami i jak długo je tam trzymasz.
+:::
+
+## Co może pójść nie tak
+
+- **`redirect_uri_mismatch` przy łączeniu credentials.** Adres, który n8n wysyła jako redirect
+  URI, nie zgadza się z żadnym z adresów zarejestrowanych w Google Cloud Console. Najczęściej
+  self-hosting bez publicznego HTTPS albo literówka przy wklejaniu. Naprawa: skopiuj **OAuth
+  Redirect URL** dokładnie z panelu credentiala n8n (łącznie z protokołem i portem) i wklej go
+  bez zmian w "Authorized redirect URIs" w Google Cloud Console - zasady HTTPS/`WEBHOOK_URL` przy
+  self-hostingu opisuję w [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+- **Trigger nie łapie starych maili po pierwszej aktywacji.** Gmail Trigger zapamiętuje moment
+  ostatniego sprawdzenia i od aktywacji pilnuje tylko wiadomości nowszych niż ten moment -
+  historii sprzed aktywacji nie przetworzy automatycznie. Żeby przepuścić fakturę, która już leży
+  w skrzynce, użyj **Fetch Test Event** opisanego w kroku 5 budowy (pobiera najnowszą pasującą
+  wiadomość bez względu na datę) albo ręcznie oznacz mail jako nieprzeczytany i poczekaj na
+  najbliższy poll.
+- **Załącznik nie jest PDF-em albo Filter go odrzuca mimo pasującego maila.** `has:attachment` w
+  Gmailu łapie też małe obrazki osadzone w stopce podpisu maila (logo firmy, ikony social media) -
+  to też, technicznie, załącznik. Zawężenie zapytania do `filename:pdf` w kroku 1 eliminuje
+  większość takich przypadków, a node Filter z kroku 3 dodatkowo odrzuci itemy bez żadnego
+  pobranego załącznika binarnego. Jeśli mimo to trafiają się fałszywe trafienia, dopisz do
+  zapytania kolejne warunki (np. `-filename:png -filename:jpg`).
+- **Duplikaty przy ponownym imporcie albo restarcie workflow.** Gmail Trigger trzyma informację o
+  ostatnio sprawdzonym momencie w danych statycznych workflow, zapisanych w bazie n8n - zwykły
+  restart instancji n8n (przy aktywnym workflow) tego nie kasuje, więc trigger normalnie nie
+  wraca do już przetworzonych maili
+  ([kod triggera na GitHubie](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Google/Gmail/GmailTrigger.node.ts) -
+  ten szczegół zachowania nie jest opisany w oficjalnej dokumentacji, tylko w źródle node'a).
+  Ryzyko duplikatu pojawia się, gdy zaimportujesz workflow od nowa z tego pliku JSON (nowy
+  workflow = nowy, pusty stan) albo ręcznie usuniesz i dodasz trigger ponownie - wtedy licz się z
+  tym, że pierwszy poll po takim reset zobaczy więcej maili niż zwykle. Google Drive nie
+  blokuje duplikatów nazw plików, więc w skrajnym przypadku dostaniesz dwie kopie tej samej
+  faktury w folderze.
+- **Błąd 401 "Client is unauthorized" przy pierwszym uruchomieniu.** Zwykle oznacza, że w Google
+  Cloud Console nie włączyłeś jeszcze Gmail API (albo Google Drive API) dla danego projektu.
+  Naprawa: w konsoli wejdź w **APIs & Services → Library**, wyszukaj brakujące API i włącz je -
+  szczegóły w
+  [Common issues node'a Gmail Trigger](https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.gmailtrigger/common-issues/).
+
+## Jak to rozbudować
+
+<CardGrid>
+  <ConceptCard icon="fa-table" title="Rejestr faktur w arkuszu">
+    Dodaj node Google Sheets za Google Drive i dopisuj wiersz z datą, nadawcą i linkiem do pliku -
+    masz ewidencję bez otwierania Dysku.
+  </ConceptCard>
+  <ConceptCard icon="fa-telegram" family="fab" title="Powiadomienie na Telegram">
+    Po udanym zapisie wyślij krótką wiadomość ("Nowa faktura od X zapisana") - wiesz od razu, bez
+    zaglądania do skrzynki.
+  </ConceptCard>
+  <ConceptCard icon="fa-robot" title="OCR / AI wyciągające kwotę i NIP">
+    Node rozpoznawania dokumentów albo model AI czytający PDF może wyłuskać kwotę, NIP i termin
+    płatności do osobnych pól - podstawy AI w n8n są w [Module 6: AI agenci](/modul-6-ai-agenci).
+  </ConceptCard>
+  <ConceptCard icon="fa-code-branch" title="Wiele załączników i folder per miesiąc">
+    Dodaj Loop Over Items nad krokiem Google Drive, żeby obsłużyć wszystkie załączniki z maila
+    (nie tylko `attachment_0`), a nazwę folderu buduj wyrażeniem z datą - osobny podfolder na
+    każdy miesiąc zamiast jednego rosnącego worka plików.
+  </ConceptCard>
+</CardGrid>
+
+<Takeaways title="Co warto zapamiętać">
+  - Gmail Trigger z wyłączonym **Simplify** i włączonym **Download Attachments** to jedyny sposób,
+    żeby dostać załącznik jako dane binarne, a nie samo metadane maila.
+  - Filtr wyszukiwania Gmaila (`has:attachment filename:pdf ...`) to pierwsza linia obrony;
+    Filter z warunkiem na `Object.keys($binary).length` odrzuca resztę fałszywych trafień.
+  - Nazwę pliku na Dysku budujesz wyrażeniem łączącym datę, nadawcę i oryginalną nazwę - porządek
+    bez ręcznego przeklejania.
+  - **Fetch Test Event** pozwala przetestować trigger na istniejącym mailu z historii, zanim
+    aktywujesz nasłuch na żywo.
+  - Managed OAuth2 na n8n Cloud omija zakładanie projektu w Google Cloud - self-hosting go
+    wymaga, razem z publicznym HTTPS pod redirect URL.
+</Takeaways>
+
+Szukasz innego gotowca? Zobacz [wszystkie gotowe workflow](/gotowe-workflow) albo wróć do
+[Modułu 4: Integracje i API](/modul-4-integracje-api), żeby zbudować coś podobnego od zera.

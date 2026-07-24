@@ -1,0 +1,107 @@
+{
+  "name": "Poranny brief na Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "5f3a1c10-8b2e-4a4a-9d1a-000000000001",
+      "name": "Codziennie 7:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=TWOJA_SZEROKOSC&longitude=TWOJA_DLUGOSC&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto",
+        "options": {}
+      },
+      "id": "5f3a1c10-8b2e-4a4a-9d1a-000000000002",
+      "name": "Pobierz pogodę",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f3a1c10-8b2e-4a4a-9d1a-000000000010",
+              "name": "wiadomosc",
+              "value": "=Dzień dobry! Dzisiejsza pogoda: od {{ $json.daily.temperature_2m_min[0] }}°C do {{ $json.daily.temperature_2m_max[0] }}°C, opady: {{ $json.daily.precipitation_sum[0] }} mm. Miłego dnia!",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5f3a1c10-8b2e-4a4a-9d1a-000000000003",
+      "name": "Złóż wiadomość",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "TWOJ_CHAT_ID",
+        "text": "={{ $json.wiadomosc }}",
+        "additionalFields": {}
+      },
+      "id": "5f3a1c10-8b2e-4a4a-9d1a-000000000004",
+      "name": "Wyślij na Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Codziennie 7:00": {
+      "main": [
+        [
+          {
+            "node": "Pobierz pogodę",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pobierz pogodę": {
+      "main": [
+        [
+          {
+            "node": "Złóż wiadomość",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Złóż wiadomość": {
+      "main": [
+        [
+          {
+            "node": "Wyślij na Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

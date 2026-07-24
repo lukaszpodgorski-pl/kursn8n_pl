@@ -1,0 +1,191 @@
+{
+  "name": "Monitor ceny produktu z alertem",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "id": "trigger-harmonogram",
+      "name": "Harmonogram"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "ADRES_PRODUKTU",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "id": "http-pobierz-produkt",
+      "name": "Pobierz stronę produktu"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "sourceData": "json",
+        "dataPropertyName": "data",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "cena_tekst",
+              "cssSelector": "SELEKTOR_CSS_CENY",
+              "returnValue": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [680, 300],
+      "id": "html-wyciagnij-cene",
+      "name": "Wyciągnij cenę"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cena-oczyszczona",
+              "name": "cena",
+              "type": "number",
+              "value": "={{ Number($json.cena_tekst.replace('zł', '').replace(/\\s/g, '').replace(',', '.').trim()) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 300],
+      "id": "set-oczysc-cene",
+      "name": "Oczyść cenę"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "warunek-cena-prog",
+              "leftValue": "={{ $json.cena }}",
+              "rightValue": "TWOJ_PROG",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1120, 300],
+      "id": "if-cena-prog",
+      "name": "Cena poniżej progu?"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "TWOJ_CHAT_ID",
+        "text": "=Cena spadła poniżej progu!\n\nAktualna cena: {{ $json.cena }} zł\nProdukt: ADRES_PRODUKTU"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1340, 200],
+      "id": "telegram-alert",
+      "name": "Wyślij alert Telegram"
+    }
+  ],
+  "connections": {
+    "Harmonogram": {
+      "main": [
+        [
+          {
+            "node": "Pobierz stronę produktu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pobierz stronę produktu": {
+      "main": [
+        [
+          {
+            "node": "Wyciągnij cenę",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wyciągnij cenę": {
+      "main": [
+        [
+          {
+            "node": "Oczyść cenę",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oczyść cenę": {
+      "main": [
+        [
+          {
+            "node": "Cena poniżej progu?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cena poniżej progu?": {
+      "main": [
+        [
+          {
+            "node": "Wyślij alert Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
