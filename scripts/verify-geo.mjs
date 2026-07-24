@@ -27,7 +27,12 @@ const results = [];
  */
 const MODULE_SLUG_RE = /^modul-\d+-[a-z0-9-]+$/;
 const WORKFLOW_SLUG_RE = /^workflow-[a-z0-9-]+$/;
-const EXTRA_ARTICLE_SLUGS = new Set(['porownanie-n8n-hostingow', 'gotowe-workflow', 'cos-nie-dziala']);
+const EXTRA_ARTICLE_SLUGS = new Set([
+	'porownanie-n8n-hostingow',
+	'gotowe-workflow',
+	'cos-nie-dziala',
+	'slownik-pojec',
+]);
 
 function isArticleSlug(slug) {
 	return MODULE_SLUG_RE.test(slug) || WORKFLOW_SLUG_RE.test(slug) || EXTRA_ARTICLE_SLUGS.has(slug);

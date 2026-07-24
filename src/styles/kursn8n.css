@@ -398,3 +398,10 @@
 	flex-direction: column;
 	gap: 1rem;
 }
+
+/* CTA "żywego wiki" pod kartami - drobny tekst, nie konkuruje z LinkCard. */
+.k-next-feedback {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--k-text-muted);
+}

@@ -5,7 +5,14 @@ import starlightLlmsTxt from 'starlight-llms-txt';
 import sitemap from '@astrojs/sitemap';
 import { lastModMap } from './scripts/sitemap-lastmod.mjs';
 import { forceLightTheme } from './scripts/force-light-theme.mjs';
-import { MODULES, GUIDE_SLUG, QUICK_WINS, QUICK_WINS_HUB_SLUG, TROUBLESHOOTING_SLUG } from './src/config/modules';
+import {
+	MODULES,
+	GUIDE_SLUG,
+	QUICK_WINS,
+	QUICK_WINS_HUB_SLUG,
+	TROUBLESHOOTING_SLUG,
+	GLOSSARY_SLUG,
+} from './src/config/modules';
 
 const GITHUB_REPO = 'https://github.com/lukaszpodgorski-pl/kursn8n_pl';
 
@@ -69,6 +76,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Porównanie hostingów n8n', link: `/${GUIDE_SLUG}` },
 						{ label: 'Coś nie działa? Troubleshooting', link: `/${TROUBLESHOOTING_SLUG}` },
+						{ label: 'Słownik pojęć n8n', link: `/${GLOSSARY_SLUG}` },
 					],
 				},
 				{

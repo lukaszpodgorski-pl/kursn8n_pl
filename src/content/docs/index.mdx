@@ -70,7 +70,8 @@ To nie jest teoria - poniżej znajdziesz gotowe workflow z tej wiki, które wdro
 widzisz dokładnie, jak to działa, zamiast ślepo importować cudzy kod.
 
 <CardGrid>
-  {QUICK_WINS.map((w) => (
+  {/* Trzy pierwsze gotowce - pełna lista na hubie */}
+  {QUICK_WINS.slice(0, 3).map((w) => (
     <LinkCard
       href={`/${w.slug}`}
       title={w.label}
@@ -229,7 +230,8 @@ wrócisz w naturalnej kolejności.
 
 To mapa całej wiki - wszystkie 9 modułów jest już dostępnych do czytania. Każdy moduł to
 osobny rozdział oparty na oficjalnej dokumentacji n8n. Kliknij dowolny, żeby przejść do
-pełnej treści; poniżej w każdym module widzisz, co dokładnie obejmuje.
+pełnej treści; poniżej w każdym module widzisz, co dokładnie obejmuje. Całość to ~3 h
+czytania - w swoim tempie, moduł po module.
 
 **Wszystkie moduły są już dostępne.** Kliknij tytuł modułu lub "Czytaj moduł", aby otworzyć
 rozdział.

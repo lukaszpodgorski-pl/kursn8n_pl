@@ -1,6 +1,6 @@
 ---
 /**
- * <Video /> — komponent do osadzania krótkich animacji wideo (zamiennik GIF-ów).
+ * <Video /> - komponent do osadzania krótkich animacji wideo (zamiennik GIF-ów).
  *
  * Umieść plik w: src/components/Video.astro
  *
@@ -14,8 +14,8 @@
  *   />
  *
  * Konwencje:
- * - src: WebM (VP9/AV1) — mniejszy plik, nowoczesne przeglądarki
- * - fallback: MP4 (H.264) — starsze przeglądarki i Safari na starszych iOS
+ * - src: WebM (VP9/AV1) - mniejszy plik, nowoczesne przeglądarki
+ * - fallback: MP4 (H.264) - starsze przeglądarki i Safari na starszych iOS
  * - alt: obowiązkowy opis dla czytników ekranu (dostępność)
  * - poster: opcjonalna klatka podglądu (ładna miniatura przed startem)
  * - Domyślnie: autoplay + pętla + wyciszenie (zachowanie jak GIF),
@@ -27,7 +27,7 @@ interface Props {
   src: string;
   /** Opcjonalny fallback MP4 dla starszych przeglądarek */
   fallback?: string;
-  /** Opis animacji dla czytników ekranu — wymagany */
+  /** Opis animacji dla czytników ekranu - wymagany */
   alt: string;
   /** Opcjonalna klatka podglądu (jpg/webp) */
   poster?: string;

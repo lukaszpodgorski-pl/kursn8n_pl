@@ -5,6 +5,8 @@
  * karty automatycznie. Gdy QUICK_WINS ma gotowca odblokowanego przez biezacy
  * modul (afterModule), karta dodaje link "Umiesz juz dosc, zeby wdrozyc".
  * Renderowana centralnie w MarkdownContent.astro - nie wklejaj jej do .mdx.
+ * Pod kartami: stała linijka CTA "żywego wiki" - zaproszenie do zgłoszenia
+ * nieaktualnego/niejasnego fragmentu (patrz `.k-next-feedback` w kursn8n.css).
  */
 import { LinkCard } from '@astrojs/starlight/components';
 import { MODULES, QUICK_WINS, QUICK_WINS_HUB_SLUG } from '../config/modules';
@@ -26,7 +28,9 @@ if (index === -1) {
 
 const current = MODULES[index];
 const next = MODULES[index + 1];
-const quickWin = QUICK_WINS.find((w) => w.afterModule === Number(current.number));
+// filter, nie find: moduł może odblokować wiecej niz jeden gotowiec (np. Modul 6
+// ma dwa - RSS i notatke glosowa) - kazdy pasujacy dostaje wlasna karte.
+const unlockedQuickWins = QUICK_WINS.filter((w) => w.afterModule === Number(current.number));
 ---
 
 <div class="k-next-module">
@@ -46,11 +50,15 @@ const quickWin = QUICK_WINS.find((w) => w.afterModule === Number(current.number)
 			/>
 		)
 	}
-	{quickWin && (
+	{unlockedQuickWins.map((quickWin) => (
 		<LinkCard
 			href={`/${quickWin.slug}`}
 			title={`Umiesz już dość, żeby wdrożyć: ${quickWin.label}`}
 			description={quickWin.description}
 		/>
-	)}
+	))}
+	<p class="k-next-feedback">
+		Utknąłeś w tym module albo coś jest nieaktualne? <a href="/#o-autorze">Napisz do mnie</a> -
+		poprawię materiał.
+	</p>
 </div>

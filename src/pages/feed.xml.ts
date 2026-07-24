@@ -6,14 +6,15 @@ import {
 	QUICK_WINS,
 	QUICK_WINS_HUB_SLUG,
 	TROUBLESHOOTING_SLUG,
+	GLOSSARY_SLUG,
 } from '../config/modules';
 
 /**
  * Kanal RSS 2.0 - odpowiednik dawnego public_html/partials/feed.php.
- * Pozycje (najnowsze na gorze): 3 gotowe workflow + troubleshooting + hub
- * gotowcow, potem flagowy poradnik hostingowy + 9 modulow kursu - zasilane
- * z jednego rejestru src/config/modules.ts (to samo zrodlo co sidebar i dane
- * strukturalne Course).
+ * Pozycje (najnowsze na gorze): gotowe workflow (rosna z rejestru QUICK_WINS)
+ * + troubleshooting + slownik pojec + hub gotowcow, potem flagowy poradnik
+ * hostingowy + 9 modulow kursu - zasilane z jednego rejestru
+ * src/config/modules.ts (to samo zrodlo co sidebar i dane strukturalne Course).
  *
  * Adresy pozycji BEZ koncowego ukosnika - zgodnie z trailingSlash: 'never'
  * i stara sitemapa. `site` z astro.config.mjs dostarcza bazowy URL.
@@ -47,6 +48,13 @@ export async function GET(context: APIContext) {
 			link: new URL(`/${QUICK_WINS_HUB_SLUG}`, site).href,
 			description:
 				'Gotowe workflow n8n do pobrania: JSON do importu i budowa krok po kroku dla każdego gotowca. Sprawdź na karcie, po którym module kursu jesteś gotowy go wdrożyć.',
+			pubDate: NEW_CONTENT_PUB_DATE,
+		},
+		{
+			title: 'Słownik pojęć n8n - od workflow po RAG',
+			link: new URL(`/${GLOSSARY_SLUG}`, site).href,
+			description:
+				'Słownik pojęć n8n po polsku: workflow, node, trigger, execution, credentials, webhook, wyrażenia, AI Agent i RAG - zwięzłe definicje z linkami do kursu.',
 			pubDate: NEW_CONTENT_PUB_DATE,
 		},
 		{

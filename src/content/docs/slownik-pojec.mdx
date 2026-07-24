@@ -1,0 +1,229 @@
+---
+title: Słownik pojęć n8n - od workflow po RAG
+description: "Słownik pojęć n8n po polsku: workflow, node, trigger, execution, credentials, webhook, wyrażenia, AI Agent i RAG - zwięzłe definicje z linkami do kursu."
+head:
+  - tag: title
+    content: "Słownik pojęć n8n po polsku | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Słownik pojęć n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Ponad 40 pojęć n8n wyjaśnionych po polsku - od workflow po RAG - z linkami do modułów kursu."
+datePublished: 2026-07-24
+educationalLevel: Beginner
+teaches:
+  - Podstawowe pojęcia n8n - workflow, node, trigger, execution
+  - Słownictwo pracy z danymi - item, JSON, wyrażenie, pętla
+  - Terminologię integracji - credentials, API, webhook, OAuth2
+  - Pojęcia AI w n8n - AI Agent, RAG, embedding
+  - Słownictwo produkcyjne - self-hosting, queue mode, RODO
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: JSON
+    sameAs: https://en.wikipedia.org/wiki/JSON
+  - name: OAuth
+    sameAs: https://en.wikipedia.org/wiki/OAuth
+  - name: Webhook
+    sameAs: https://en.wikipedia.org/wiki/Webhook
+  - name: LangChain
+    sameAs: https://en.wikipedia.org/wiki/LangChain
+  - name: Docker
+    sameAs: https://en.wikipedia.org/wiki/Docker_(software)
+faq:
+  - q: "Czym różni się workflow od node'a w n8n?"
+    a: "Workflow to cały zautomatyzowany proces - zbiór node'ów połączonych w logiczną sekwencję, który zapisujesz jako jedną całość. Node to pojedynczy \"klocek\" w tym procesie: jedno konkretne zadanie, np. wywołanie API albo warunek. Innymi słowy, workflow składa się z wielu node'ów, nie odwrotnie."
+  - q: "Co to jest trigger i czym różni się od zwykłego node'a?"
+    a: "Trigger to specjalny node, który rozpoczyna workflow - reaguje na zdarzenie (webhook), harmonogram albo ręczne uruchomienie. Zwykłe node'y wykonują akcje w środku przepływu, ale same go nie uruchamiają. Każdy workflow zaczyna się od dokładnie jednego triggera startowego."
+  - q: "Czym jest item i dlaczego n8n operuje na liście itemów, a nie pojedynczym rekordzie?"
+    a: "Item to pojedyncza porcja danych płynąca przez workflow. n8n zawsze przekazuje między node'ami listę (tablicę) itemów, nawet gdy zawiera tylko jeden element - dzięki temu ten sam node bez zmian obsłuży zarówno jeden rekord, jak i tysiąc, wykonując się raz dla każdego z nich."
+  - q: "Czym różni się API key od OAuth2 w n8n?"
+    a: "API key to prosty sekret (token), który wklejasz raz i który działa do odwołania z pełnym zakresem uprawnień konta. OAuth2 to logowanie przez zgodę użytkownika - n8n dostaje ograniczony do wybranych zakresów, odwoływalny dostęp, ale wymaga publicznego adresu HTTPS. Wybór często narzuca sama usługa."
+  - q: "Co to jest RAG i po co n8n potrzebuje bazy wektorowej?"
+    a: "RAG (Retrieval-Augmented Generation) to technika, w której model przed odpowiedzią najpierw wyszukuje pasujące fragmenty Twoich dokumentów i dokłada je do promptu. Baza wektorowa przechowuje te dokumenty jako wektory liczb (embeddingi) i pozwala szybko znaleźć fragmenty najbliższe znaczeniowo zadanemu pytaniu."
+  - q: "Czym jest sub-workflow i kiedy warto go użyć?"
+    a: "Sub-workflow to workflow wywoływany z innego workflow jak funkcja - dostaje dane, wykonuje swoją logikę i zwraca wynik. Warto go wydzielić, gdy ten sam fragment (np. wysyłka powiadomienia) powtarza się w kilku miejscach albo gdy główny workflow robi się zbyt duży, by ogarnąć go na jednej kanwie."
+---
+
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Słownik · wszystkie poziomy"
+  readingTime="~10 min"
+  note="Wracaj tu, gdy jakieś pojęcie brzmi obco"
+/>
+
+Ta strona to rozszerzony słownik pojęć n8n - punktem wyjścia był krótki słowniczek z
+[Modułu 0: Fundamenty automatyzacji w n8n](/modul-0-fundamenty#słownik-pojęć---wspólny-język-na-resztę-kursu),
+ale tu zebrałem i opisałem terminy używane w całym kursie: od podstaw interfejsu, przez
+pracę z danymi i integracje, po kod, AI i produkcję. Nie musisz czytać jej od deski do
+deski.
+
+:::tip[Jak korzystać z tej strony]
+Wpadłeś tu z innego artykułu, bo jakiś termin brzmiał obco? Użyj `Ctrl+F` (albo `Cmd+F`
+na macOS) w przeglądarce, albo wyszukiwarki na górze strony, żeby od razu znaleźć swoje
+hasło. Przy każdym pojęciu znajdziesz link do sekcji modułu, w której uczę go głębiej, na
+konkretnym przykładzie.
+:::
+
+## Podstawy
+
+- **Workflow (przepływ)** - cały zautomatyzowany proces: zbiór node'ów połączonych
+  w logiczną sekwencję, którą budujesz, zapisujesz i opcjonalnie aktywujesz do
+  samodzielnego działania. Budowę pierwszego workflow krok po kroku pokazuję w
+  [Module 2](/modul-2-interfejs-pierwszy-workflow#twój-pierwszy-workflow---krok-po-kroku).
+- **Node (węzeł)** - pojedynczy "klocek" wykonujący konkretne zadanie: wywołanie API,
+  przekształcenie danych, warunek logiczny. Łączysz node'y w kolejności, by zbudować
+  workflow. Przegląd elementów edytora, w którym je układasz - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#przegląd-interfejsu-edytora).
+- **Trigger (wyzwalacz)** - specjalny node, który _rozpoczyna_ workflow: reaguje na
+  zdarzenie (Webhook), harmonogram (Schedule) albo ręczne uruchomienie (Manual).
+  Triggery Schedule i Webhook reagują same dopiero po aktywacji workflow (przełącznik
+  Active). Porównanie typów triggerów - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#triggery-manual-schedule-i-webhook).
+- **Execution (wykonanie)** - pojedyncze uruchomienie workflow, ręczne albo produkcyjne.
+  n8n zapisuje historię wykonań ze statusem (Success, Error, Running) - to pierwsze
+  miejsce, w którym szukasz przyczyny błędu. Szczegóły - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#lista-i-szczegóły-executions).
+- **Kanwa (canvas)** - wizualna przestrzeń robocza edytora, na której układasz i łączysz
+  node'y. Przesuwasz ją myszką, przybliżasz scrollem i widzisz na niej połączenia między
+  krokami. Pełny przegląd interfejsu - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#przegląd-interfejsu-edytora).
+- **Sticky note** - notatka przyklejana wprost na kanwę, którą dokumentujesz sekcje
+  workflow - co robi dany fragment i dlaczego, nie tylko co. Dobra praktyka od pierwszego
+  dnia - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#organizacja-pracy---dobre-praktyki-od-początku).
+
+## Dane i wyrażenia
+
+- **Item (element)** - pojedyncza porcja danych płynąca przez workflow. Dane w n8n to
+  zawsze lista (tablica) itemów - nawet gdy zawiera tylko jeden element - a node zwykle
+  przetwarza każdy item osobno. Struktura opisana w [Module 3](/modul-3-praca-z-danymi#jak-n8n-przechowuje-dane---items-i-struktura-json).
+- **JSON** - tekstowy format zapisu danych w parach `nazwa: wartość`, uniwersalny "język",
+  którym programy wymieniają się informacjami. Każdy item trzyma swoje dane właśnie w tej
+  strukturze, w kluczu `json`. Przykład - [Moduł 3](/modul-3-praca-z-danymi#jak-n8n-przechowuje-dane---items-i-struktura-json).
+- **Wyrażenie (expression)** - krótki zapis w składni `{{ }}`, którym sięgasz po dane
+  z innych node'ów wprost w polu formularza (np. `{{ $json.email }}`), zamiast wpisywać
+  wartość na stałe (tryb Fixed). Pełne omówienie trybów i zmiennych - [Moduł 3](/modul-3-praca-z-danymi#tryb-fixed-vs-expression).
+- **Pinned data (przypięte dane)** - "zamrożony" wynik node'a używany podczas testów, by
+  nie wywoływać API przy każdym uruchomieniu - szybciej, taniej i na tym samym zestawie
+  danych. Działa tylko w edytorze; produkcja zawsze pobiera dane na żywo. Więcej -
+  [Moduł 2](/modul-2-interfejs-pierwszy-workflow#uruchamianie-i-debugowanie).
+- **Binaria (dane binarne)** - pliki (PDF, obrazy, CSV, archiwa) przechowywane w kluczu
+  `binary` itemu, osobno od `json`, wraz z metadanymi (`mimeType`, `fileName`). Konwersje
+  między plikiem a danymi `json` opisuje [Moduł 3](/modul-3-praca-z-danymi#pliki-binarne-pdf-obrazy-csv).
+- **Merge** - node scalający dane z kilku gałęzi lub źródeł w jeden strumień: trybem
+  Append (doklejenie) albo Combine (po kluczu, po pozycji lub wszystkie kombinacje) -
+  podobnie do JOIN-a w SQL. Szczegóły trybów - [Moduł 3](/modul-3-praca-z-danymi#merge---łączenie-danych-z-wielu-źródeł).
+- **Pętla (Loop Over Items)** - node do jawnego sterowania pętlą: dzieli itemy na paczki
+  i przepuszcza je porcjami, m.in. przy paginacji lub limitach API. Zwykłe przetwarzanie
+  itemów nie wymaga jej wcale - node iteruje sam. Wyjaśnienie różnicy - [Moduł 3](/modul-3-praca-z-danymi#loop-over-items-split-in-batches).
+- **IF / Switch / Filter** - trzy node'y logiki: IF rozgałęzia dane na dwie ścieżki
+  (true/false), Switch na wiele ścieżek według wartości, a Filter po prostu odsiewa
+  itemy niespełniające warunku bez tworzenia gałęzi. Porównanie - [Moduł 3](/modul-3-praca-z-danymi#logika-if-switch-filter).
+
+## Integracje
+
+- **Credentials (poświadczenia)** - bezpiecznie przechowywany, wielokrotnego użytku
+  obiekt z danymi logowania (klucz API, token OAuth), który podpinasz pod node'y
+  i workflow. n8n trzyma je zaszyfrowane kluczem `N8N_ENCRYPTION_KEY`. Jak to działa -
+  [Moduł 4](/modul-4-integracje-api#jak-działają-credentials-w-n8n).
+- **API** - "okienko", przez które jedna aplikacja rozmawia z drugą: udostępnia dane
+  i akcje, z których korzystają node'y aplikacji albo HTTP Request. Wyjaśnienie API,
+  endpointu i REST po ludzku - [Moduł 4](/modul-4-integracje-api#nodey-aplikacji---gotowe-integracje).
+- **API key** - prosty sekret (token) generowany w panelu usługi, który n8n dołącza do
+  zapytań (np. w nagłówku). Szybki w konfiguracji, ale zwykle daje pełny zakres uprawnień
+  konta. Kontrastuje z OAuth2 - [Moduł 4](/modul-4-integracje-api#api-key---prosty-sekret).
+- **OAuth2** - uwierzytelnianie przez zgodę: klikasz "Connect", usługa pyta o zgodę na
+  dostęp, a n8n dostaje ograniczony do wybranych zakresów (scope'ów), odwoływalny token.
+  Wymaga publicznego adresu HTTPS (callback). Szczegóły - [Moduł 4](/modul-4-integracje-api#oauth2---autoryzacja-przez-zgodę).
+- **Webhook** - sposób odbierania zdarzeń z zewnątrz: node Webhook nasłuchuje na
+  unikalnym adresie URL i uruchamia workflow natychmiast po nadejściu żądania HTTP, bez
+  odpytywania w pętli. Odbieranie i wysyłanie webhooków opisuje [Moduł 4](/modul-4-integracje-api#webhooki-odbieranie-i-wysyłanie).
+- **Test URL / Production URL** - dwa różne adresy tego samego node'a Webhook. Test URL
+  działa po kliknięciu "Listen for test event"; Production URL działa stale, ale dopiero
+  po aktywacji workflow. Częsta pułapka początkujących - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#webhook-tryb-testowy-vs-produkcyjny).
+- **Paginacja i rate limit** - paginacja to pobieranie wyników API po kawałkach
+  (stronach), aż skończą się dane; rate limit to narzucony przez API limit zapytań,
+  którego przekroczenie zwraca błąd HTTP 429. Obsługa obu - [Moduł 4](/modul-4-integracje-api#paginacja-limity-zapytań-i-ponawianie).
+
+## Kod i struktura
+
+- **Code Node** - node z własnym skryptem w JavaScript lub Python, na wypadek gdy żaden
+  gotowy node nie robi dokładnie tego, czego potrzebujesz. Dwa tryby uruchamiania (dla
+  całej paczki danych albo dla każdego itemu osobno) i przykłady - [Moduł 5](/modul-5-kod-sub-workflow#code-node-javascript-i-python).
+- **Static data** - "pamięć" workflow między uruchomieniami (np. ostatnie przetworzone
+  ID), dostępna przez `$getWorkflowStaticData`. Utrwala się tylko po udanym wykonaniu
+  produkcyjnym, nie podczas ręcznych testów. Szczegóły - [Moduł 5](/modul-5-kod-sub-workflow#dane-statyczne-workflow-static-data).
+- **Sub-workflow** - workflow wywoływany z innego workflow jak "funkcja" (przez Execute
+  Sub-workflow), by nie powtarzać tej samej logiki w wielu miejscach. Jak go zbudować -
+  [Moduł 5](/modul-5-kod-sub-workflow#sub-workflow---modularność-przez-execute-workflow).
+- **Error Trigger / error workflow** - dedykowany workflow, którego start to node Error
+  Trigger; wskazany w ustawieniach innych workflow, przejmuje obsługę każdej
+  nieobsłużonej awarii (np. alert na Slacku). Pełny opis poziomów obsługi błędów -
+  [Moduł 5](/modul-5-kod-sub-workflow#obsługa-błędów---automaty-muszą-być-przewidywalne).
+- **Stop And Error** - node do świadomego przerwania workflow, gdy dane nie spełniają
+  warunku - rzuca własny komunikat błędu zamiast cicho przepuszczać złe dane dalej.
+  Kontekst - [Moduł 5](/modul-5-kod-sub-workflow#stop-and-error---świadome-przerwanie).
+
+## AI
+
+- **AI Agent** - root node, który dostaje zestaw narzędzi i sam decyduje, których użyć
+  i w jakiej kolejności, zanim sformułuje odpowiedź (cykl reasoning → action →
+  observation). Różni się od zwykłego wywołania modelu tym, że potrafi wykonać kilka
+  kroków, nie jeden. Wyjaśnienie - [Moduł 6](/modul-6-ai-agenci#ai-agent-node---model-który-sam-decyduje).
+- **Chain** - jednokrokowe wywołanie modelu (np. Basic LLM Chain): wysyła prompt
+  i zwraca odpowiedź, koniec. Prostsze, tańsze i bardziej przewidywalne niż Agent - dobre
+  do zadań deterministycznych (streszczenie, klasyfikacja). Porównanie z Agentem -
+  [Moduł 6](/modul-6-ai-agenci#tools-agent---domyślny-typ).
+- **LLM (model językowy)** - "mózg" AI (np. GPT, Claude), który dostaje tekst (prompt)
+  i generuje odpowiedź, licząc koszt w tokenach (fragmentach tekstu). n8n orkiestruje
+  takie modele bez pisania kodu integrującego. Więcej pojęć AI po ludzku - [Moduł 6](/modul-6-ai-agenci#n8n-jako-orkiestrator-ai).
+- **RAG (Retrieval-Augmented Generation)** - technika, w której model przed odpowiedzią
+  najpierw wyszukuje pasujące fragmenty Twoich dokumentów i dokłada je do promptu -
+  odpowiedzi opierają się wtedy na Twoich danych, a nie tylko na wiedzy modelu. Pełny
+  przepływ (ingest → embed → store → retrieve → answer) - [Moduł 6](/modul-6-ai-agenci#rag-bazy-wektorowe-i-embeddingi).
+- **Embedding i baza wektorowa (vector store)** - embedding to zamiana tekstu na wektor
+  liczb oddający jego znaczenie; baza wektorowa (np. Pinecone, Qdrant, PGVector)
+  przechowuje takie wektory i pozwala szybko znaleźć te najbliższe znaczeniowo do
+  pytania. Podstawa RAG - [Moduł 6](/modul-6-ai-agenci#trzy-pojęcia-które-musisz-znać).
+- **Halucynacja** - sytuacja, w której model pewnie generuje nieprawdziwą informację,
+  bo nie zna faktów (np. Twoich dokumentów), a i tak musi coś odpowiedzieć. RAG
+  i ograniczone narzędzia zmniejszają to ryzyko. Kontekst - [Moduł 6](/modul-6-ai-agenci#rag-bazy-wektorowe-i-embeddingi).
+
+## Produkcja i hosting
+
+- **Self-hosting** - uruchomienie n8n na własnej infrastrukturze (Docker, VPS, Raspberry
+  Pi) zamiast w chmurze dostawcy - pełna kontrola nad danymi i brak opłat za wykonanie,
+  ale aktualizacje i backupy są po Twojej stronie. Porównanie z n8n Cloud - [Moduł 0](/modul-0-fundamenty#n8n-cloud-vs-self-hosted---którą-drogą-iść).
+- **n8n Cloud** - hostowana wersja n8n prowadzona przez twórców platformy: zero
+  instalacji, gotowe OAuth i HTTPS, płatny abonament. Najszybszy start do nauki.
+  Szczegóły - [Moduł 1](/modul-1-instalacja-hosting#n8n-cloud---najszybszy-start).
+- **Docker** - najpopularniejszy sposób self-hostingu n8n: gotowy obraz z odpowiednim
+  Node.js, izolacja od reszty systemu i powtarzalność wdrożenia. Wolumen danych
+  (`n8n_data`) chroni workflow i poświadczenia przed utratą przy restarcie kontenera.
+  Krok po kroku - [Moduł 1](/modul-1-instalacja-hosting#docker-i-docker-compose-krok-po-kroku).
+- **Reverse proxy** - "recepcjonista" serwera (np. Traefik, Caddy, NGINX), który odbiera
+  ruch po HTTPS z internetu i przekazuje go do ukrytego w środku n8n - niezbędny do
+  poprawnego działania OAuth i webhooków na własnym serwerze. Pełne wyjaśnienie -
+  [Moduł 1](/modul-1-instalacja-hosting#https-domena-reverse-proxy-i-cloudflare-tunnel).
+- **N8N_ENCRYPTION_KEY** - klucz, którym n8n szyfruje zapisane poświadczenia w bazie.
+  Utrata klucza (np. przy odtwarzaniu backupu bez niego) oznacza utratę dostępu do
+  wszystkich zapisanych credentials - dlatego backupujesz go osobno, razem z bazą. Pełny
+  opis - [Moduł 1](/modul-1-instalacja-hosting#klucz-n8n_encryption_key-i-zmienne-środowiskowe).
+- **Tryb kolejkowy (queue mode)** - tryb skalowania, w którym proces główny wrzuca
+  wykonania do kolejki (Redis), a pula workerów przetwarza je równolegle. Sensowny
+  dopiero, gdy pojedynczy proces przestaje nadążać z ruchem. Szczegóły - [Moduł 7](/modul-7-produkcja#tryb-kolejkowy-queue-mode-workery-i-skalowanie).
+- **Backup 3-2-1** - zasada backupu: trzy kopie danych, na dwóch różnych nośnikach,
+  jedna poza lokalizacją produkcji. Backup, którego nie przetestowałeś przez realne
+  odtworzenie, "nie istnieje". Co dokładnie backupować - [Moduł 7](/modul-7-produkcja#backupy-3-2-1-i-testowane-odtwarzanie).
+- **RODO (GDPR)** - jeśli przez n8n przepływają dane osobowe, podlegasz RODO; przy
+  self-hostingu zwykle jesteś administratorem tych danych, nie tylko procesorem. Cztery
+  pytania, które warto sobie zadać - [Moduł 7](/modul-7-produkcja#cztery-pytania-które-musisz-sobie-zadać).
+
+<Takeaways title="Co warto zapamiętać">
+  - n8n ma swój żargon, ale to zamknięty, powtarzalny zestaw pojęć - poznaj je raz, a będą wracać w każdym module.
+  - Większość terminów ma polski i angielski wariant używany zamiennie (node/węzeł, poświadczenia/credentials) - oba usłyszysz w dokumentacji i społeczności.
+  - Gdy pojęcie brzmi obco w trakcie nauki, wróć tutaj zamiast zgadywać - każde hasło linkuje do miejsca w kursie, gdzie uczę go na konkretnym przykładzie.
+  - Słownik rośnie razem z kursem - jeśli szukasz czegoś, czego tu nie ma, sprawdź [Moduł 0: Fundamenty automatyzacji w n8n](/modul-0-fundamenty), skąd wywodzi się ten słownik.
+</Takeaways>
