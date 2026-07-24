@@ -1,6 +1,8 @@
 ---
 import Default from '@astrojs/starlight/components/MarkdownContent.astro';
 import Faq from './Faq.astro';
+import NextModule from './NextModule.astro';
+import { MODULE_SLUGS } from '../config/modules';
 import type { FaqItem } from '../lib/structured-data';
 
 // FAQ ląduje WEWNĄTRZ kontenera treści (.sl-markdown-content), nie w stopce -
@@ -12,9 +14,17 @@ const data = Astro.locals.starlightRoute.entry.data;
 // Head.astro powstaje niezależnie od tego, co renderuje ten komponent, więc
 // dane strukturalne zostają nietknięte.
 const faq = data.faqHidden ? undefined : (data.faq as FaqItem[] | undefined);
+
+// Karta "Następny krok" renderuje się centralnie tu, a nie w 9 osobnych
+// plikach .mdx - nowy moduł dopisany do MODULES (src/config/modules.ts)
+// dostaje kartę automatycznie, bez ręcznej edycji treści. Kolejność na
+// stronie: treść -> FAQ -> Następny krok.
+const slug = Astro.url.pathname.split('/').filter(Boolean)[0];
+const isModule = slug !== undefined && MODULE_SLUGS.has(slug);
 ---
 
 <Default>
 	<slot />
 	<Faq items={faq} />
+	{isModule && <NextModule />}
 </Default>

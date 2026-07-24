@@ -383,3 +383,16 @@
 	color: var(--k-good);
 	font-weight: 700;
 }
+
+/* ============ NextModule (karta "Nastepny krok" zamykajaca modul) ============ */
+/* Odstep/naglowek odwzorowuja wzorzec .faq (Faq.astro) dla spojnosci obu kart
+   zamykajacych modul - tam, gdzie Faq siega po --sl-color-gray-5, tu uzywamy
+   odpowiednika z tokenow marki (--k-border). */
+.k-next-module {
+	margin-top: 3rem;
+	border-top: 1px solid var(--k-border);
+	padding-top: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
