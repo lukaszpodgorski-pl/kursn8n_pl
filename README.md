@@ -6,7 +6,6 @@ Wiedza o n8n jest porozrzucana po wielu źródłach, a spora część materiał�
 
 Nie chodzi o kopiowanie gotowych workflow "dla efektu". Nacisk jest na świadome budowanie: automatyzacje, które naprawdę działają, są bezpieczne, mają backup i przewidywalną obsługę błędów.
 
-
 ---
 
 ## Dla czytelników
