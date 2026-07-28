@@ -10,7 +10,7 @@ jobs:
   weryfikacja-geo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Pełna historia gita, nie domyślny płytki klon (fetch-depth: 1).
           # scripts/sitemap-lastmod.mjs liczy <lastmod> w sitemapie z `git log`
@@ -21,7 +21,7 @@ jobs:
           # inny wynik niż deweloper widzi u siebie, a to właśnie ma wychwycić
           # ten workflow, nie samo wywoływać.
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
