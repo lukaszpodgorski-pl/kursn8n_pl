@@ -29,6 +29,7 @@ import { Badge, CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/compon
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
 import FlowNode from '../../components/FlowNode.astro';
+import Newsletter from '../../components/Newsletter.astro';
 import { QUICK_WINS } from '../../config/modules';
 
 <Badge text="Otwarta wiki · aktualizowana na bieżąco" variant="success" size="medium" />
@@ -136,32 +137,7 @@ punkt, [daj mi znać](#o-autorze) od razu, a szybko go poprawię.
 Nie musisz tu wracać i sprawdzać, czy coś nowego się pojawiło. Zapisz się, a wyślę Ci
 krótkie powiadomienie, gdy dodam nowy rozdział, poradnik albo gotowy workflow.
 
-- Powiadomienie o każdym nowym materiale na wiki
-- Sprawdzone rozwiązania i ukryte możliwości n8n
-- Gotowe workflow jako dobry punkt startu
-- Zero spamu - wypiszesz się jednym kliknięciem
-
-### Zapisz się na powiadomienia
-
-Dołącz do osób, które uczą się n8n świadomie.
-
-<form id="newsletter-form" action="https://lukaszpodgorski.pl/sendy/subscribe" method="POST" accept-charset="utf-8">
-  <input type="email" class="form-control" name="email" id="email" placeholder="Twój adres email" autocomplete="email" inputmode="email" required />
-  <button type="submit" name="submit" id="submit" class="form-submit">Zapisz się</button>
-
-  <p class="form-note">
-    Wysyłając formularz, akceptujesz <a href="/regulamin" target="_blank" rel="noopener">Regulamin</a> i <a href="https://aitomate.pl/polityka-prywatnosci" target="_blank" rel="noopener">Politykę prywatności</a>. Możesz w każdej chwili zrezygnować, klikając link w stopce dowolnego e-maila.
-  </p>
-
-  {/*Honeypot antyspamowy: ukryty przed ludźmi i niewidoczny dla czytników ekranu*/}
-  <div style="display:none;" aria-hidden="true">
-    <input type="text" name="hp" id="hp" tabindex="-1" autocomplete="off" />
-  </div>
-  {/* Zgoda RODO wyrażana przez świadome wysłanie formularza (jasna informacja powyżej) */}
-  <input type="hidden" name="gdpr" value="1" />
-  <input type="hidden" name="list" value="Si8V763FyPwNlZ36k4Wbr6Ww" />
-  <input type="hidden" name="subform" value="yes" />
-</form>
+<Newsletter />
 
 ## Polecany materiał na start
 
