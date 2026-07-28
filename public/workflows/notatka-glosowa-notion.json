@@ -1,0 +1,155 @@
+{
+  "name": "Notatka głosowa z Telegrama do Notion",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "id": "telegram-trigger-nowa-wiadomosc",
+      "name": "Nowa wiadomość Telegram"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "warunek-czy-voice",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [460, 300],
+      "id": "if-czy-glosowa",
+      "name": "To wiadomość głosowa?"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "download": true
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 200],
+      "id": "telegram-pobierz-plik",
+      "name": "Pobierz plik głosowy"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "data",
+        "options": {
+          "language": "pl"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [900, 200],
+      "id": "openai-transkrybuj",
+      "name": "Transkrybuj notatkę"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "ID_BAZY_NOTION",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "NAZWA_KOLUMNY_TYTULOWEJ|title",
+              "title": "=Notatka głosowa {{ $now.format('yyyy-MM-dd HH:mm') }}"
+            },
+            {
+              "key": "NAZWA_KOLUMNY_TRANSKRYPCJI|rich_text",
+              "textContent": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1120, 200],
+      "id": "notion-utworz-strone",
+      "name": "Zapisz w Notion"
+    }
+  ],
+  "connections": {
+    "Nowa wiadomość Telegram": {
+      "main": [
+        [
+          {
+            "node": "To wiadomość głosowa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To wiadomość głosowa?": {
+      "main": [
+        [
+          {
+            "node": "Pobierz plik głosowy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Pobierz plik głosowy": {
+      "main": [
+        [
+          {
+            "node": "Transkrybuj notatkę",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transkrybuj notatkę": {
+      "main": [
+        [
+          {
+            "node": "Zapisz w Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

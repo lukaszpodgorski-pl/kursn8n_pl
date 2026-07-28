@@ -1,0 +1,111 @@
+{
+  "name": "Automatyczny backup workflow n8n do GitHuba",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 3,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "id": "trigger-harmonogram",
+      "name": "Harmonogram"
+    },
+    {
+      "parameters": {
+        "resource": "workflow",
+        "operation": "getAll",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "id": "n8n-pobierz-workflow",
+      "name": "Pobierz workflow z n8n"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "// $json to pojedynczy workflow - n8n przetwarza go osobno dla każdego itemu\n// (patrz Moduł 3: Praca z danymi), bez potrzeby osobnej pętli.\nconst workflow = $json;\n\nconst folder = 'SCIEZKA_W_REPO';\n\nconst slug = workflow.name\n  .toLowerCase()\n  .normalize('NFD')\n  .replace(/\\p{Diacritic}/gu, '')\n  .replace(/[^a-z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '');\n\nreturn {\n  json: {\n    sciezka: `${folder}/${slug}-${workflow.id}.json`,\n    tresc: JSON.stringify(workflow, null, 2),\n    wiadomoscCommit: `Backup workflow: ${workflow.name}`\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "code-przygotuj-plik",
+      "name": "Przygotuj plik backupu"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "WLASCICIEL",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "REPO",
+          "mode": "name"
+        },
+        "filePath": "={{ $json.sciezka }}",
+        "fileContent": "={{ $json.tresc }}",
+        "commitMessage": "={{ $json.wiadomoscCommit }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [900, 300],
+      "id": "github-zapisz-plik",
+      "name": "Zapisz w repozytorium GitHub"
+    }
+  ],
+  "connections": {
+    "Harmonogram": {
+      "main": [
+        [
+          {
+            "node": "Pobierz workflow z n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pobierz workflow z n8n": {
+      "main": [
+        [
+          {
+            "node": "Przygotuj plik backupu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Przygotuj plik backupu": {
+      "main": [
+        [
+          {
+            "node": "Zapisz w repozytorium GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

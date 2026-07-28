@@ -29,6 +29,8 @@ import { Badge, CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/compon
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
 import FlowNode from '../../components/FlowNode.astro';
+import Newsletter from '../../components/Newsletter.astro';
+import { QUICK_WINS } from '../../config/modules';
 
 <Badge text="Otwarta wiki · aktualizowana na bieżąco" variant="success" size="medium" />
 
@@ -42,6 +44,7 @@ backup i przewidywalną obsługę błędów.
 - 🇵🇱 w całości po polsku
 - 🆓 zawsze za darmo
 - 🔄 aktualizowane na bieżąco
+- 🧩 gotowe workflow z plikiem JSON do pobrania
 
 <LinkButton href="#program-kursu-od-podstaw-do-zaawansowanego" icon="rocket">
   Zobacz program kursu
@@ -60,6 +63,25 @@ backup i przewidywalną obsługę błędów.
   <FlowNode icon="fa-robot" label="AI Agent" sub="przetwórz" from="#ea4b71" to="#6d28d9" />
   <FlowNode icon="fa-paper-plane" label="Telegram" sub="wyślij raport" from="#0ea5e9" to="#0369a1" />
 </Flow>
+
+## Zobacz, co zautomatyzujesz
+
+To nie jest teoria - poniżej znajdziesz gotowe workflow z tej wiki, które wdrożysz już po
+2-4 modułach kursu. Do każdego dostajesz plik JSON do pobrania i budowę krok po kroku, więc
+widzisz dokładnie, jak to działa, zamiast ślepo importować cudzy kod.
+
+<CardGrid>
+  {/* Trzy pierwsze gotowce - pełna lista na hubie */}
+  {QUICK_WINS.slice(0, 3).map((w) => (
+    <LinkCard
+      href={`/${w.slug}`}
+      title={w.label}
+      description={`${w.description} Wdrożysz po Module ${w.afterModule}.`}
+    />
+  ))}
+</CardGrid>
+
+[Zobacz wszystkie gotowe workflow →](/gotowe-workflow)
 
 ## O projekcie
 
@@ -115,32 +137,7 @@ punkt, [daj mi znać](#o-autorze) od razu, a szybko go poprawię.
 Nie musisz tu wracać i sprawdzać, czy coś nowego się pojawiło. Zapisz się, a wyślę Ci
 krótkie powiadomienie, gdy dodam nowy rozdział, poradnik albo gotowy workflow.
 
-- Powiadomienie o każdym nowym materiale na wiki
-- Sprawdzone rozwiązania i ukryte możliwości n8n
-- Gotowe workflow jako dobry punkt startu
-- Zero spamu - wypiszesz się jednym kliknięciem
-
-### Zapisz się na powiadomienia
-
-Dołącz do osób, które uczą się n8n świadomie.
-
-<form id="newsletter-form" action="https://lukaszpodgorski.pl/sendy/subscribe" method="POST" accept-charset="utf-8">
-  <input type="email" class="form-control" name="email" id="email" placeholder="Twój adres email" autocomplete="email" inputmode="email" required />
-  <button type="submit" name="submit" id="submit" class="form-submit">Zapisz się</button>
-
-  <p class="form-note">
-    Wysyłając formularz, akceptujesz <a href="/regulamin" target="_blank" rel="noopener">Regulamin</a> i <a href="https://aitomate.pl/polityka-prywatnosci" target="_blank" rel="noopener">Politykę prywatności</a>. Możesz w każdej chwili zrezygnować, klikając link w stopce dowolnego e-maila.
-  </p>
-
-  {/*Honeypot antyspamowy: ukryty przed ludźmi i niewidoczny dla czytników ekranu*/}
-  <div style="display:none;" aria-hidden="true">
-    <input type="text" name="hp" id="hp" tabindex="-1" autocomplete="off" />
-  </div>
-  {/* Zgoda RODO wyrażana przez świadome wysłanie formularza (jasna informacja powyżej) */}
-  <input type="hidden" name="gdpr" value="1" />
-  <input type="hidden" name="list" value="Si8V763FyPwNlZ36k4Wbr6Ww" />
-  <input type="hidden" name="subform" value="yes" />
-</form>
+<Newsletter />
 
 ## Polecany materiał na start
 
@@ -172,11 +169,45 @@ wiedzę.
   </ConceptCard>
 </CardGrid>
 
+## Od czego zacząć
+
+Nie każdy zaczyna od Modułu 0 - wybierz ścieżkę pod swoją sytuację, a do reszty modułów
+wrócisz w naturalnej kolejności.
+
+<Flow
+  title="od-czego-zaczac"
+  alt="Diagram trzech ścieżek startu na tej wiki: 'Tylko spróbować' prowadzi przez n8n Cloud do Modułu 2, 'Postawić u siebie' prowadzi przez Moduł 1 i poradnik hostingowy, a 'Podstawy znam, chcę AI' prowadzi od Modułu 3 do Modułu 6"
+  caption="Trzy najczęstsze punkty startu na tej wiki - wybierz swój."
+>
+  <FlowNode icon="fa-bolt" label="Tylko spróbować" sub="n8n Cloud → Moduł 2" from="#0ea5e9" to="#0369a1" />
+  <FlowNode icon="fa-server" label="Postawić u siebie" sub="Moduł 1 + poradnik" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-robot" label="Podstawy znam, chcę AI" sub="Moduł 3 → Moduł 6" from="#ea4b71" to="#6d28d9" />
+</Flow>
+
+<CardGrid>
+  <ConceptCard icon="fa-bolt" title="Chcę tylko spróbować, bez serwera">
+    Załóż konto w n8n Cloud i przejdź od razu do [Modułu 2](/modul-2-interfejs-pierwszy-workflow)
+    - zbudujesz tam swój pierwszy działający workflow. Jeśli po drodze trafisz na nieznane
+    pojęcie, [Moduł 0](/modul-0-fundamenty) posłuży Ci jako słownik.
+  </ConceptCard>
+  <ConceptCard icon="fa-server" title="Chcę postawić n8n u siebie">
+    Zacznij od [Modułu 1](/modul-1-instalacja-hosting) - instalacja i wymagania krok po kroku.
+    Do wyboru samego serwera przyda Ci się [poradnik hostingowy](/porownanie-n8n-hostingow) -
+    siedem realnych ścieżek do porównania.
+  </ConceptCard>
+  <ConceptCard icon="fa-robot" title="Umiem podstawy, interesuje mnie AI">
+    Najpierw [Moduł 3](/modul-3-praca-z-danymi), żeby swobodnie operować danymi - to fundament
+    pod agentów. Potem przejdź do [Modułu 6](/modul-6-ai-agenci) i zbuduj swojego pierwszego
+    agenta AI.
+  </ConceptCard>
+</CardGrid>
+
 ## Program kursu: od podstaw do zaawansowanego
 
 To mapa całej wiki - wszystkie 9 modułów jest już dostępnych do czytania. Każdy moduł to
 osobny rozdział oparty na oficjalnej dokumentacji n8n. Kliknij dowolny, żeby przejść do
-pełnej treści; poniżej w każdym module widzisz, co dokładnie obejmuje.
+pełnej treści; poniżej w każdym module widzisz, co dokładnie obejmuje. Całość to ~3 h
+czytania - w swoim tempie, moduł po module.
 
 **Wszystkie moduły są już dostępne.** Kliknij tytuł modułu lub "Czytaj moduł", aby otworzyć
 rozdział.

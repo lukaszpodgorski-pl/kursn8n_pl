@@ -1,0 +1,424 @@
+---
+/**
+ * Zapis na newsletter (Sendy) w jezyku wizualnym edytora n8n.
+ *
+ * DLACZEGO TAK: formularz jest jedynym miejscem na stronie, gdzie czytelnik ma
+ * cos wpisac. Zamiast generycznej karty CTA odwzorowuje panel parametrow node'a
+ * n8n - ten sam slownik ksztaltow co <Flow>/<FlowNode> (ciemna plyta, gradientowy
+ * kafelek ikony, port i przewod od triggera). Trigger nad node'em niesie realna
+ * informacje - KIEDY przychodzi mail - a nie dekoracje.
+ *
+ * Kolory kafelkow ikon celowo cytuja diagram z gory strony glownej: zielony to
+ * trigger (Schedule), blekit to node wysylkowy (Telegram) - te same gradienty.
+ *
+ * Karta jest ciemna w obu motywach - tak samo jak .k-flow, ktore odwzorowuje
+ * kanwe n8n niezaleznie od motywu strony.
+ *
+ * `not-content` odcina style tresci Starlighta (marginesy list, kolory linkow),
+ * zeby uklad panelu byl sterowany wylacznie stad.
+ *
+ * Pola formularza (`action`, `name`, wartosci ukryte) sa przepisane 1:1 z
+ * poprzedniej wersji - Sendy identyfikuje liste po `list`, wiec zmiana
+ * ktorejkolwiek z tych wartosci rozlacza zapis od listy.
+ */
+const SENDY_ACTION = 'https://lukaszpodgorski.pl/sendy/subscribe';
+const SENDY_LIST = 'Si8V763FyPwNlZ36k4Wbr6Ww';
+
+const BENEFITS = [
+	'Powiadomienie o każdym nowym materiale',
+	'Sprawdzone rozwiązania i ukryte możliwości n8n',
+	'Gotowe workflow jako dobry punkt startu',
+	'Zero spamu - wypiszesz się jednym kliknięciem',
+];
+---
+
+<div class="k-nl not-content">
+	{/* Trigger: zaokraglony lewy bok odwzorowuje ksztalt node'a-triggera w n8n. */}
+	<div class="k-nl-trigger">
+		<span class="k-nl-chip k-nl-chip-trigger">
+			<svg
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+				focusable="false"
+			>
+				<path d="M13 2 4 14h6l-1 8 9-12h-6Z"></path>
+			</svg>
+		</span>
+		<span class="k-nl-chip-tx">
+			<span class="k-nl-trigger-label">Nowy materiał na wiki</span>
+			<span class="k-nl-micro">Trigger</span>
+		</span>
+	</div>
+
+	<div class="k-nl-wire" aria-hidden="true"></div>
+
+	<form
+		class="k-nl-node"
+		id="newsletter-form"
+		action={SENDY_ACTION}
+		method="POST"
+		accept-charset="utf-8"
+	>
+		<div class="k-nl-head">
+			<span class="k-nl-chip k-nl-chip-mail">
+				<svg
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+					focusable="false"
+				>
+					<path d="M3 6h18v12H3Z"></path>
+					<path d="m3.6 6.6 8.4 6.4 8.4-6.4"></path>
+				</svg>
+			</span>
+			<span class="k-nl-chip-tx">
+				<span class="k-nl-title">Powiadomienie na Twój e-mail</span>
+				<span class="k-nl-micro">Send Email</span>
+			</span>
+		</div>
+
+		<div class="k-nl-body">
+			<ul class="k-nl-list">
+				{BENEFITS.map((benefit) => <li>{benefit}</li>)}
+			</ul>
+
+			<label class="k-nl-label" for="email">Adres e-mail</label>
+			<div class="k-nl-row">
+				<input
+					type="email"
+					class="k-nl-input"
+					name="email"
+					id="email"
+					placeholder="twoj@email.pl"
+					autocomplete="email"
+					inputmode="email"
+					required
+				/>
+				<button type="submit" name="submit" id="submit" class="k-nl-submit">Zapisz się</button>
+			</div>
+
+			<p class="k-nl-note">
+				Wysyłając formularz, akceptujesz <a href="/regulamin" target="_blank" rel="noopener"
+					>Regulamin</a
+				> i <a href="https://aitomate.pl/polityka-prywatnosci" target="_blank" rel="noopener"
+					>Politykę prywatności</a
+				>. Możesz w każdej chwili zrezygnować, klikając link w stopce dowolnego e-maila.
+			</p>
+		</div>
+
+		{/* Honeypot antyspamowy: ukryty przed ludzmi i niewidoczny dla czytnikow ekranu */}
+		<div class="k-nl-hp" aria-hidden="true">
+			<input type="text" name="hp" id="hp" tabindex="-1" autocomplete="off" />
+		</div>
+		{/* Zgoda RODO wyrazana przez swiadome wyslanie formularza (jasna informacja powyzej) */}
+		<input type="hidden" name="gdpr" value="1" />
+		<input type="hidden" name="list" value={SENDY_LIST} />
+		<input type="hidden" name="subform" value="yes" />
+	</form>
+</div>
+
+<style>
+	.k-nl {
+		/* Powierzchnie te same co .k-node/.k-flow-bar w kursn8n.css - karta ma
+		   wygladac jak wycinek kanwy n8n, nie jak osobny komponent. */
+		--nl-node: #23262e;
+		--nl-field: #171a20;
+		--nl-line: rgba(255, 255, 255, 0.12);
+		--nl-text: #ffffff;
+		--nl-muted: rgba(255, 255, 255, 0.58);
+		--nl-faint: rgba(255, 255, 255, 0.5);
+		/* Akcent w wersji dla ciemnego tla (ten sam odcien co --k-accent w motywie
+		   ciemnym). Tekst przycisku jest ciemny, bo bialy na tym blekicie daje
+		   3,6:1 - ponizej progu WCAG AA dla tekstu. */
+		--nl-accent: #4a9fdd;
+		--nl-accent-hi: #6bb2e6;
+		--nl-on-accent: #10131a;
+		/* Zielen z --k-good rozjasniona pod ciemne tlo (#16a34a daje na plycie
+		   node'a 4,5:1 - dziala, ale na granicy). */
+		--nl-good: #22c55e;
+		/* Przewod biegnie POZA karta, po tle strony - musi byc widoczny i na
+		   jasnym (#f7f7f5), i na ciemnym (#1b1b1f). Stad jeden szary posrodku
+		   zamiast pol-przezroczystej bieli z wnetrza node'a. */
+		--nl-wire: #8b9099;
+
+		margin: 1.5rem 0 2rem;
+	}
+
+	/* --- Trigger + przewod --- */
+	.k-nl-trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 16px 8px 8px;
+		background: var(--nl-node);
+		border: 1px solid var(--nl-line);
+		/* Zaokraglony lewy bok - tak n8n rysuje node'y-triggery. */
+		border-radius: 26px 12px 12px 26px;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+	}
+
+	.k-nl-trigger-label {
+		font-size: 0.875rem;
+		font-weight: 700;
+		color: var(--nl-text);
+	}
+
+	.k-nl-wire {
+		position: relative;
+		width: 2px;
+		height: 26px;
+		/* Srodek kafelka ikony triggera: 1px ramki + 8px paddingu + 15px (polowa
+		   kafelka) = 24px, minus 1px na wlasna szerokosc przewodu. */
+		margin-left: 23px;
+		background: var(--nl-wire);
+		transition: background-color 0.18s ease;
+	}
+
+	/* Port wejsciowy siedzi na gornej krawedzi node'a - tak jak w .k-node. */
+	.k-nl-wire::after {
+		content: '';
+		position: absolute;
+		left: -4px;
+		bottom: -5px;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: var(--nl-wire);
+		transition: background-color 0.18s ease;
+	}
+
+	/* Jeden orkiestrowany moment: gdy czytelnik wchodzi w formularz, polaczenie
+	   sie zapala - dokladnie tak, jak podswietla sie aktywna galaz w n8n. */
+	.k-nl:focus-within .k-nl-wire,
+	.k-nl:focus-within .k-nl-wire::after {
+		background: var(--nl-accent);
+	}
+
+	/* --- Node --- */
+	.k-nl-node {
+		background: var(--nl-node);
+		border: 1px solid var(--nl-line);
+		border-radius: 14px;
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+		overflow: hidden;
+	}
+
+	.k-nl-head {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 14px 18px;
+		background: rgba(255, 255, 255, 0.04);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.k-nl-chip {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 auto;
+		width: 30px;
+		height: 30px;
+		border-radius: 9px;
+		color: #fff;
+	}
+
+	.k-nl-chip svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	/* Gradienty cytuja diagram ze strony glownej: trigger Schedule i wysylka. */
+	.k-nl-chip-trigger {
+		background: linear-gradient(135deg, #16a34a, #15803d);
+	}
+
+	.k-nl-chip-mail {
+		background: linear-gradient(135deg, #0ea5e9, #0369a1);
+	}
+
+	.k-nl-chip-tx {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		min-width: 0;
+	}
+
+	.k-nl-title {
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--nl-text);
+	}
+
+	/* Mikroetykieta w slowniku panelu parametrow n8n - typ node'a pod jego nazwa. */
+	.k-nl-micro {
+		font-size: 0.6875rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--nl-faint);
+	}
+
+	.k-nl-body {
+		padding: 18px;
+	}
+
+	/* --- Lista korzysci --- */
+	.k-nl-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+		gap: 2px 20px;
+		margin: 0 0 18px;
+		padding: 0;
+		list-style: none;
+	}
+
+	.k-nl-list li {
+		position: relative;
+		padding: 5px 0 5px 26px;
+		font-size: 0.875rem;
+		color: var(--nl-muted);
+	}
+
+	/* Ten sam znacznik co w .k-takeaways - spojny slownik "co dostajesz". */
+	.k-nl-list li::before {
+		content: '✓';
+		position: absolute;
+		left: 2px;
+		color: var(--nl-good);
+		font-weight: 700;
+	}
+
+	/* --- Pole parametru --- */
+	.k-nl-label {
+		display: block;
+		margin-bottom: 7px;
+		font-size: 0.6875rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--nl-faint);
+	}
+
+	.k-nl-row {
+		display: flex;
+		gap: 10px;
+	}
+
+	.k-nl-input {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding: 12px 14px;
+		background: var(--nl-field);
+		border: 1px solid var(--nl-line);
+		border-radius: 8px;
+		color: var(--nl-text);
+		/* Wartosc parametru monospacem - tak n8n pokazuje zawartosc pol. */
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+		font-size: 0.9375rem;
+		line-height: 1.4;
+		transition:
+			border-color 0.18s ease,
+			background-color 0.18s ease;
+	}
+
+	.k-nl-input::placeholder {
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	.k-nl-input:hover {
+		border-color: rgba(255, 255, 255, 0.24);
+	}
+
+	.k-nl-input:focus {
+		outline: 2px solid var(--nl-accent);
+		outline-offset: 2px;
+		border-color: var(--nl-accent);
+	}
+
+	.k-nl-submit {
+		flex: 0 0 auto;
+		padding: 12px 22px;
+		background: var(--nl-accent);
+		border: none;
+		border-radius: 8px;
+		color: var(--nl-on-accent);
+		font: inherit;
+		font-size: 0.9375rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition:
+			background-color 0.18s ease,
+			transform 0.18s ease;
+	}
+
+	.k-nl-submit:hover {
+		background: var(--nl-accent-hi);
+		transform: translateY(-1px);
+	}
+
+	.k-nl-submit:focus-visible {
+		outline: 2px solid var(--nl-accent);
+		outline-offset: 3px;
+	}
+
+	.k-nl-submit:active {
+		transform: translateY(0);
+	}
+
+	/* --- Nota prawna --- */
+	.k-nl-note {
+		margin: 12px 0 0;
+		font-size: 0.78125rem;
+		line-height: 1.55;
+		color: var(--nl-muted);
+	}
+
+	.k-nl-note a {
+		color: #93c7ec;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.k-nl-note a:hover {
+		color: #b9dcf5;
+	}
+
+	.k-nl-hp {
+		display: none;
+	}
+
+	/* Ponizej ~30rem przycisk schodzi pod pole - inaczej zostaje z niego kikut. */
+	@media (max-width: 30rem) {
+		.k-nl-row {
+			flex-direction: column;
+		}
+
+		.k-nl-submit {
+			width: 100%;
+			padding-block: 13px;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.k-nl-wire,
+		.k-nl-wire::after,
+		.k-nl-input,
+		.k-nl-submit {
+			transition: none;
+		}
+
+		.k-nl-submit:hover {
+			transform: none;
+		}
+	}
+</style>

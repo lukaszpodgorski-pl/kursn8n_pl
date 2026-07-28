@@ -1,0 +1,342 @@
+---
+title: "Gotowy workflow: RSS → podsumowanie AI → Telegram"
+description: "Gotowy workflow n8n: raz dziennie czyta kanał RSS, filtruje nowe wpisy z ostatnich 24 godzin, podsumowuje je modelem AI i wysyła podsumowanie na Telegram."
+head:
+  - tag: title
+    content: "Gotowy workflow: RSS z podsumowaniem AI na Telegram (n8n) | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Gotowy workflow: RSS → podsumowanie AI → Telegram"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Zamiast przeglądać branżowy kanał RSS, dostajesz raz dziennie na Telegramie krótkie podsumowanie AI nowych wpisów - gotowy workflow n8n do pobrania."
+datePublished: 2026-07-24
+educationalLevel: Intermediate
+teaches:
+  - Jak zbudować workflow czytający kanał RSS i filtrujący tylko wpisy z ostatnich 24 godzin
+  - Jak połączyć wiele wpisów w jeden tekst node'em Aggregate, bez pisania kodu
+  - Jak wywołać model AI z poziomu n8n przez zwykły HTTP Request i zbudować prompt po polsku
+  - Kiedy podejście bezstanowe (filtr czasowy) wystarczy, a kiedy potrzebna jest pamięć workflow (static data)
+  - Jak wysłać gotowe podsumowanie na Telegram i co zrobić, gdy kanał RSS zwraca za mało treści
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: RSS
+    sameAs: https://en.wikipedia.org/wiki/RSS
+  - name: Telegram
+    sameAs: https://en.wikipedia.org/wiki/Telegram_(software)
+  - name: OpenAI
+    sameAs: https://en.wikipedia.org/wiki/OpenAI
+faq:
+  - q: "Czy to podsumowanie AI kosztuje pieniądze przy każdym uruchomieniu?"
+    a: "Tak - node Podsumowanie AI woła płatne API dostawcy modelu, więc każde codzienne uruchomienie zużywa tokeny i ma swój (zwykle niewielki) koszt. Dokładną stawkę znajdziesz w cenniku dostawcy - nie podaję tu konkretnej kwoty, bo modele i ceny zmieniają się szybciej niż ten artykuł."
+  - q: "Dlaczego workflow filtruje wpisy z ostatnich 24 godzin zamiast pamiętać, co już wysłał?"
+    a: "Filtr czasowy jest bezstanowy - działa tak samo przy każdym uruchomieniu, bez dodatkowej pamięci do utrzymania. Alternatywą jest zapamiętywanie ostatniego przetworzonego wpisu (np. jego daty albo ID) w danych statycznych workflow, jak pokazuję w Module 5, w sekcji o danych statycznych - ma to sens, gdy kanał publikuje rzadziej niż raz dziennie i filtr czasowy zacząłby gubić wpisy między uruchomieniami."
+  - q: "Co zrobić, jeśli mój kanał RSS nie ma pola isoDate?"
+    a: "Część kanałów nie publikuje daty w formacie, z którego parser RSS w n8n potrafi zbudować pole isoDate - wtedy dostępne jest tylko surowe pubDate. Sprawdź w panelu danych node'a Wczytaj kanał RSS, które pole faktycznie istnieje, i w razie potrzeby podmień je w warunku node'a Tylko ostatnie 24h."
+  - q: "Czy mogę użyć AI Agent albo Basic LLM Chain z Modułu 6 zamiast HTTP Request?"
+    a: "Tak, to w pełni realna alternatywa i dla tego jednokrokowego zadania (podsumuj tekst, koniec) wystarczy prostszy Basic LLM Chain, bez pełnego AI Agent. W tym gotowcu wybrałem zwykły HTTP Request, bo jego JSON eksportu opiera się wyłącznie na standardowych połączeniach i bezpiecznie się importuje - cluster nodes (root + sub-node modelu) używają specjalnych portów, które łatwiej skonfigurować ręcznie w edytorze niż odtworzyć z pliku."
+  - q: "Co, jeśli kanał publikuje bardzo dużo wpisów dziennie i podsumowanie się nie udaje?"
+    a: "Zbyt duża liczba wpisów w jednym żądaniu może przekroczyć limit kontekstu modelu albo znacząco podnieść koszt pojedynczego uruchomienia. Ogranicz liczbę wpisów przed node'em Połącz wpisy (np. node'em Limit z Modułu 3) albo zawęź pole fieldsToInclude w Aggregate do samego tytułu i linku, bez pełnej treści."
+  - q: "Czy ten workflow da się wysłać mailem zamiast na Telegram?"
+    a: "Tak - wystarczy zastąpić ostatni node (Telegram) node'em Send Email albo integracją z Gmail/SMTP, którą omawiam w Module 4. Reszta workflow (RSS, filtr, agregacja, wywołanie AI) zostaje bez zmian, bo dostarcza gotowy tekst podsumowania niezależnie od kanału wysyłki."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Gotowy workflow · po Module 6"
+  readingTime="~13 min"
+  note="Wdrożenie: ~25-30 min"
+/>
+
+Śledzisz branżowy kanał RSS, ale codzienne przeglądanie nowych wpisów zajmuje czas, a większość
+z nich i tak Cię nie dotyczy? Ten gotowiec robi to za Ciebie - raz dziennie pobiera nowe wpisy,
+prosi model AI o krótkie podsumowanie po polsku i wysyła je jedną wiadomością na Telegram. Zamiast
+przeglądać serwis, dostajesz gotowy skrót.
+
+To też naturalny "quick win" po ukończeniu [Modułu 6: AI i agenci](/modul-6-ai-agenci) - łączy
+wywołanie modelu językowego z node'ami, które już znasz (Schedule Trigger, HTTP Request, Telegram),
+i pokazuje, że nie każde zadanie z AI wymaga pełnego AI Agent.
+
+:::note[Dlaczego HTTP Request zamiast AI Agent albo Chain]
+W [Module 6](/modul-6-ai-agenci) poznałeś cluster nodes: AI Agent i Basic LLM Chain z osobnym
+sub-node'em modelu, podpiętym pod specjalny port (nie zwykłe main). To świetne narzędzie do
+budowania w edytorze n8n, ale ich JSON eksportu opiera się właśnie na tych nietypowych
+połączeniach - łatwo o drobną niezgodność, która psuje import z pliku. Do zadania, które robi
+dokładnie jedną rzecz (podsumuj tekst, koniec), w pełni wystarczy zwykły **HTTP Request**
+wywołujący API modelu bezpośrednio - dokładnie ten sam node, którego używałeś już w
+[Modułu 4: Integracje i API](/modul-4-integracje-api) i w gotowcu
+[Monitor ceny produktu](/workflow-monitor-ceny-produktu), tylko tym razem żądanie leci nie do
+sklepu, a do modelu językowego. Wolisz wariant z cluster node? Basic LLM Chain z podpiętym Chat
+Modelem zbudujesz ręcznie dokładnie tak, jak pokazuję w Module 6 - ten gotowiec celowo skupia się
+na wersji, którą bezpiecznie zaimportujesz z pliku.
+:::
+
+## Czego potrzebujesz
+
+- **Moduł 6 ukończony** - rozumiesz pojęcia prompt, token i model językowy oraz wiesz, czym różni
+  się jednokrokowe wywołanie AI od pełnego agenta. Jeśli czegoś z tego brakuje, wróć do
+  [Modułu 6: AI i agenci](/modul-6-ai-agenci).
+- **Moduł 4 ukończony** - wystarczy znajomość node'a HTTP Request i podstaw pracy z kluczami API.
+  Jeśli czegoś z tego brakuje, wróć do [Modułu 4: Integracje i API](/modul-4-integracje-api).
+- **Działająca instancja n8n** - Cloud, Docker albo dowolny hosting z
+  [Modułu 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+- **Klucz API do modelu AI** (w tym gotowcu OpenAI) - założysz konto i klucz na stronie dostawcy.
+- **Bota Telegram i jego token** - jeśli jeszcze go nie masz, załóż go przez BotFather dokładnie
+  tak, jak w sekcji budowy bota w gotowcu
+  [Poranny brief na Telegram](/workflow-poranny-brief-telegram). Tutaj tej instrukcji nie powtarzam.
+- **Adres kanału RSS**, który chcesz monitorować - zwykle kończy się na `/feed`, `/rss` albo
+  `/rss.xml`; większość serwisów informacyjnych i blogów go udostępnia, czasem trzeba go
+  poszukać w stopce strony.
+
+## Jak to działa
+
+<Flow
+  title="rss-podsumowanie-ai"
+  alt="Diagram: Harmonogram uruchamia się codziennie o 8:00 i wczytuje kanał RSS. Node Filter
+  przepuszcza dalej tylko wpisy z ostatnich 24 godzin. Aggregate łączy pozostałe wpisy w jeden
+  tekst. HTTP Request wysyła go do modelu AI wraz z promptem podsumowującym, a wynik trafia na
+  Telegram jako gotowa wiadomość."
+  caption="Trzy pierwsze node'y porządkują dane (wczytaj, przefiltruj, połącz), HTTP Request woła
+  model AI, a Telegram dostarcza gotowe podsumowanie."
+>
+  <FlowNode icon="fa-clock" label="Harmonogram" sub="codziennie 8:00" from="#64748b" to="#475569" />
+  <FlowNode icon="fa-rss" label="RSS Read" sub="wczytaj kanał" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-filter" label="Filter" sub="tylko ostatnie 24h" from="#0ea5e9" to="#0369a1" />
+  <FlowNode icon="fa-layer-group" label="Aggregate" sub="połącz wpisy" from="#d97706" to="#b45309" />
+  <FlowNode icon="fa-robot" label="Podsumowanie AI" sub="HTTP Request" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="wyślij podsumowanie" from="#16a34a" to="#15803d" />
+</Flow>
+
+:::note[Koszt uruchomienia]
+Node Podsumowanie AI woła płatne API dostawcy modelu - każde codzienne uruchomienie zużywa tokeny
+(jednostki, w których dostawcy liczą koszt i limity, więcej o tym w
+[Module 6](/modul-6-ai-agenci#n8n-jako-orkiestrator-ai)) i ma swój koszt. Przy krótkich,
+kilkuzdaniowych podsumowaniach raz dziennie rząd wielkości kosztu jest niewielki, ale dokładną
+stawkę sprawdź w bieżącym cenniku dostawcy modelu - ceny i same modele zmieniają się szybciej niż
+ten artykuł.
+:::
+
+## Pobierz gotowy workflow
+
+Cały workflow w formacie JSON, gotowy do zaimportowania:
+[rss-podsumowanie-ai.json](/workflows/rss-podsumowanie-ai.json).
+
+<Steps>
+
+1. Pobierz plik `rss-podsumowanie-ai.json` (link wyżej).
+2. W n8n otwórz listę workflow i wybierz **Import from File** (albo po prostu przeciągnij plik
+   na kanwę nowego, pustego workflow).
+3. Uzupełnij cztery placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
+
+</Steps>
+
+| Placeholder | Gdzie | Co wpisać |
+| --- | --- | --- |
+| `ADRES_KANALU_RSS` | node Wczytaj kanał RSS (pole URL) | pełny adres kanału RSS, który chcesz monitorować |
+| `NAZWA_MODELU_AI` | node Podsumowanie AI (treść żądania) | identyfikator aktualnie dostępnego, taniego modelu czatu u wybranego dostawcy - sprawdź aktualną listę modeli w jego dokumentacji, bo nazwy i ceny zmieniają się często |
+| `TWOJ_KLUCZ_API_OPENAI` | node Podsumowanie AI (nagłówek Authorization) | Twój klucz API do modelu (w tym gotowcu OpenAI) |
+| `TWOJ_CHAT_ID` | node Wyślij podsumowanie (pole Chat ID) | ID czatu Telegram, na który ma trafić podsumowanie |
+
+Klucz API do modelu AI nie wymaga podpinania żadnych credentials w n8n - wpisujesz go wprost w
+nagłówku żądania node'a Podsumowanie AI (patrz krok 5 niżej). Node Telegram nadal potrzebuje
+swoich credentials z tokenem bota - podepnij je dokładnie tak, jak w gotowcu
+[Poranny brief na Telegram](/workflow-poranny-brief-telegram), zanim uruchomisz workflow.
+
+## Budowa krok po kroku
+
+### 1. Harmonogram - Schedule Trigger co 24 godziny
+
+Node **Schedule Trigger** ustawiony na interwał **Days** z godziną `8:00` uruchamia workflow raz
+dziennie, rano. Więcej o samej konfiguracji interwałów znajdziesz w
+[dokumentacji Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/).
+Pamiętaj: żeby trigger czasowy w ogóle zadziałał, workflow musi być **opublikowany** (aktywny),
+nie tylko zapisany.
+
+### 2. Wczytaj kanał RSS - RSS Read
+
+Node **RSS Read** dostaje jeden parametr - adres kanału z pola `ADRES_KANALU_RSS` - i zwraca
+listę wpisów jako osobne itemy (każdy wpis to jeden item, dokładnie tak jak poznałeś w
+[Moduł 3: Praca z danymi](/modul-3-praca-z-danymi)). Parser RSS użyty przez ten node buduje z
+danych kanału pola takie jak `title`, `link`, `content`, `contentSnippet`, `pubDate` i `isoDate` -
+`isoDate` to data wpisu w formacie ISO 8601, którą wykorzystasz w kolejnym kroku. Pełny opis
+node'a znajdziesz w
+[dokumentacji RSS Read](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.rssfeedread/).
+
+:::caution[Nie każdy kanał ma isoDate]
+`isoDate` pojawia się tylko wtedy, gdy parser potrafił odczytać datę wpisu z surowego pola
+`pubDate`. Zanim przejdziesz dalej, zerknij w panel danych tego node'a i sprawdź, czy `isoDate`
+faktycznie tam jest - jeśli nie, warunek w kolejnym kroku musisz oprzeć o `pubDate`.
+:::
+
+### 3. Tylko ostatnie 24h - Filter
+
+Node **Filter** przepuszcza dalej wyłącznie itemy spełniające warunek, a resztę po prostu
+odrzuca - to różni go od IF, który ma dwie gałęzie (true/false); tu interesuje nas tylko "zostaw
+pasujące". Warunek: typ danych **Date & Time**, lewa strona `{{ $json.isoDate }}`, operator
+**is after**, prawa strona `{{ $now.minus({ hours: 24 }).toISO() }}` - czyli "moment 24 godziny
+temu". `$now` to bieżący czas jako obiekt daty (Luxon), a `.minus({ hours: 24 })` odejmuje od
+niego dobę; `.toISO()` zamienia wynik na tekstowy znacznik czasu, który node potrafi porównać.
+Pełną listę operatorów dostępnych w Filter znajdziesz w
+[dokumentacji node'a Filter](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/).
+
+:::tip[Podejście bezstanowe - i kiedy go nie wystarczy]
+Ten filtr jest **bezstanowy** - nie pamięta niczego między uruchomieniami, po prostu za każdym
+razem pyta "czy ten wpis ma mniej niż 24 godziny?". To prostsze niż pamiętanie "co już widziałem",
+bo nie wymaga żadnej dodatkowej pamięci ani obsługi przypadku "workflow się nie uruchomił i coś
+przegapiliśmy". Ma jednak jedno założenie: harmonogram musi być regularny. Jeśli kanał publikuje
+rzadziej niż raz na dobę albo zależy Ci na precyzyjnym "nie wyślij tego samego wpisu dwa razy",
+lepszym rozwiązaniem jest zapamiętanie daty (albo `guid`) ostatnio przetworzonego wpisu w
+danych statycznych workflow - dokładnie ten mechanizm pokazuję w
+[Moduł 5: Kod i sub-workflow](/modul-5-kod-sub-workflow#dane-statyczne-workflow-static-data).
+:::
+
+### 4. Połącz wpisy - Aggregate
+
+Node **Aggregate** w trybie **All Item Data** bierze wszystkie pozostałe itemy i
+składa je w jeden - z jednym polem `wpisy` zawierającym tablicę obiektów (tytuł, link, zajawka
+treści i data każdego wpisu). Wybrałem Aggregate zamiast Code Node z Modułu 5, bo to zadanie
+("połącz itemy w jeden") ma gotowy, wyspecjalizowany node - nie trzeba pisać ani jednej linii
+kodu, żeby je złożyć. Pole `fieldsToInclude` ogranicza dane tylko do tego, co naprawdę trafi do
+promptu (`title, link, contentSnippet, isoDate`) - pomija pełne, często dużo dłuższe pole
+`content`, żeby nie zużywać niepotrzebnie kontekstu modelu. Pełny opis trybów node'a znajdziesz w
+[dokumentacji Aggregate](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.aggregate/).
+
+### 5. Podsumowanie AI - HTTP Request do API OpenAI
+
+Node **HTTP Request** wysyła żądanie `POST` pod adres
+`https://api.openai.com/v1/chat/completions` - standardowy punkt wejścia
+[API OpenAI do generowania odpowiedzi czatu](https://platform.openai.com/docs/api-reference/chat).
+W nagłówkach ustawiasz `Authorization: Bearer TWOJ_KLUCZ_API_OPENAI` - ręczne dopisywanie
+nagłówka `Content-Type: application/json` nie jest tu potrzebne, bo node HTTP Request ustawia go
+sam, gdy treść żądania wysyłasz w trybie **JSON Body**, dokładnie tak jak w tym gotowcu. Treść
+żądania (JSON Body) to wyrażenie budujące prompt:
+
+```javascript
+{{ JSON.stringify({
+  model: 'NAZWA_MODELU_AI',
+  messages: [
+    {
+      role: 'system',
+      content: 'Jesteś redaktorem newslettera. Przygotowujesz krótkie, rzeczowe podsumowanie nowości z branżowego kanału RSS, po polsku, w formie krótkiej listy.'
+    },
+    {
+      role: 'user',
+      content: 'Podsumuj poniższe wpisy z kanału RSS. Dla każdego wpisu napisz jedno, maksymalnie dwuzdaniowe podsumowanie i dodaj link źródłowy. Pomiń wpisy czysto promocyjne, jeśli takie się pojawią. Wpisy w formacie JSON: ' + JSON.stringify($json.wpisy)
+    }
+  ]
+}) }}
+```
+
+Krok po kroku: `messages` to lista wiadomości w formacie, jaki rozumie większość dzisiejszych
+modeli czatu - wiadomość `system` ustawia rolę modelu, a wiadomość `user` to właściwe polecenie
+razem z danymi (`$json.wpisy` z poprzedniego node'a, zamienione na tekst przez
+`JSON.stringify`). Odpowiedź modelu trafia do pola `choices[0].message.content` zwróconej
+odpowiedzi - to z niego korzysta kolejny node.
+
+:::caution[To nie jest jedyny słuszny format]
+Dokładny kształt zapytania (nazwa pola na model, strukturę `messages`) zweryfikuj w bieżącej
+dokumentacji swojego dostawcy, zanim uruchomisz workflow produkcyjnie - dostawcy API modeli
+językowych potrafią zmieniać zalecane endpointy i parametry (np. wprowadzać nowsze API obok
+starszego) częściej niż inne, ustabilizowane integracje w tym kursie.
+:::
+
+### 6. Wyślij podsumowanie - Telegram
+
+Node **Telegram** w operacji **Send Message** wysyła treść z pola
+`{{ $json.choices[0].message.content }}` do czatu wskazanego w polu **Chat ID**. Credentials
+(token bota) skonfigurujesz dokładnie tak, jak opisuję w gotowcu
+[Poranny brief na Telegram](/workflow-poranny-brief-telegram) - stamtąd też weźmiesz swój Chat ID,
+jeśli jeszcze go nie znasz.
+
+## Co może pójść nie tak
+
+### Kanał zwraca tylko zajawki - podsumowanie jest płytkie
+
+- **Objaw:** podsumowanie AI niemal powtarza sam tytuł wpisu, bez żadnych konkretów.
+- **Przyczyna:** część kanałów RSS publikuje w polu `content`/`contentSnippet` wyłącznie krótką
+  zajawkę (pierwsze zdanie albo dwa), nie pełną treść artykułu - model dostaje za mało materiału,
+  żeby cokolwiek streścić.
+- **Naprawa:** sprawdź w panelu danych node'a Wczytaj kanał RSS, ile tekstu faktycznie jest w
+  polu `contentSnippet`. Jeśli to tylko zajawka, rozbuduj workflow o dodatkowy **HTTP Request**
+  pobierający pełną stronę artykułu pod adresem z pola `link` - podobnie jak w gotowcu
+  [Monitor ceny produktu](/workflow-monitor-ceny-produktu) - zanim wpis trafi do podsumowania.
+
+### Brak pola `isoDate` albo inna nazwa pola daty w konkretnym kanale
+
+- **Objaw:** node Tylko ostatnie 24h przepuszcza wszystkie wpisy albo żaden, niezależnie od ich
+  faktycznej daty.
+- **Przyczyna:** nie każdy kanał RSS ma datę w formacie, z którego parser potrafi zbudować pole
+  `isoDate` - czasem dostępne jest tylko surowe `pubDate` w formacie tekstowym.
+- **Naprawa:** sprawdź w panelu danych node'a Wczytaj kanał RSS, które pole z datą faktycznie
+  istnieje, i w razie potrzeby podmień `isoDate` na `pubDate` w warunku node'a Filter (patrz
+  krok 3 wyżej).
+
+### Przekroczony limit kontekstu przy bardzo płodnym kanale
+
+- **Objaw:** node Podsumowanie AI kończy się błędem o przekroczonym limicie tokenów (context
+  length exceeded) albo generuje zaskakująco wysoki koszt jednego uruchomienia.
+- **Przyczyna:** kanał opublikował danego dnia wyjątkowo dużo wpisów, a każdy z nich w całości
+  trafia do promptu - suma tekstu przekracza limit kontekstu modelu.
+- **Naprawa:** ogranicz liczbę wpisów wysyłanych do modelu, np. node'em **Limit** z
+  [Modułu 3: Praca z danymi](/modul-3-praca-z-danymi) wstawionym przed Aggregate, albo zawęź pole
+  `fieldsToInclude` w node'cie Połącz wpisy jeszcze bardziej (np. do samego tytułu i linku, bez
+  zajawki treści).
+
+### Klucz API nieustawiony albo wyczerpany limit
+
+- **Objaw:** node Podsumowanie AI kończy się błędem `401` (brak albo zły klucz) albo `429`
+  (przekroczony limit zapytań lub wydatków).
+- **Przyczyna:** placeholder `TWOJ_KLUCZ_API_OPENAI` nie został podmieniony na prawdziwy klucz,
+  albo konto u dostawcy modelu wyczerpało przyznany limit.
+- **Naprawa:** sprawdź wartość nagłówka `Authorization` w node'cie Podsumowanie AI oraz saldo i
+  limit konta na stronie dostawcy modelu.
+
+### Bot Telegram milczy, mimo że workflow zakończył się bez błędu
+
+- **Objaw:** node Wyślij podsumowanie kończy się błędem, a na Telegramie nic nie przychodzi.
+- **Przyczyna:** bot nigdy nie dostał od Ciebie wiadomości - Telegram nie pozwala botom pisać
+  pierwszym do użytkownika.
+- **Naprawa:** dokładny opis tej naprawy (i jak w ogóle znaleźć swój Chat ID) znajdziesz w sekcji
+  "Co może pójść nie tak" gotowca
+  [Poranny brief na Telegram](/workflow-poranny-brief-telegram#co-może-pójść-nie-tak).
+
+## Jak to rozbudować
+
+- **Wiele kanałów naraz** - zamiast jednego adresu na stałe, przygotuj listę adresów RSS i
+  przepuść ją przez ten sam ciąg node'ów; n8n domyślnie przetworzy każdy kanał z listy jako
+  osobny item, bez dodatkowej pętli (patrz [Moduł 3: Praca z danymi](/modul-3-praca-z-danymi)),
+  a wyniki połącz przed podsumowaniem AI.
+- **Archiwum podsumowań w arkuszu** - zamiast tylko wysyłać podsumowanie, dopisuj je razem z datą
+  do arkusza Google Sheets, by mieć historię tego, co AI streściło danego dnia. Integrację z
+  zewnętrznymi API opisuje [Moduł 4: Integracje i API](/modul-4-integracje-api).
+- **Wersja z AI Agent i narzędziami** - zamiast pojedynczego wywołania, AI Agent z narzędziem
+  wyszukiwania mógłby samodzielnie doczytać pełną treść ciekawszych wpisów, zanim je streści -
+  pokazuję to w [Moduł 6: AI i agenci](/modul-6-ai-agenci).
+- **Wysyłka mailem zamiast Telegrama** - podmień ostatni node na Send Email albo integrację z
+  Gmail/SMTP, którą omawiam w [Moduł 4: Integracje i API](/modul-4-integracje-api). Reszta
+  workflow zostaje bez zmian.
+
+<Takeaways title="Co warto zapamiętać">
+  - Nie każde zadanie z AI wymaga pełnego AI Agent - jednokrokowe podsumowanie tekstu równie dobrze
+    obsłuży zwykły HTTP Request do API modelu, bez cluster nodes.
+  - Filtr czasowy (bezstanowy) wystarcza, gdy harmonogram jest regularny - pamięć między
+    uruchomieniami (static data) potrzebna jest dopiero, gdy zależy Ci na precyzyjnym "nie wyślij
+    tego samego dwa razy".
+  - Node Aggregate łączy wiele itemów w jeden bez pisania kodu - to prostszy wybór niż Code Node,
+    gdy zadanie sprowadza się do "złóż to razem".
+  - Ograniczaj dane wysyłane do modelu (pola, liczbę wpisów) - to chroni przed przekroczeniem
+    limitu kontekstu i przed niepotrzebnym kosztem.
+  - Każde uruchomienie workflow z AI kosztuje tokeny - sprawdzaj bieżący cennik dostawcy, zanim
+    ustawisz harmonogram na sztywno.
+</Takeaways>
+
+Szukasz kolejnego gotowca do wdrożenia od razu? Zobacz [wszystkie gotowe workflow](/gotowe-workflow).

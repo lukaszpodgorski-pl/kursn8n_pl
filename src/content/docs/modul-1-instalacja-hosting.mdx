@@ -454,6 +454,42 @@ przed update i aktualizacja w okienku, w którym ewentualny przestój nie zaboli
 minut, które ratuje przed dużymi problemami.
 :::
 
+## Sprawdź się
+
+Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na
+kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
+
+1. Uczysz się i stawiasz pierwszą instancję lokalnie - dlaczego SQLite w zupełności
+   wystarczy, a PostgreSQL na tym etapie byłby przerostem formy nad treścią? Jeśli nie masz
+   pewności - [Baza danych: SQLite czy PostgreSQL?](#baza-danych-sqlite-czy-postgresql).
+2. Podczas aktualizacji kontenera `docker run` usuwasz stary kontener i uruchamiasz nowy w
+   jego miejsce. Dlaczego to bezpieczne dla Twoich workflow i poświadczeń, o ile masz
+   wolumen `n8n_data`, a katastrofalne bez niego? Jeśli nie masz pewności -
+   [Aktualizacja pojedynczego kontenera (docker run)](#aktualizacja-pojedynczego-kontenera-docker-run).
+3. Twoje self-hostowane n8n działa na `localhost` bez żadnego tunelu ani domeny. Dlaczego
+   logowanie przez Google czy Slack (OAuth) się nie uda, mimo że sama instancja działa
+   poprawnie? Jeśli nie masz pewności -
+   [Dlaczego OAuth wymaga publicznego HTTPS](#dlaczego-oauth-wymaga-publicznego-https).
+4. Planujesz w przyszłości tryb kolejkowy (queue mode) z kilkoma workerami. Dlaczego
+   wszystkie muszą mieć dokładnie ten sam `N8N_ENCRYPTION_KEY`, a nie każdy swój? Jeśli nie
+   masz pewności - [Jak ustawić własny klucz](#jak-ustawić-własny-klucz).
+
+<details>
+<summary>Mini-zadanie: sprawdź, czy Twój wolumen naprawdę chroni dane</summary>
+
+Potrzebujesz Dockera i kilkunastu minut.
+
+1. Uruchom n8n w kontenerze z wolumenem `n8n_data` (komenda z sekcji
+   [Docker i Docker Compose krok po kroku](#docker-i-docker-compose-krok-po-kroku)).
+2. Utwórz w edytorze pusty workflow z jednym node'em i zapisz go pod dowolną nazwą.
+3. Zatrzymaj kontener (`docker stop n8n`) i usuń go (`docker rm n8n`).
+4. Uruchom ponownie tę samą komendę `docker run` z tym samym wolumenem
+   `-v n8n_data:/home/node/.n8n`.
+5. Otwórz `http://localhost:5678` - Twój workflow powinien tam nadal być. Gdybyś w kroku 1
+   pominął `-v`, po tym ćwiczeniu zniknąłby bezpowrotnie.
+
+</details>
+
 <Takeaways>
   - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj 2 GB+ RAM i PostgreSQL.
   - n8n Cloud = najszybszy start bez administracji; self-host = kontrola i niższy koszt długofalowy.
@@ -463,5 +499,3 @@ minut, które ratuje przed dużymi problemami.
   - `N8N_ENCRYPTION_KEY` szyfruje poświadczenia - utrata klucza = utrata poświadczeń. Backupuj go razem z bazą.
   - Aktualizuj świadomie: backup, release notes, `docker compose pull && up -d`.
 </Takeaways>
-
-Następny krok: [Moduł 2 - Interfejs i pierwszy workflow](/modul-2-interfejs-pierwszy-workflow)

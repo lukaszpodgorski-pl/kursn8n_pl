@@ -267,7 +267,7 @@ czytasz i zapisujesz wartości. Zakres podajesz argumentem:
 #### Przykład: zapamiętaj ostatnie przetworzone ID
 
 ```javascript
-// Pobierz „pamięć" workflow
+// Pobierz "pamięć" workflow
 const staticData = $getWorkflowStaticData('global');
 
 // Odczytaj ostatnie ID (przy pierwszym uruchomieniu będzie undefined)
@@ -424,6 +424,39 @@ coś po cichu źle. Zaprojektuj reakcję na błąd **zanim** włączysz workflow
 alertem, dodaj retry na node'ach sieciowych, a tam gdzie dane mogą być błędne - jawnie je waliduj
 i przerywaj przez Stop And Error. Lepszy głośny, kontrolowany błąd niż cicha katastrofa danych.
 :::
+
+## Sprawdź się
+
+Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
+Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
+
+1. Dlaczego w trybie **Run Once for Each Item** masz od razu dostęp do `$json` bez pętli, a w
+   **Run Once for All Items** musisz sam iterować po `$input.all()`? Jeśli nie masz pewności -
+   [Dwa tryby uruchamiania](#dwa-tryby-uruchamiania-kluczowa-decyzja).
+2. Co dokładnie stanie się, jeśli Code Node zwróci samą liczbę albo string zamiast listy obiektów
+   z kluczem `json`? Jeśli nie masz pewności - [Format zwracanych danych](#format-zwracanych-danych).
+3. Masz do zbudowania prosty warunek "jeśli pole X jest puste, ustaw wartość domyślną" - sięgasz
+   po Code Node czy zostajesz przy node'ach Set/IF? Uzasadnij wybór. Jeśli nie masz pewności -
+   [Kiedy kod, a kiedy node'y](#kiedy-kod-a-kiedy-nodey).
+4. Jaka jest różnica między ustawieniem node'a **On Error → Continue** a **Continue (using error
+   output)** - i kiedy przyda Ci się to drugie? Jeśli nie masz pewności - [Ustawienia na poziomie
+   node'a](#ustawienia-na-poziomie-nodea).
+
+<details>
+<summary>Mini-zadanie: zbuduj sub-workflow liczący sumę zamówień</summary>
+
+1. Stwórz nowy workflow "Suma zamówień" i dodaj **Execute Sub-workflow Trigger** jako pierwszy
+   node.
+2. Dodaj Code Node w trybie **Run Once for All Items**, który sumuje pole `kwota` ze wszystkich
+   przychodzących itemów i zwraca jeden item z polami `liczbaZamowien` i `sumaPLN` - wzoruj się na
+   przykładzie w sekcji [Format zwracanych danych](#format-zwracanych-danych).
+3. Dodaj **Stop And Error**, jeśli lista wejściowa jest pusta - świadome przerwanie zamiast
+   zwrócenia sumy 0.
+4. W osobnym workflow-rodzicu dodaj Manual Trigger, node **Edit Fields** tworzący kilka testowych
+   itemów z polem `kwota`, a potem **Execute Sub-workflow** wskazujący workflow z kroku 1.
+5. Uruchom rodzica i sprawdź w podglądzie wyniku node'a Execute Sub-workflow, czy suma się zgadza.
+
+</details>
 
 <Takeaways>
   - Code Node ma dwa tryby: "Run Once for All Items" (cały zbiór, `$input.all()`) i "Run Once for Each Item" (pojedynczy item, `$json`).

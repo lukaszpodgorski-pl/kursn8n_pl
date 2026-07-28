@@ -1,0 +1,361 @@
+---
+title: "Gotowy workflow: formularz, arkusz i powiadomienie"
+description: "n8n Form Trigger zbiera zgłoszenia, Code je czyści i normalizuje, Google Sheets
+  dopisuje wiersz, a Telegram wysyła powiadomienie. Ćwiczysz Code Node z Modułu 5."
+head:
+  - tag: title
+    content: "Gotowy workflow: formularz, arkusz i powiadomienie (n8n) | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Formularz, arkusz i powiadomienie - gotowy workflow n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "n8n Form Trigger zbiera zgłoszenia, Code Node je waliduje, Google Sheets
+        dopisuje wiersz, a Telegram powiadamia o nowym zgłoszeniu. Gotowiec do pobrania
+        z konfiguracją krok po kroku."
+datePublished: 2026-07-24
+educationalLevel: Intermediate
+teaches:
+  - Jak zbudować lejek zgłoszeń na własnym, hostowanym w n8n formularzu (n8n Form Trigger) -
+    bez zewnętrznego narzędzia formularzowego
+  - Walidację i normalizację danych w Code Node w praktyce - trim, lowercase e-maila i guard
+    na puste pola (Moduł 5)
+  - Zapis nowego zgłoszenia do Google Sheets operacją Append z ręcznym mapowaniem kolumn
+  - Wysyłkę powiadomienia na Telegram o każdym nowym zgłoszeniu
+  - Rozpoznawanie i naprawę typowych awarii - nieaktywny formularz, niezgodne nazwy kolumn w
+    arkuszu, limit zapytań Google Sheets
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Telegram
+    sameAs: https://en.wikipedia.org/wiki/Telegram_(software)
+  - name: Google Sheets
+    sameAs: https://en.wikipedia.org/wiki/Google_Sheets
+  - name: CRM
+    sameAs: https://en.wikipedia.org/wiki/Customer_relationship_management
+faq:
+  - q: "Czy do zbierania zgłoszeń potrzebuję osobnego narzędzia formularzowego, np. Typeform albo Google Forms?"
+    a: "Nie - n8n ma własny n8n Form Trigger, który sam generuje i hostuje stronę formularza pod adresem Twojej instancji, bez rejestracji w kolejnym serwisie. Ten gotowiec korzysta wyłącznie z niego."
+  - q: "Dlaczego mój formularz nie przyjmuje zgłoszeń, mimo że w edytorze n8n działał bez zarzutu?"
+    a: "Najczęściej dlatego, że ktoś dostał Test URL zamiast Production URL, albo workflow nie jest aktywny. Formularz - podobnie jak webhook - ma dwa różne adresy, a produkcyjny działa dopiero po włączeniu przełącznika Active."
+  - q: "Co się stanie, jeśli ktoś spróbuje wysłać formularz bez wypełnienia imienia albo e-maila?"
+    a: "Formularz ma oba pola oznaczone jako Required Field, więc przeglądarka nie pozwoli wysłać pustego formularza. Dodatkowo Code Node ma własny guard (\"throw new Error\"), który zatrzyma workflow, gdyby mimo to dotarły puste dane - np. przy ręcznym wywołaniu adresu formularza z pominięciem przeglądarki."
+  - q: "Czy mogę zamiast Google Sheets zapisywać zgłoszenia bezpośrednio do CRM?"
+    a: "Tak - to pełna wersja przepisu \"Lead z formularza → CRM → powiadomienie\" z Modułu 8: Wzorce i wdrożenia. Wystarczy zamienić node Google Sheets na dedykowany node aplikacji Twojego CRM (np. HubSpot czy Pipedrive) - reszta workflow zostaje bez zmian."
+  - q: "Co zrobić, gdy przy nagłym ruchu Google Sheets zwraca błąd limitu zapytań?"
+    a: "Google Sheets API domyślnie ogranicza zapisy do 300 żądań na minutę na projekt i 60 na minutę na użytkownika. Włącz w node'cie Google Sheets Retry On Fail z odstępem między próbami - dla ruchu z jednego formularza to zwykle w zupełności wystarcza."
+  - q: "Czy mogę dodać do formularza więcej pól, niż jest w gotowcu?"
+    a: "Tak - dodaj kolejne pole w Form Elements node'a n8n Form Trigger, obsłuż je w Code Node tak samo jak pozostałe (odwołanie po dokładnej nazwie Field Name) i dodaj odpowiadającą kolumnę w arkuszu oraz w mapowaniu node'a Google Sheets."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Gotowy workflow · po Module 5"
+  readingTime="~13 min"
+  note="Wdrożenie: ~35 min (z konfiguracją OAuth Google Sheets)"
+/>
+
+Zgłoszenia z formularza - zapisy na webinar, leady, ankiety - rozjeżdżają się po skrzynce mailowej
+i giną, aż ktoś przypomni sobie, że trzeba było na nie odpowiedzieć. Ten gotowiec zamyka je w
+jednym miejscu: arkuszu Google, z natychmiastowym powiadomieniem na Telegramie. Zamiast osobnego
+narzędzia formularzowego (Typeform, Google Forms, JotForm) korzystasz z node'a, który n8n ma już
+wbudowany - **n8n Form Trigger** ([dokumentacja](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger/))
+sam hostuje formularz pod adresem Twojej instancji, bez zakładania konta w kolejnym serwisie.
+
+To konkretny wariant przepisu "Lead z formularza → CRM → powiadomienie" z
+[Modułu 8: Wzorce i wdrożenia](/modul-8-wzorce-wdrozenia) - tu zamiast CRM masz najprostszy możliwy
+magazyn danych, arkusz Google, a walidację i normalizację danych ćwiczysz w praktyce w node'cie
+Code z [Modułu 5: Kod i sub-workflow](/modul-5-kod-sub-workflow), zamiast tylko czytać o nim w
+teorii.
+
+## Czego potrzebujesz
+
+- **Moduł 5 ukończony** - wystarczy znajomość Code Node (tryby uruchamiania, zwracany format
+  danych) i obsługi błędów. Jeśli czegoś z tego brakuje, wróć do
+  [Modułu 5: Kod i sub-workflow](/modul-5-kod-sub-workflow).
+- **Podstawy OAuth2 z Modułu 4** - do podłączenia credentials Google Sheets. Patrz
+  [Moduł 4: Integracje i API](/modul-4-integracje-api), jeśli jeszcze nie zakładałeś takich
+  credentials.
+- **Działająca instancja n8n** - Cloud, Docker albo dowolny hosting z
+  [Modułu 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+- **Konto Google z arkuszem** i skonfigurowanymi credentials OAuth2 - procedurę zakładania opisuję
+  w sekcji "Credentials Google" niżej, odsyłając do gotowca
+  [Faktury z Gmaila na Google Drive](/workflow-faktury-gmail-drive), gdzie już to wyjaśniłem.
+- **Bota Telegram i jego token** - jeśli jeszcze go nie masz, załóż go przez BotFather dokładnie
+  tak, jak w gotowcu [Poranny brief na Telegram](/workflow-poranny-brief-telegram). Tutaj tej
+  instrukcji nie powtarzam.
+
+## Jak to działa
+
+<Flow
+  title="formularz-arkusz-powiadomienie"
+  alt="Diagram: n8n Form Trigger hostuje formularz zgłoszeniowy i uruchamia workflow po każdym
+    wysłanym zgłoszeniu. Code waliduje i normalizuje dane - przycina spacje, zamienia e-mail na
+    małe litery i sprawdza wymagane pola. Google Sheets dopisuje nowy wiersz do arkusza. Telegram
+    wysyła powiadomienie o nowym zgłoszeniu."
+  caption="Cztery node'y od formularza po powiadomienie - żadnego zewnętrznego narzędzia
+    formularzowego."
+>
+  <FlowNode icon="fa-clipboard-list" label="n8n Form Trigger" sub="zbiera zgłoszenie" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-code" label="Code" sub="waliduj i oczyść" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-table" label="Google Sheets" sub="dopisz wiersz" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="wyślij powiadomienie" from="#0ea5e9" to="#0369a1" />
+</Flow>
+
+:::note[RODO - dane osobowe zgłaszających]
+Formularz zbiera dane osobowe (imię, e-mail, treść wiadomości). Testując gotowiec na własnym
+przykładzie nie robisz nic niezwykłego, ale przy wdrożeniu produkcyjnym pamiętaj o zasadach
+przetwarzania danych z [Modułu 7: Produkcja](/modul-7-produkcja) - kto ma dostęp do arkusza ze
+zgłoszeniami i jak długo je tam trzymasz.
+:::
+
+## Pobierz gotowy workflow
+
+Cały workflow w formacie JSON, gotowy do zaimportowania:
+[formularz-arkusz-powiadomienie.json](/workflows/formularz-arkusz-powiadomienie.json).
+
+<Steps>
+
+1. Pobierz plik `formularz-arkusz-powiadomienie.json` (link wyżej).
+2. W n8n otwórz listę workflow i wybierz **Import from File** (albo przeciągnij plik na kanwę
+   nowego, pustego workflow).
+3. W arkuszu Google Sheets, który chcesz podpiąć, utwórz kartę (tab) o nazwie **Zgłoszenia** z
+   nagłówkami w pierwszym wierszu dokładnie: `Imię`, `Email`, `Wiadomość`, `Data zgłoszenia`.
+4. Uzupełnij dwa placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
+
+</Steps>
+
+| Placeholder | Gdzie | Co wpisać |
+| --- | --- | --- |
+| `ID_ARKUSZA` | node Zapisz zgłoszenie (Google Sheets, pole **Document**, tryb **By ID**) | ID arkusza Google Sheets - fragment adresu URL między `/d/` a `/edit` |
+| `TWOJ_CHAT_ID` | node Wyślij powiadomienie Telegram (pole **Chat ID**) | ID czatu, na który ma trafić powiadomienie |
+
+Na koniec podepnij pod node'em Google Sheets swoje credentials OAuth2 i pod node'em Telegram swoje
+credentials bota - bez tego oba node'y zgłoszą błąd uwierzytelniania przy pierwszym uruchomieniu.
+
+## Budowa krok po kroku
+
+### 1. n8n Form Trigger - formularz zgłoszeń
+
+Dodaj node **n8n Form Trigger** - w przeciwieństwie do zwykłego Webhooka, ten node sam generuje i
+hostuje stronę formularza pod adresem Twojej instancji n8n, więc nie potrzebujesz Typeform,
+Google Forms ani JotForm
+([dokumentacja node'a n8n Form Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger/)).
+W polu **Form Title** wpisz tytuł widoczny na stronie formularza (np. "Zapisz się"), a w
+**Form Elements** dodaj trzy pola:
+
+| Pole (Field Name) | Element Type | Required Field |
+| --- | --- | --- |
+| `Imię` | Text Input | tak |
+| `Email` | Email | tak |
+| `Wiadomość` | Textarea | nie |
+
+W sekcji **Options** dodaj opcję **Form Path**, żeby ustawić czytelny fragment adresu - w
+gotowcu to `formularz-zgloszenia`. Tak jak przy webhookach, formularz ma dwa adresy: **Test
+URL** (aktywny po kliknięciu **Execute step** albo **Execute workflow** na nieaktywnym workflow -
+dokładnie ten sam mechanizm, który znasz z
+[Modułu 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow) i
+[Modułu 4: Integracje i API](/modul-4-integracje-api)) i **Production URL** (działa dopiero po
+**aktywacji** workflow). Zanim wyślesz link do prawdziwych odbiorców, przełącz **Active**.
+
+:::note[Skąd biorą się nazwy pól w danych]
+Klucz, pod jakim pole trafia do `$json`, to dokładnie tekst wpisany w **Field Name** - bez zmian,
+łącznie z polskimi znakami. Potwierdza to
+[kod node'a Form Trigger na GitHubie](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Form/utils/utils.ts) -
+funkcja `getFieldIdentifier` używa etykiety pola wprost jako nazwy właściwości w danych
+wyjściowych, a `addFormResponseDataToReturnItem` zapisuje pod nią wartość bez zmian. Pola typu
+Text i Email dodatkowo same przycinają białe znaki z brzegów wpisanej wartości - Textarea już nie,
+stąd `.trim()` w kolejnym kroku wciąż ma sens. Ten sam kod dokłada też do każdego zgłoszenia
+gotowe pole `submittedAt` - znacznik czasu ISO 8601 momentu wysłania formularza.
+:::
+
+W polu **Respond When** zostaw domyślne "Form Is Submitted", a w **Options → Form Response**
+wpisz krótkie podziękowanie (np. "Dziękujemy! Zgłoszenie zostało zapisane.") - to jedyne, co
+zobaczy osoba wypełniająca formularz.
+
+### 2. Code - walidacja i normalizacja danych
+
+Dodaj node **Code** w trybie **Run Once for Each Item** (tu zawsze jeden item na uruchomienie -
+jedno zgłoszenie), język **JavaScript**
+([dokumentacja node'a Code](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/)):
+
+```javascript
+const imie = ($json['Imię'] || '').trim();
+const email = ($json['Email'] || '').trim().toLowerCase();
+const wiadomosc = ($json['Wiadomość'] || '').trim();
+
+// Guard - formularz ma Required Field, ale nie ufaj wyłącznie walidacji przeglądarki
+if (!imie || !email) {
+  throw new Error('Brak wymaganych danych: pole "Imię" i "Email" są obowiązkowe.');
+}
+
+return {
+  json: {
+    imie,
+    email,
+    wiadomosc,
+    data_zgloszenia: $json.submittedAt
+  }
+};
+```
+
+Czytając po linijce:
+
+- `$json['Imię']`, `$json['Email']`, `$json['Wiadomość']` - to dokładnie te klucze, które Form
+  Trigger nadał polom formularza (patrz notatka w kroku 1). Nawias kwadratowy zamiast kropki
+  dlatego, że klucz z polskim znakiem bywa niewygodny do czytania w notacji `$json.pole`.
+- `.trim()` - usuwa białe znaki z brzegów; dla `Imię` i `Email` to podwójne zabezpieczenie (Form
+  Trigger i tak już to robi automatycznie), dla `Wiadomość` to jedyne miejsce, w którym się to
+  dzieje.
+- `.toLowerCase()` na e-mailu - normalizacja, żeby ten sam adres wpisany raz wielkimi, raz małymi
+  literami nie wyglądał w arkuszu jak dwa różne zgłoszenia.
+- `if (!imie || !email) throw new Error(...)` - formularz ma wprawdzie **Required Field**
+  włączone na obu polach, ale nie ufaj wyłącznie walidacji po stronie przeglądarki. `throw new
+  Error(...)` w Code Node przerywa workflow dokładnie tak samo, jak dedykowany node **Stop And
+  Error** z [Modułu 5](/modul-5-kod-sub-workflow#stop-and-error---świadome-przerwanie), tylko że
+  wewnątrz kodu.
+- `data_zgloszenia: $json.submittedAt` - Form Trigger sam dokłada do każdego zgłoszenia pole
+  `submittedAt` (znacznik czasu ISO 8601 momentu wysłania) - nie musisz liczyć go osobnym
+  wyrażeniem `$now`.
+- Zwrócony pojedynczy obiekt (nie tablica) - to konwencja trybu **Run Once for Each Item**, który
+  poznałeś w [Moduł 5: Kod i sub-workflow](/modul-5-kod-sub-workflow#code-node-javascript-i-python):
+  n8n sam opakowuje wynik w listę itemów.
+
+### 3. Google Sheets - dopisz wiersz (Append)
+
+Dodaj node **Google Sheets**, ustaw **Resource: Sheet Within Document** i **Operation: Append
+Row** - ten sam wzorzec Resource/Operation, co w każdym innym node'cie aplikacji w n8n (patrz
+[Moduł 4: Integracje i API](/modul-4-integracje-api)). W polu **Document** (tryb **By ID**) wskaż
+arkusz przez jego ID (placeholder `ID_ARKUSZA`), a w polu **Sheet** (tryb **By Name**) wpisz nazwę
+karty - w gotowcu to `Zgłoszenia`. W sekcji mapowania kolumn wybierz **Map Each Column Below** i
+przypisz cztery kolumny do pól z poprzedniego kroku:
+
+| Kolumna w arkuszu | Wartość |
+| --- | --- |
+| `Imię` | `{{ $json.imie }}` |
+| `Email` | `{{ $json.email }}` |
+| `Wiadomość` | `{{ $json.wiadomosc }}` |
+| `Data zgłoszenia` | `{{ $json.data_zgloszenia }}` |
+
+Nagłówki kolumn w arkuszu (pierwszy wiersz karty) muszą się zgadzać z nazwami po lewej stronie
+**dokładnie** - wielkość liter i polskie znaki też się liczą. Jeśli je zmienisz, zmień też
+mapowanie w node'cie. Zweryfikowane pola:
+[dokumentacja node'a Google Sheets](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/).
+
+Credentials OAuth2 dla Google Sheets zakładasz dokładnie tak samo, jak opisuję w sekcji
+"Credentials Google (Gmail + Drive)" gotowca
+[Faktury z Gmaila na Google Drive](/workflow-faktury-gmail-drive) - to ten sam mechanizm (Managed
+OAuth2 na n8n Cloud, własny projekt w Google Cloud Console na self-hostingu), tylko dla innego
+produktu Google. Pełna procedura:
+[Google OAuth2 single service](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
+w dokumentacji n8n oraz [Moduł 4: Integracje i API](/modul-4-integracje-api).
+
+### 4. Telegram - wyślij powiadomienie
+
+Dodaj node **Telegram** w operacji **Send Message**, podłącz credentials bota (dokładnie tak, jak
+zakładasz go w gotowcu [Poranny brief na Telegram](/workflow-poranny-brief-telegram) - stamtąd
+weźmiesz też swój Chat ID, jeśli jeszcze go nie znasz), wpisz **Chat ID** (placeholder
+`TWOJ_CHAT_ID`) i treść wiadomości wyrażeniem łączącym pola ze zgłoszenia:
+
+```text
+Nowe zgłoszenie z formularza!
+
+Imię: {{ $json.imie }}
+E-mail: {{ $json.email }}
+Wiadomość: {{ $json.wiadomosc || '(brak)' }}
+```
+
+Zweryfikowane pola:
+[dokumentacja node'a Telegram](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/).
+
+## Co może pójść nie tak
+
+### Formularz nie przyjmuje zgłoszeń na produkcji
+
+- **Objaw:** link do formularza, który wysyłasz realnym odbiorcom, zwraca błąd albo w ogóle się
+  nie otwiera, mimo że w edytorze n8n wszystko działało.
+- **Przyczyna:** tak jak webhook, formularz ma dwa różne adresy - **Test URL** (aktywny tylko po
+  kliknięciu **Execute step**/**Execute workflow** na nieaktywnym workflow) i **Production URL**
+  (działa stale, ale dopiero gdy workflow jest **aktywny**) - dokładnie ten sam mechanizm, co przy
+  zwykłym Webhooku, opisany w [Moduł 2](/modul-2-interfejs-pierwszy-workflow) i
+  [Moduł 4](/modul-4-integracje-api).
+- **Naprawa:** skopiuj **Production URL** z node'a Form Trigger (nie Test URL) i włącz przełącznik
+  **Active** w prawym górnym rogu edytora, zanim wyślesz link dalej.
+
+### Krzywe nazwy kolumn w arkuszu - dane trafiają w złe miejsce
+
+- **Objaw:** wiersz w arkuszu zapisuje się, ale wartości są przesunięte względem nagłówków albo w
+  ogóle brakuje którejś kolumny.
+- **Przyczyna:** node Google Sheets w trybie **Map Each Column Below** dopasowuje dane po
+  **dokładnej nazwie nagłówka** w pierwszym wierszu karty - jeśli zmienisz nazwę kolumny w
+  arkuszu (albo literówka wkradnie się przy tworzeniu karty) już po skonfigurowaniu node'a,
+  mapowanie przestaje się zgadzać. To udokumentowany, częsty problem - opisuje go wprost
+  [sekcja Common Issues node'a Google Sheets](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/common-issues/).
+- **Naprawa:** otwórz node Google Sheets i ponownie wybierz tryb mapowania kolumn, żeby n8n
+  pobrał aktualne nagłówki z arkusza na nowo. Najprościej: trzymaj nagłówki w arkuszu w brzmieniu
+  z tabeli w sekcji "Budowa krok po kroku" i nie zmieniaj ich bez poprawienia node'a.
+
+### Code Node zatrzymuje się z błędem "Cannot read properties of undefined"
+
+- **Objaw:** node Waliduj i oczyść dane kończy pracę na czerwono, workflow się zatrzymuje.
+- **Przyczyna:** najczęściej odwołanie do pola, którego dany item nie ma - np. literówka w nazwie
+  klucza (`$json['Imie']` zamiast `$json['Imię']`) albo zmiana etykiety pola w Form Trigger bez
+  poprawienia kodu. Pełne rozpoznawanie tego błędu opisuję w
+  [Coś nie działa? Typowe problemy z n8n](/cos-nie-dziala).
+- **Naprawa:** sprawdź w panelu danych node'a Formularz zgłoszeniowy dokładne nazwy kluczy
+  (dokładnie takie, jak **Field Name** w formularzu) i porównaj z tym, czego szuka kod.
+
+### Google Sheets zwraca błąd limitu zapytań przy nagłym ruchu
+
+- **Objaw:** node Zapisz zgłoszenie kończy się błędem `429` / "Too many requests" przy większej
+  liczbie zgłoszeń w krótkim czasie.
+- **Przyczyna:** Google Sheets API domyślnie ogranicza zapisy do **300 żądań na minutę na
+  projekt** i **60 żądań na minutę na użytkownika** - przy nagłym skoku zgłoszeń (np. link do
+  formularza trafił do dużej grupy naraz) ten limit da się przekroczyć, zgodnie z
+  [oficjalną dokumentacją limitów Google Sheets API](https://developers.google.com/workspace/sheets/api/limits).
+- **Naprawa:** w ustawieniach node'a Google Sheets włącz **Retry On Fail** z odstępem między
+  próbami (patrz
+  [Moduł 5: obsługa błędów](/modul-5-kod-sub-workflow#obsługa-błędów---automaty-muszą-być-przewidywalne)) -
+  Google zaleca wprost strategię exponential backoff. Realny ruch z jednego formularza rzadko
+  faktycznie przekracza ten limit, więc w praktyce to zabezpieczenie "na wszelki wypadek", a nie
+  codzienna awaria.
+
+## Jak to rozbudować
+
+- **CRM zamiast arkusza** - zamiast Google Sheets podepnij node CRM, którego już używasz (HubSpot,
+  Pipedrive i inne mają dedykowane node'y aplikacji w n8n) - reszta workflow (formularz, Code,
+  Telegram) zostaje bez zmian. To już pełna wersja przepisu "Lead z formularza → CRM →
+  powiadomienie" z [Modułu 8: Wzorce i wdrożenia](/modul-8-wzorce-wdrozenia).
+- **Autoresponder mailowy** - dodaj za node'em Code node wysyłający e-mail powitalny do
+  zgłaszającego (Gmail albo SMTP) - masz już oczyszczony, poprawny adres w polu `email`.
+- **Obsługa błędów jako standard** - podepnij dedykowany error workflow z node'em **Error
+  Trigger**, żeby o nieudanym zapisie do arkusza czy błędzie Telegrama dowiedzieć się od razu, a
+  nie przy najbliższej kontroli arkusza - mechanizm opisuję w
+  [Moduł 5: obsługa błędów](/modul-5-kod-sub-workflow#obsługa-błędów---automaty-muszą-być-przewidywalne).
+- **Deduplikacja po e-mailu** - zanim dopiszesz wiersz, sprawdź node'em Google Sheets (operacja
+  odczytu) albo prostym IF, czy dany e-mail już jest w arkuszu, i pomiń zapis albo zaktualizuj
+  istniejący wiersz zamiast dublować zgłoszenie - to ten sam mechanizm idempotentności, co w
+  [Moduł 8](/modul-8-wzorce-wdrozenia).
+
+<Takeaways title="Co warto zapamiętać">
+  - n8n Form Trigger sam hostuje formularz pod adresem instancji - bez zewnętrznego narzędzia
+    formularzowego, z tymi samymi zasadami Test URL/Production URL co przy webhookach.
+  - Klucz pola w danych to dokładnie **Field Name** z formularza - trzymaj się jednej pisowni w
+    Form Trigger, Code Node i mapowaniu kolumn arkusza.
+  - Walidacja w Code Node (`throw new Error(...)`) to ta sama zasada co dedykowany node Stop And
+    Error z Modułu 5 - nie ufaj wyłącznie wymaganym polom w interfejsie formularza.
+  - Google Sheets w trybie Map Each Column Below dopasowuje dane po dokładnej nazwie nagłówka -
+    literówka albo zmiana nagłówka po skonfigurowaniu node'a psuje mapowanie po cichu.
+  - Google Sheets API ma limit zapytań (300/min na projekt, 60/min na użytkownika) - Retry On
+    Fail z odstępem wystarcza na normalny ruch z jednego formularza.
+</Takeaways>
+
+Szukasz kolejnego gotowca do wdrożenia od razu? Zobacz [wszystkie gotowe workflow](/gotowe-workflow).

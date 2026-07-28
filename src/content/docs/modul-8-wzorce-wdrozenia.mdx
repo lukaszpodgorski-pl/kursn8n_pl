@@ -295,6 +295,39 @@ przeczytasz, dopasujesz i obudujesz obsługą błędów stają się Twoim, produ
 Świadomie, nie ślepo.
 :::
 
+## Sprawdź się
+
+Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
+Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
+
+1. Co dokładnie mogłoby pójść źle, gdybyś zaimportował szablon i od razu podpiął produkcyjne
+   credentials, pomijając krok czytania całego przepływu? Jeśli nie masz pewności - [Jak
+   korzystać z szablonów MĄDRZE](#jak-korzystać-z-szablonów-mądrze).
+2. Na schemacie `trigger → przetwarzanie → akcja` obsługa błędów jest narysowana jako osobna
+   gałąź spinająca wszystkie trzy fazy, a nie jako czwarty krok na końcu. Dlaczego akurat tak?
+   Jeśli nie masz pewności - [Szkielet każdego workflow](#szkielet-każdego-workflow).
+3. Czym różni się idempotentność od deduplikacji - i jakim node'em albo mechanizmem realizujesz
+   to drugie? Jeśli nie masz pewności - [Wzorce, które warto znać](#wzorce-które-warto-znać).
+4. Zanim zaczniesz optymalizować wolny workflow, co dokładnie powinieneś sprawdzić w historii
+   wykonań - i dlaczego "wydaje mi się, że to wolne" to zły punkt startu? Jeśli nie masz pewności -
+   [Optymalizacja wydajności i kosztów](#optymalizacja-wydajności-i-kosztów).
+
+<details>
+<summary>Mini-zadanie: zrób przegląd jednego ze swoich workflow pod kątem wzorców</summary>
+
+Weź dowolny wcześniejszy workflow (z modułów 1-7 albo prosty testowy) i sprawdź go pod trzema
+kątami z sekcji [Wzorce, które warto znać](#wzorce-które-warto-znać):
+
+1. **Idempotentność** - czy zapis to "ślepy" insert, czy upsert po jakimś kluczu (e-mail, ID)?
+2. **Obsługa błędów** - czy workflow ma ustawiony Error Workflow albo chociaż retry na node'ach
+   sieciowych?
+3. **Zbędne dane** - czy dalej "ciągniesz" pola, których nigdy nie używasz w kolejnych krokach?
+
+Zanotuj krótko, co byś zmienił i dlaczego - nie musisz od razu wdrażać zmian, chodzi o wyrobienie
+nawyku takiego przeglądu.
+
+</details>
+
 <Takeaways>
   - Biblioteka szablonów (n8n.io/workflows oraz zakładka Templates w edytorze) to tysiące
     gotowych workflow - punkt startowy, nie gotowy produkt.

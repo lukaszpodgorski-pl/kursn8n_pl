@@ -12,7 +12,7 @@ import {
 	AUTHOR,
 	type FaqItem,
 } from '../lib/structured-data';
-import { MODULE_SLUGS, GUIDE_SLUG } from '../config/modules';
+import { ARTICLE_SLUGS } from '../config/modules';
 
 const route = Astro.locals.starlightRoute;
 const data = route.entry.data;
@@ -20,12 +20,13 @@ const pathname = Astro.url.pathname;
 
 const isHome = pathname === '/';
 
-// Klasyfikacja jako allowlista oparta o rejestr modulow - strona spoza
+// Klasyfikacja jako allowlista oparta o rejestr ARTICLE_SLUGS - strona spoza
 // rejestru (404, regulamin, prywatnosc) nie dostaje bloku artykulu, co dla
 // danych strukturalnych jest bezpieczniejszym domyslnym zachowaniem.
-// Nowy modul dopisany do src/config/modules.ts klasyfikuje sie tu automatycznie.
+// Nowy modul/gotowiec dopisany do ARTICLE_SLUGS w src/config/modules.ts
+// klasyfikuje sie tu automatycznie.
 const slug = pathname.split('/').filter(Boolean)[0];
-const isArticle = slug !== undefined && (MODULE_SLUGS.has(slug) || slug === GUIDE_SLUG);
+const isArticle = slug !== undefined && ARTICLE_SLUGS.has(slug);
 
 // Obraz OG generowany per strona przez src/pages/og/[...route].ts wylacznie
 // dla wpisow kolekcji `docs`. Strona glowna (puste `id`) i 404 (spoza kolekcji)
@@ -60,31 +61,12 @@ if (isHome) {
 const faq = data.faq as FaqItem[] | undefined;
 if (faq && faq.length > 0) blocks.push(buildFaqPage(faq));
 
-// Analityka: Matomo (self-hosted), tryb cookieless - nie ustawia zadnych
-// cookies i respektuje Do Not Track, dzieki czemu nie wymaga zgody (RODO) i
-// strona nie potrzebuje bannera cookies (szczegoly na /prywatnosc/). Wstrzykiwana
-// TYLKO w buildzie produkcyjnym (import.meta.env.PROD), zeby dev/preview nie
-// liczyly odslon. Odtworzone 1:1 z dawnego public_html/partials/analytics.php.
-const ANALYTICS_URL = 'https://analytics.kursn8n.pl/';
-const ANALYTICS_SITE_ID = '1';
-
-const matomoScript = `
-var _paq = window._paq = window._paq || [];
-_paq.push(['disableCookies']);       // tryb bez cookies
-_paq.push(['setDoNotTrack', true]);  // respektuj Do Not Track przegladarki
-_paq.push(['trackPageView']);
-_paq.push(['enableLinkTracking']);
-(function () {
-  var u = "${ANALYTICS_URL}";
-  _paq.push(['setTrackerUrl', u + 'matomo.php']);
-  _paq.push(['setSiteId', '${ANALYTICS_SITE_ID}']);
-  var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
-  g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
-})();
-`;
 ---
 
 <Default><slot /></Default>
+
+{/* Font Awesome - lokalna kopia, ikony `fas`/`fab` w ConceptCard i FlowNode. */}
+<link rel="stylesheet" href="/assets/fa/css/all.min.css" />
 
 <meta name="author" content={AUTHOR.name} />
 <link rel="author" href={AUTHOR.url} />
@@ -104,5 +86,3 @@ _paq.push(['enableLinkTracking']);
 {blocks.map((block) => (
 	<script type="application/ld+json" is:inline set:html={JSON.stringify(block)} />
 ))}
-
-{import.meta.env.PROD && <script is:inline set:html={matomoScript} />}

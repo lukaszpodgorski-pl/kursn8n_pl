@@ -1,0 +1,185 @@
+{
+  "name": "Formularz - arkusz - powiadomienie",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Zapisz się",
+        "formDescription": "Zostaw swoje dane, a odezwiemy się najszybciej, jak to możliwe.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Imię",
+              "fieldType": "text",
+              "placeholder": "",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Wiadomość",
+              "fieldType": "textarea",
+              "placeholder": "",
+              "requiredField": false
+            }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": {
+          "buttonLabel": "Wyślij zgłoszenie",
+          "path": "formularz-zgloszenia",
+          "respondWithOptions": {
+            "values": {
+              "respondWith": "text",
+              "formSubmittedText": "Dziękujemy! Zgłoszenie zostało zapisane."
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [240, 300],
+      "id": "trigger-formularz",
+      "name": "Formularz zgłoszeniowy",
+      "webhookId": "ab38a556-d974-4c38-b2af-0ae36a579cf9"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const imie = ($json['Imię'] || '').trim();\nconst email = ($json['Email'] || '').trim().toLowerCase();\nconst wiadomosc = ($json['Wiadomość'] || '').trim();\n\n// Guard - formularz ma Required Field, ale nie ufaj wyłącznie walidacji przeglądarki\nif (!imie || !email) {\n  throw new Error('Brak wymaganych danych: pole \"Imię\" i \"Email\" są obowiązkowe.');\n}\n\nreturn {\n  json: {\n    imie,\n    email,\n    wiadomosc,\n    data_zgloszenia: $json.submittedAt\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "code-waliduj-dane",
+      "name": "Waliduj i oczyść dane"
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ID_ARKUSZA"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Zgłoszenia"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Imię": "={{ $json.imie }}",
+            "Email": "={{ $json.email }}",
+            "Wiadomość": "={{ $json.wiadomosc }}",
+            "Data zgłoszenia": "={{ $json.data_zgloszenia }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Imię",
+              "displayName": "Imię",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Wiadomość",
+              "displayName": "Wiadomość",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Data zgłoszenia",
+              "displayName": "Data zgłoszenia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [680, 300],
+      "id": "sheets-zapisz-zgloszenie",
+      "name": "Zapisz zgłoszenie"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "TWOJ_CHAT_ID",
+        "text": "=Nowe zgłoszenie z formularza!\n\nImię: {{ $json.imie }}\nE-mail: {{ $json.email }}\nWiadomość: {{ $json.wiadomosc || '(brak)' }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 300],
+      "id": "telegram-powiadomienie",
+      "name": "Wyślij powiadomienie Telegram"
+    }
+  ],
+  "connections": {
+    "Formularz zgłoszeniowy": {
+      "main": [
+        [
+          {
+            "node": "Waliduj i oczyść dane",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Waliduj i oczyść dane": {
+      "main": [
+        [
+          {
+            "node": "Zapisz zgłoszenie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zapisz zgłoszenie": {
+      "main": [
+        [
+          {
+            "node": "Wyślij powiadomienie Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

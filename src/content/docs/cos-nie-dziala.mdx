@@ -1,0 +1,290 @@
+---
+title: Coś nie działa? Typowe problemy z n8n i jak je naprawić
+description: "Typowe awarie n8n: webhook milczy na produkcji, OAuth zwraca redirect_uri_mismatch, zgubiony klucz szyfrowania, 502 za reverse proxy. Objaw, przyczyna, naprawa."
+head:
+  - tag: title
+    content: "Coś nie działa? Typowe problemy z n8n: objaw, przyczyna, naprawa | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Coś nie działa? Typowe problemy z n8n"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Zbiór typowych awarii n8n w formacie objaw - przyczyna - naprawa: webhooki, OAuth, klucz szyfrowania, reverse proxy, pamięć i Code Node."
+datePublished: 2026-07-24
+educationalLevel: Beginner
+teaches:
+  - Rozpoznawanie typowych awarii n8n po objawach, zanim sięgniesz po support
+  - Naprawianie problemów z webhookami - Test URL kontra Production URL i aktywacja workflow
+  - Rozwiązywanie błędu OAuth "redirect_uri_mismatch" i wymagań publicznego HTTPS
+  - Debugowanie wyrażeń zwracających undefined oraz błędów w Code Node
+  - Odzyskiwanie po utracie klucza N8N_ENCRYPTION_KEY i stabilizowanie n8n za reverse proxy oraz na słabym sprzęcie
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: OAuth
+    sameAs: https://en.wikipedia.org/wiki/OAuth
+  - name: Webhook
+    sameAs: https://en.wikipedia.org/wiki/Webhook
+  - name: Reverse proxy
+    sameAs: https://en.wikipedia.org/wiki/Reverse_proxy
+  - name: Raspberry Pi
+    sameAs: https://en.wikipedia.org/wiki/Raspberry_Pi
+faq:
+  - q: "Czy mogę odzyskać poświadczenia bez oryginalnego klucza N8N_ENCRYPTION_KEY?"
+    a: "Nie wprost - to szyfrowanie symetryczne, więc bez tego samego klucza n8n nie ma jak odszyfrować zapisanych poświadczeń i trzeba wprowadzić je od nowa. Jedyny ratunek to znalezienie kopii tego samego klucza, np. w backupie wolumenu danych, i podanie go tej samej instancji przed uruchomieniem."
+  - q: "Dlaczego mój workflow nie uruchamia się sam, mimo że w teście działał?"
+    a: "Najczęściej workflow nie jest aktywny (przełącznik Active) albo korzysta z Manual Trigger, który nigdy nie startuje sam z siebie. Do samodzielnego uruchamiania służą aktywowany Schedule Trigger albo aktywowany Webhook."
+  - q: "Jak sprawdzić, co dokładnie poszło nie tak w konkretnym uruchomieniu?"
+    a: "Otwórz zakładkę Executions, znajdź wykonanie ze statusem Error i kliknij je - n8n pokaże kopię workflow z dokładnymi danymi z tamtego momentu, node po nodzie."
+  - q: "Czy testowego URL-a webhooka można używać na produkcji?"
+    a: "Nie na dłuższą metę. Test URL zaczyna nasłuchiwać dopiero po kliknięciu \"Listen for test event\" albo po \"Execute workflow\" na nieaktywnym workflow - to nie jest stały adres. Do integracji zewnętrznej zawsze potrzebujesz Production URL i aktywnego workflow."
+  - q: "Ile pamięci RAM potrzebuje n8n, żeby nie zwalniać?"
+    a: "Nie ma jednej uniwersalnej liczby - zależy od liczby i wielkości executions oraz obciążenia workflow. Na słabszym sprzęcie, jak Raspberry Pi, najbardziej pomaga włączony pruning historii wykonań i pilnowanie rozmiaru danych przechodzących przez workflow."
+  - q: "Nie znalazłem swojego problemu na tej liście - co teraz?"
+    a: "Ta strona rośnie razem z kursem. Opisz dokładny objaw i to, co już sprawdziłeś, przez sekcję kontaktu na stronie głównej - dopiszę tu rozwiązanie."
+---
+
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Troubleshooting · wszystkie poziomy"
+  readingTime="~9 min"
+  note="Wracaj tu, gdy coś się zepsuje"
+/>
+
+Coś się posypało i szukasz szybkiej odpowiedzi, nie kolejnego wykładu - dobrze trafiłeś.
+Znajdź poniżej swój objaw, zastosuj naprawę, a jeśli chcesz zrozumieć **dlaczego** tak
+się dzieje, doczytaj wskazaną sekcję modułu. Ta strona rośnie razem z kursem - jeśli
+Twojego problemu tu nie ma, [daj mi znać](/#o-autorze), a dopiszę go razem z rozwiązaniem.
+
+## Webhook działa w teście, ale nie na produkcji
+
+**Objaw:** Test URL webhooka działał świetnie w edytorze - widziałeś dane po kliknięciu
+"Listen for test event" - ale po podłączeniu prawdziwej usługi zewnętrznej cisza: żadnego
+nowego wykonania w zakładce Executions.
+
+**Przyczyna:** Webhook ma dwa różne adresy. Test URL zaczyna nasłuchiwać dopiero, gdy w
+edytorze klikniesz "Listen for test event" albo uruchomisz workflow przez "Execute
+workflow" na nieaktywnym workflow, a Production URL zaczyna działać dopiero, gdy workflow
+jest **aktywny** - potwierdza to
+[dokumentacja node'a Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/).
+To najczęstsza pułapka początkujących: zewnętrznej usłudze wpisano adres testowy albo
+zapomniano aktywować workflow.
+
+**Naprawa:**
+1. Otwórz node Webhook i skopiuj **Production URL** (nie Test URL).
+2. Włącz przełącznik **Active** w prawym górnym rogu edytora.
+3. Wklej production URL w panelu usługi zewnętrznej, zastępując poprzedni testowy adres.
+4. Wyślij testowe zdarzenie z zewnątrz i sprawdź zakładkę Executions, czy przyszło.
+
+**Głębiej:** [Moduł 2 - Webhook: tryb testowy vs
+produkcyjny](/modul-2-interfejs-pierwszy-workflow#webhook-tryb-testowy-vs-produkcyjny) i
+[Moduł 4 - Webhooki: odbieranie i
+wysyłanie](/modul-4-integracje-api#webhooki-odbieranie-i-wysyłanie).
+
+## OAuth zwraca "redirect_uri_mismatch"
+
+**Objaw:** Klikasz "Connect my account" przy credentialu OAuth2 (Google, Slack, GitHub i
+podobne), zgadzasz się na dostęp, a zamiast wrócić do n8n, dostawca pokazuje błąd
+"redirect_uri_mismatch".
+
+**Przyczyna:** Adres, na który dostawca ma odesłać użytkownika po zgodzie (redirect
+URI/callback), nie zgadza się z tym zarejestrowanym w konsoli dostawcy. Najczęściej
+dlatego, że self-hostowane n8n nie ma jeszcze publicznego adresu HTTPS, albo w konsoli
+dostawcy wpisano inny adres niż ten, który n8n faktycznie generuje - format to
+`https://twoja-domena/rest/oauth2-credential/callback`, co potwierdza
+[dokumentacja n8n dla OAuth2 (na przykładzie Google)](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-generic/).
+
+**Naprawa:**
+1. W n8n otwórz credential OAuth2 danej usługi i skopiuj dokładny "OAuth Redirect URL".
+2. Wklej go 1:1 (protokół, domena, bez literówek) w polu "Authorized redirect URIs" w
+   konsoli dostawcy.
+3. Jeśli self-hostujesz bez publicznej domeny i HTTPS, najpierw dokończ tę konfigurację -
+   `localhost` poza lokalnym developmentem zwykle nie zadziała.
+4. Zapisz zmiany u dostawcy i połącz konto ponownie.
+
+**Głębiej:** [Moduł 4 - Uwierzytelnianie: API key vs
+OAuth2](/modul-4-integracje-api#uwierzytelnianie-api-key-vs-oauth2) i [Moduł 1 - HTTPS,
+domena, reverse proxy i Cloudflare
+Tunnel](/modul-1-instalacja-hosting#https-domena-reverse-proxy-i-cloudflare-tunnel).
+
+## Wyrażenie zwraca \[undefined\]
+
+**Objaw:** W polu z wyrażeniem (`{{ }}`) zamiast oczekiwanej wartości widzisz czerwony
+napis `[undefined]`, a kolejny node w łańcuchu dostaje puste lub błędne dane.
+
+**Przyczyna:** Wyrażenie odwołuje się do pola, którego w danym itemie po prostu nie ma.
+Najczęściej dlatego, że nazwa pola jest inna niż się wydaje (literówka, wielkość liter,
+inne zagnieżdżenie), że node, do którego odwołujesz się po nazwie, został przemianowany po
+zbudowaniu wyrażenia, albo że akurat ten item nie ma tego pola (np. ma je tylko część
+rekordów).
+
+**Naprawa:**
+1. Otwórz panel danych wejściowych (Input) node'a i w widoku JSON sprawdź, czy pole
+   naprawdę tam jest i jak dokładnie się nazywa.
+2. Zamiast wpisywać nazwę pola ręcznie, przeciągnij je z panelu danych wprost do pola - n8n
+   samo wstawi poprawną składnię.
+3. Jeśli odwołujesz się do konkretnego node'a po nazwie (`$node["..."]`), sprawdź, czy nie
+   zmienił się jego tytuł po ostatniej edycji.
+4. Zabezpiecz się na wypadek brakującego pola, np. `{{ $json.pole || 'brak' }}`, żeby
+   kolejne node'y nie dostawały undefined.
+
+**Głębiej:** [Moduł 3 - Przykłady wyrażeń](/modul-3-praca-z-danymi#przykłady-wyrażeń).
+
+## Po reinstalacji n8n zniknęły wszystkie credentials
+
+**Objaw:** Po przeniesieniu n8n na nowy serwer, odtworzeniu z backupu albo reinstalacji
+wszystkie zapisane poświadczenia (credentials) przestają działać - n8n prosi o wprowadzenie
+ich od nowa.
+
+**Przyczyna:** n8n szyfruje poświadczenia kluczem `N8N_ENCRYPTION_KEY`. Jeśli nie ustawisz
+go ręcznie, n8n przy pierwszym uruchomieniu wygeneruje go losowo i zapisze w katalogu
+danych - potwierdza to
+[dokumentacja o ustawianiu własnego klucza szyfrowania](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/set-a-custom-encryption-key/).
+To szyfrowanie symetryczne: ten sam klucz służy do zaszyfrowania i odszyfrowania danych.
+Nowa instancja (świeży kontener, inny wolumen, reinstalacja bez zachowania tego pliku)
+dostaje inny, losowy klucz - a n8n nie ma jak nim odszyfrować poświadczeń zapisanych
+wcześniej innym kluczem. Dlatego dokumentacja CLI n8n każe eksportować poświadczenia w
+jawnym tekście (`export:credentials --decrypted`) właśnie przy migracji do instalacji z
+innym kluczem szyfrowania - w formie zaszyfrowanej by się tam nie odczytały. Potwierdza to
+[dokumentacja komend CLI n8n](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line/).
+
+**Naprawa:**
+1. Sprawdź, czy masz kopię oryginalnego klucza (backup wolumenu `.n8n`, zmienna
+   środowiskowa w starej konfiguracji, sejf haseł).
+2. Jeśli tak - ustaw go zmienną `N8N_ENCRYPTION_KEY` na nowej instancji **przed** pierwszym
+   uruchomieniem, a poświadczenia odszyfrują się normalnie.
+3. Jeśli klucza naprawdę nie ma - nie da się go odtworzyć. Trzeba wprowadzić wszystkie
+   poświadczenia od nowa i ustawić własny, stały klucz na przyszłość.
+4. Od teraz backupuj klucz razem z bazą danych - to nierozłączna para.
+
+**Głębiej:** [Moduł 1 - Klucz N8N_ENCRYPTION_KEY i zmienne
+środowiskowe](/modul-1-instalacja-hosting#klucz-n8n_encryption_key-i-zmienne-środowiskowe).
+
+## n8n za reverse proxy zwraca 502 / nie otwiera edytora
+
+**Objaw:** Adres n8n za reverse proxy (Nginx, Traefik, Caddy) zwraca błąd 502 Bad Gateway,
+albo strona się ładuje, ale edytor "wisi", ciągle się przeładowuje, a webhooki pokazują zły
+adres.
+
+**Przyczyna:** Najczęściej to konfiguracja samego proxy: zły port lub host w regule
+kierującej ruch do n8n (domyślnie n8n nasłuchuje na porcie 5678) albo brak przekazania
+nagłówków `X-Forwarded-For`, `X-Forwarded-Host` i `X-Forwarded-Proto`. Do tego dochodzi
+n8n, które bez podpowiedzi nie zna swojego publicznego adresu - stąd konieczność ręcznej
+konfiguracji, opisanej w
+[dokumentacji n8n o webhookach za reverse proxy](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/configure-webhook-urls-with-reverse-proxy/).
+
+**Naprawa:**
+1. Sprawdź w logach proxy, czy ruch w ogóle dobija do n8n - docelowy host/port zgodny z
+   tym, na czym faktycznie nasłuchuje n8n.
+2. Ustaw w n8n zmienną `WEBHOOK_URL` na pełny publiczny adres (np.
+   `https://n8n.twojadomena.pl/`) oraz `N8N_PROXY_HOPS=1`, gdy stoisz za jednym reverse
+   proxy.
+3. Upewnij się, że proxy przekazuje nagłówki `X-Forwarded-For`, `X-Forwarded-Host` i
+   `X-Forwarded-Proto`.
+4. Edytor n8n w przeglądarce łączy się przez WebSockety, więc proxy musi przepuszczać
+   upgrade połączenia - w Nginx dodaj `proxy_http_version 1.1;` oraz nagłówki
+   `proxy_set_header Upgrade $http_upgrade;` i `proxy_set_header Connection "upgrade";`,
+   zgodnie z
+   [dokumentacją Nginx o proxowaniu WebSocketów](https://nginx.org/en/docs/http/websocket.html).
+   To typowa pułapka gotowych, nieskastomizowanych szablonów Nginx.
+5. Zrestartuj n8n po zmianie zmiennych środowiskowych - same nie działają "na gorąco".
+
+**Głębiej:** [Moduł 1 - HTTPS, domena, reverse proxy i Cloudflare
+Tunnel](/modul-1-instalacja-hosting#https-domena-reverse-proxy-i-cloudflare-tunnel).
+
+## n8n na Raspberry Pi zwalnia albo pada (brak pamięci)
+
+**Objaw:** Na Raspberry Pi albo słabszym mini PC n8n z czasem zaczyna wolno odpowiadać,
+edytor się zacina, a czasem proces (lub cały kontener) pada i sam się restartuje.
+
+**Przyczyna:** Najczęściej to kombinacja małej ilości RAM-u i rosnącej bazy danych -
+domyślnie n8n przechowuje historię wykonań (executions) razem z danymi, które przez nie
+przepłynęły. Bez czyszczenia ta historia rośnie bez końca i z czasem obciąża pamięć oraz
+dysk, zwłaszcza przy dużych payloadach i częstych uruchomieniach.
+
+**Naprawa:**
+1. Sprawdź realne zużycie RAM-u (np. `docker stats` albo `htop`) - stałe zużycie niemal
+   całej dostępnej pamięci to sygnał do zmiany sprzętu albo ograniczenia obciążenia.
+2. Sprawdź pruning executions: zmienna `EXECUTIONS_DATA_PRUNE` (domyślnie `true`) razem z
+   `EXECUTIONS_DATA_MAX_AGE` (wiek w godzinach, domyślnie `336`, czyli 14 dni) i opcjonalnie
+   `EXECUTIONS_DATA_PRUNE_MAX_COUNT` ograniczają rozmiar historii - zgodnie z
+   [dokumentacją zmiennych środowiskowych executions](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/executions/).
+3. Przy większym ruchu rozważ przejście z SQLite na PostgreSQL - SQLite pod obciążeniem na
+   słabym sprzęcie bywa wąskim gardłem.
+4. Ustaw monitoring i healthcheck, żeby wiedzieć o problemie, zanim zauważą go użytkownicy
+   Twoich automatyzacji.
+
+**Głębiej:** [Moduł 1 - Self-hosting na Raspberry Pi i mini
+PC](/modul-1-instalacja-hosting#self-hosting-na-raspberry-pi-i-mini-pc) i [Moduł 7 -
+Monitoring, logi i healthchecks](/modul-7-produkcja#monitoring-logi-i-healthchecks).
+
+## Code Node: "Cannot read properties of undefined"
+
+**Objaw:** Node Code (JavaScript) przerywa wykonanie błędem podobnym do
+`Cannot read properties of undefined (reading 'xyz')`, a workflow zatrzymuje się na
+czerwono.
+
+**Przyczyna:** To standardowy błąd JavaScriptu - kod próbuje odczytać pole obiektu, który w
+danym momencie jest `undefined`. W n8n dzieje się to najczęściej, gdy odwołujesz się do
+pola spoza `json` (np. `item.pole` zamiast `item.json.pole`), gdy zakładasz istnienie pola,
+którego dany item nie ma, albo gdy mylisz tryb uruchamiania - kod pisany pod "Run Once for
+Each Item" (gdzie masz `$json`) uruchomiony w trybie "Run Once for All Items" (gdzie trzeba
+iterować po `$input.all()`), albo odwrotnie.
+
+**Naprawa:**
+1. Sprawdź w komunikacie błędu, o które pole chodzi, i porównaj z rzeczywistą strukturą
+   danych w panelu Input (widok JSON).
+2. Upewnij się, że sięgasz po dane przez `.json` (np. `item.json.pole`, nie `item.pole`) -
+   to najczęstsza literówka.
+3. Sprawdź w polu **Mode**, w którym trybie działa Twój kod, i dopasuj do niego sposób
+   pobierania danych (`$json` kontra `$input.all()`).
+4. Dodaj obronne sprawdzenie przed odczytem (np. `item.json?.pole`), gdy pole bywa
+   opcjonalne.
+5. Testuj node'em Execute step na rzeczywistych danych, zamiast zgadywać strukturę "w
+   głowie".
+
+**Głębiej:** [Moduł 5 - Code Node: JavaScript i
+Python](/modul-5-kod-sub-workflow#code-node-javascript-i-python) i [Moduł 3 - Jak n8n
+przechowuje dane - items i struktura
+JSON](/modul-3-praca-z-danymi#jak-n8n-przechowuje-dane---items-i-struktura-json).
+
+## Zanim zgłosisz błąd gdziekolwiek
+
+Krótka checklista, zanim napiszesz na forum, do supportu hostingu albo do mnie - w
+większości przypadków sam znajdziesz odpowiedź szybciej, niż ktoś zdąży odpisać:
+
+- **Spójrz w Executions i logi.** Zakładka [Executions](/modul-2-interfejs-pierwszy-workflow#lista-i-szczegóły-executions)
+  pokazuje dokładnie, które uruchomienie i który node zawiódł oraz z jakimi danymi. Jeśli
+  self-hostujesz, dorzuć logi kontenera lub procesu.
+- **Wyizoluj node.** Zamiast uruchamiać cały workflow od nowa, użyj
+  [Execute step](/modul-2-interfejs-pierwszy-workflow#execute-workflow-vs-execute-step) na
+  pojedynczym, podejrzanym node'ie.
+- **Sprawdź dane wejściowe na oku, nie w wyobraźni.** Otwórz
+  [panel danych](/modul-2-interfejs-pierwszy-workflow#podgląd-danych-między-nodeami) w
+  widoku JSON i zobacz naprawdę, co przyszło - nie zakładaj kształtu danych z pamięci. Jeśli
+  struktura items i JSON-a wciąż Cię gubi, wróć do [Moduł 3 - Jak n8n przechowuje dane -
+  items i struktura
+  JSON](/modul-3-praca-z-danymi#jak-n8n-przechowuje-dane---items-i-struktura-json).
+- **Powtórz na pinned data.** Przypnij dane wejściowe (Pin data), żeby testować wielokrotnie
+  na tym samym zestawie bez ponownego odpytywania zewnętrznych API i limitów - to opisane w
+  tej samej sekcji Modułu 2 o podglądzie danych.
+
+<Takeaways title="Co warto zapamiętać">
+- Test URL i Production URL webhooka to różne adresy - produkcja wymaga też aktywacji
+  workflow, nie tylko poprawnego linku.
+- OAuth i webhooki potrzebują publicznego adresu zgodnego co do znaku (redirect URI,
+  `WEBHOOK_URL`) - literówka albo brak HTTPS wystarczą, żeby wszystko się posypało.
+- `undefined` w wyrażeniu prawie zawsze znaczy: sprawdź prawdziwą strukturę danych w panelu
+  Input, zamiast zgadywać nazwę pola z pamięci.
+- `N8N_ENCRYPTION_KEY` to jak hasło do wszystkich Twoich poświadczeń - zgubiony klucz
+  oznacza utratę dostępu do nich na zawsze.
+- Reverse proxy i słaby sprzęt (Raspberry Pi) najczęściej psują się przez brakującą
+  konfigurację (`WEBHOOK_URL`, `N8N_PROXY_HOPS`, pruning executions), nie przez samego n8n.
+- Zanim zgłosisz błąd - zajrzyj w Executions, wyizoluj node przez Execute step i zobacz dane
+  na własne oczy.
+</Takeaways>

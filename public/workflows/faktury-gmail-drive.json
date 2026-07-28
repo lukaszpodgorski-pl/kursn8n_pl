@@ -1,0 +1,115 @@
+{
+  "name": "Faktury z Gmaila na Google Drive",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "simple": false,
+        "filters": {
+          "q": "has:attachment filename:pdf (faktura OR invoice OR rachunek)"
+        },
+        "options": {
+          "downloadAttachments": true,
+          "dataPropertyAttachmentsPrefixName": "attachment_"
+        }
+      },
+      "id": "7c9e1a20-4b3d-4f5a-8e11-000000000001",
+      "name": "Nowa wiadomość z fakturą",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PODMIEN_NA_SWOJE_CREDENTIALS",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "7c9e1a20-4b3d-4f5a-8e11-000000000010",
+              "leftValue": "={{ Object.keys($binary || {}).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7c9e1a20-4b3d-4f5a-8e11-000000000002",
+      "name": "Czy jest załącznik PDF?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "authentication": "oAuth2",
+        "inputDataFieldName": "attachment_0",
+        "name": "={{ $json.date.slice(0, 7) }} - {{ $json.from.value[0].name || $json.from.value[0].address }} - {{ $binary.attachment_0.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "ID_FOLDERU_FAKTURY",
+          "mode": "id"
+        }
+      },
+      "id": "7c9e1a20-4b3d-4f5a-8e11-000000000003",
+      "name": "Zapisz na Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [680, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "PODMIEN_NA_SWOJE_CREDENTIALS",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Nowa wiadomość z fakturą": {
+      "main": [
+        [
+          {
+            "node": "Czy jest załącznik PDF?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Czy jest załącznik PDF?": {
+      "main": [
+        [
+          {
+            "node": "Zapisz na Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

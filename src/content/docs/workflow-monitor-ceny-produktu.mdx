@@ -1,0 +1,295 @@
+---
+title: "Gotowy workflow: monitor ceny produktu z alertem"
+description: "Gotowy workflow n8n do pobrania: monitoruje cenę produktu i wysyła alert na Telegram, gdy spadnie poniżej progu. Ćwiczysz IF, wyrażenia i web scraping."
+head:
+  - tag: title
+    content: "Gotowy workflow: monitor ceny produktu (n8n) | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Gotowy workflow: monitor ceny produktu"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Pobierz gotowy workflow n8n: monitoruje cenę produktu i wysyła alert na Telegram, gdy spadnie poniżej progu - trening node'a IF i wyrażeń w praktyce."
+datePublished: 2026-07-24
+educationalLevel: Beginner
+teaches:
+  - Jak zbudować workflow monitorujący cenę produktu i wysyłający alert tylko wtedy, gdy warunek jest spełniony
+  - Jak w praktyce skonfigurować node IF do porównania liczb i uniknąć typowego błędu porównywania stringów
+  - Jak wyrażeniem {{ }} oczyścić tekst ceny do liczby - usunięcie waluty, spacji i zamiana przecinka na kropkę
+  - Podstawy web scrapingu w n8n - HTTP Request i HTML (Extract) z selektorem CSS
+  - Jak wysłać powiadomienie na Telegram z poziomu workflow
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Telegram
+    sameAs: https://en.wikipedia.org/wiki/Telegram_(software)
+  - name: CSS
+    sameAs: https://en.wikipedia.org/wiki/CSS
+  - name: Web scraping
+    sameAs: https://en.wikipedia.org/wiki/Web_scraping
+faq:
+  - q: "Czy ten workflow zadziała z każdym sklepem internetowym?"
+    a: "Nie automatycznie - selektor CSS ceny jest unikalny dla każdej strony, więc musisz go wyznaczyć osobno dla swojego sklepu. Część sklepów renderuje cenę dopiero JavaScriptem albo blokuje automatyczne pobieranie, co opisuję w sekcji \"Co może pójść nie tak\"."
+  - q: "Jak często n8n sprawdza cenę produktu?"
+    a: "W gotowcu domyślnie co 4 godziny - to rozsądny kompromis między aktualnością a niepotrzebnym obciążaniem serwera sklepu. Możesz zmienić interwał w node'cie Harmonogram, ale unikaj odpytywania częściej niż raz na godzinę bez wyraźnej potrzeby."
+  - q: "Czy monitorowanie ceny w ten sposób jest zgodne z prawem i regulaminem sklepu?"
+    a: "To zależy od konkretnego sklepu - część regulaminów wprost zakazuje automatycznego pobierania danych (scrapingu). Sprawdź regulamin serwisu, zanim uruchomisz workflow, i traktuj ten gotowiec jako narzędzie do danych publicznie dostępnych, a nie sposób na obejście zabezpieczeń."
+  - q: "Dlaczego node IF nie działa, mimo że cena wygląda na niższą niż próg?"
+    a: "Najczęstsza przyczyna to porównywanie tekstu zamiast liczby - jeśli pole `cena` zostało błędnie oczyszczone (nadal zawiera np. \"zł\" albo przecinek), IF porówna dwa stringi i wynik będzie nieprzewidywalny. Sprawdź w panelu danych node'a Oczyść cenę, czy wartość faktycznie ma typ Number."
+  - q: "Co się stanie, jeśli sklep zablokuje pobieranie strony (błąd 403)?"
+    a: "Workflow zakończy się błędem na node'cie HTTP Request. Zanim spróbujesz obejść blokadę, sprawdź regulamin sklepu - jeśli scraping jest tam zakazany, lepszym rozwiązaniem jest poszukanie oficjalnego kanału powiadomień (newsletter, RSS, aplikacja) zamiast dalszego pobierania strony."
+  - q: "Czy mogę monitorować w ten sposób kilka produktów naraz?"
+    a: "Tak - zamiast jednego adresu URL na stałe w node'cie HTTP Request, przygotuj listę produktów (np. w Edit Fields albo arkuszu) i przepuść ją przez ten sam ciąg node'ów. n8n domyślnie przetworzy każdy produkt z listy jako osobny item, bez dodatkowej pętli."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Gotowy workflow · po Module 3"
+  readingTime="~12 min"
+  note="Wdrożenie: ~30 min"
+/>
+
+Obserwujesz produkt w sklepie internetowym i co jakiś czas wchodzisz sprawdzić, czy cena spadła?
+Ten gotowiec robi to za Ciebie - workflow sam pobiera stronę produktu, wyciąga cenę i wysyła Ci
+alert na Telegram dokładnie w momencie, gdy spadnie poniżej progu, który ustawisz. Nie musisz
+odświeżać karty w przeglądarce - powiadomienie samo do Ciebie przychodzi.
+
+To też świetny poligon do ćwiczeń: workflow w praktyce łączy node IF (podjęcie decyzji "wysłać
+czy nie") i wyrażenia czyszczące dane - dwa tematy z [Modułu 3: Praca z danymi](/modul-3-praca-z-danymi),
+które łatwo zrozumieć w teorii, a naprawdę utrwalają się dopiero przy realnym problemie.
+
+## Czego potrzebujesz
+
+- **Moduł 3 ukończony** - wystarczy znajomość items, wyrażeń `{{ }}`, node'a Edit Fields (Set) oraz
+  IF/Switch. Jeśli czegoś z tego brakuje, wróć do [Modułu 3: Praca z danymi](/modul-3-praca-z-danymi).
+- **Działająca instancja n8n** - Cloud, Docker albo dowolny hosting z [Modułu 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+- **Bota Telegram i jego token** - jeśli jeszcze go nie masz, załóż go przez BotFather dokładnie tak,
+  jak w sekcji budowy bota w gotowcu [Poranny brief na Telegram](/workflow-poranny-brief-telegram).
+  Tutaj tej instrukcji nie powtarzam.
+- **Adres strony produktu**, który chcesz monitorować - zwykły publiczny URL karty produktu w sklepie.
+
+## Jak to działa
+
+<Flow
+  title="monitor-ceny-produktu"
+  alt="Diagram: Harmonogram co 4 godziny uruchamia HTTP Request, który pobiera stronę produktu. HTML (Extract) wyciąga tekst ceny selektorem CSS. Edit Fields (Set) czyści go do liczby. IF sprawdza, czy cena jest niższa niż próg - jeśli tak, Telegram wysyła alert; jeśli nie, workflow po prostu się kończy bez żadnej akcji."
+  caption="Gałąź true node'a IF (cena poniżej progu) prowadzi do wysyłki alertu na Telegram. Gałąź false nie jest z niczym połączona - workflow po prostu kończy się bez żadnej akcji, aż do kolejnego uruchomienia przez Harmonogram."
+>
+  <FlowNode icon="fa-clock" label="Harmonogram" sub="co 4 godziny" from="#64748b" to="#475569" />
+  <FlowNode icon="fa-globe" label="HTTP Request" sub="pobierz stronę" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-code" label="HTML (Extract)" sub="wyciągnij cenę" from="#0ea5e9" to="#0369a1" />
+  <FlowNode icon="fa-pen-to-square" label="Edit Fields" sub="oczyść do liczby" from="#d97706" to="#b45309" />
+  <FlowNode icon="fa-code-branch" label="IF" sub="cena < próg?" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="wyślij alert" from="#16a34a" to="#15803d" />
+</Flow>
+
+:::note[Kultura odpytywania cudzej strony]
+Ten workflow regularnie odpytuje stronę, której nie jesteś właścicielem - traktuj ją z szacunkiem.
+Nie skracaj interwału do minut "dla pewności", respektuj regulamin sklepu (część serwisów wprost
+zakazuje automatycznego pobierania danych) i pobieraj wyłącznie dane publicznie dostępne, bez logowania
+się na konto, którego dane nie są Twoje.
+:::
+
+## Pobierz gotowy workflow
+
+Cały workflow w formacie JSON, gotowy do zaimportowania:
+[monitor-ceny-produktu.json](/workflows/monitor-ceny-produktu.json).
+
+<Steps>
+
+1. Pobierz plik `monitor-ceny-produktu.json` (link wyżej).
+2. W n8n otwórz listę workflow i wybierz **Import from File** (albo po prostu przeciągnij plik
+   na kanwę nowego, pustego workflow).
+3. Uzupełnij cztery placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
+
+</Steps>
+
+| Placeholder | Gdzie | Co wpisać |
+| --- | --- | --- |
+| `ADRES_PRODUKTU` | node HTTP Request (pole URL) i node Wyślij alert Telegram (treść wiadomości) | pełny adres karty produktu, który monitorujesz - podmień w obu miejscach |
+| `SELEKTOR_CSS_CENY` | node Wyciągnij cenę (pole CSS Selector) | selektor CSS wskazujący element z ceną - jak go znaleźć, patrz niżej |
+| `TWOJ_PROG` | node Cena poniżej progu? (prawa strona warunku) | próg cenowy jako liczba, np. `99.90` |
+| `TWOJ_CHAT_ID` | node Wyślij alert Telegram (pole Chat ID) | ID czatu, na który ma trafić alert |
+
+Na koniec podepnij pod node'em Telegram swoje credentials (bota założonego przez BotFather) - bez
+tego node zgłosi błąd uwierzytelniania przy pierwszym uruchomieniu.
+
+## Budowa krok po kroku
+
+### 1. Harmonogram - Schedule Trigger co 4 godziny
+
+Node **Schedule Trigger** ustawiony na interwał **Hours** z wartością `4` uruchamia workflow co
+4 godziny. To wystarczająco często, by nie przegapić spadku ceny, i wystarczająco rzadko, by nie
+zamęczać serwera sklepu - więcej o samej konfiguracji interwałów znajdziesz w
+[dokumentacji Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/).
+Pamiętaj: żeby trigger czasowy w ogóle zadziałał, workflow musi być **opublikowany** (aktywny), nie
+tylko zapisany.
+
+### 2. Pobierz stronę produktu - HTTP Request
+
+Zwykłe żądanie **GET** pod adres z pola `ADRES_PRODUKTU`. W gotowcu domyślnie włączony jest nagłówek
+**User-Agent** udający zwykłą przeglądarkę - część sklepów blokuje żądania bez tego nagłówka jako
+podejrzanie "botowe". Szczegóły konfiguracji nagłówków znajdziesz w
+[dokumentacji HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/).
+
+### 3. Znajdź selektor CSS ceny w DevTools
+
+Zanim uzupełnisz `SELEKTOR_CSS_CENY`, musisz wiedzieć, który element strony zawiera cenę.
+
+<Steps>
+
+1. Otwórz stronę produktu w przeglądarce i najedź kursorem na wyświetloną cenę.
+2. Kliknij prawym przyciskiem myszy i wybierz **Zbadaj** (Inspect).
+3. W panelu DevTools zaznaczony element to Twoja cena - kliknij go prawym przyciskiem w drzewie HTML
+   i wybierz **Copy → Copy selector**.
+4. Wklej skopiowany selektor do pola `SELEKTOR_CSS_CENY` w node'cie Wyciągnij cenę.
+
+</Steps>
+
+Selektor wygenerowany przez przeglądarkę bywa bardzo szczegółowy (długi łańcuch klas) - to
+normalne, zostaw go w takiej formie, w jakiej go skopiowałeś.
+
+### 4. Wyciągnij cenę - HTML (operacja Extract HTML Content)
+
+Node **HTML** w operacji **Extract HTML Content** wyciąga zawartość wskazaną selektorem CSS i
+zapisuje ją pod nazwanym kluczem - w gotowcu jest to pole `cena_tekst`, z ustawionym typem zwracanej
+wartości **Text**. Pełny opis operacji i jej parametrów znajdziesz w
+[dokumentacji node'a HTML](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.html/).
+Zanim przejdziesz dalej, zerknij w panel danych poprzedniego node'a (HTTP Request) i sprawdź, czy
+pole z pobranym HTML-em faktycznie nazywa się `data` - to domyślna nazwa, ale warto się upewnić - a
+w polu **JSON Property** (sekcja **Source Data**) node'a HTML wskazujesz dokładnie tę samą nazwę.
+Na tym etapie `cena_tekst` to wciąż tekst, zwykle z symbolem waluty i separatorem tysięcy - np.
+`"1 299,99 zł"` - dlatego kolejny krok go czyści.
+
+### 5. Oczyść cenę - Edit Fields (Set)
+
+Tu wraca dokładnie ten sam mechanizm co w [Moduł 3: Praca z danymi](/modul-3-praca-z-danymi): wyrażenie w `{{ }}`,
+tyle że tym razem robi realną robotę - zamienia tekst na liczbę, z którą IF może dalej pracować.
+Node Edit Fields tworzy pole `cena` (typ **Number**) z takim wyrażeniem:
+
+```javascript
+{{ Number(
+  $json.cena_tekst
+    .replace('zł', '')
+    .replace(/\s/g, '')
+    .replace(',', '.')
+    .trim()
+) }}
+```
+
+Czytając je krok po kroku:
+
+- `.replace('zł', '')` - usuwa symbol waluty, jeśli występuje w tekście.
+- `.replace(/\s/g, '')` - usuwa wszystkie spacje, w tym separator tysięcy (`1 299` → `1299`).
+- `.replace(',', '.')` - zamienia polski przecinek dziesiętny na kropkę, którą rozumie `Number()`.
+- `.trim()` - na wszelki wypadek usuwa skrajne białe znaki.
+- `Number(...)` - dopiero to opakowanie zamienia oczyszczony tekst na wartość typu liczbowego.
+
+Bez tego ostatniego kroku IF porównywałby ze sobą teksty, a nie liczby - a to prosta droga do
+błędów opisanych niżej.
+
+### 6. Konfiguracja IF - cena poniżej progu
+
+Node **IF** dostaje warunek: lewa strona to `{{ $json.cena }}`, typ danych **Number**, operator
+**is less than**, prawa strona to Twój próg cenowy (placeholder `TWOJ_PROG`) - również jako liczba,
+nie tekst. Pełną listę typów danych i operatorów dostępnych w IF znajdziesz w
+[dokumentacji node'a IF](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/).
+
+:::caution[Typowy błąd - porównywanie stringów]
+Jeśli w polu typu wybierzesz **String** zamiast **Number** (albo pole `cena` z poprzedniego kroku
+wciąż jest tekstem), IF porówna dwa napisy znak po znaku - a wtedy np. `"9"` wypada "większe" niż
+`"80"`, bo porównanie tekstowe działa inaczej niż liczbowe. To jeden z najczęstszych powodów, dla
+których IF "kłamie". Sprawdź typ danych w obu miejscach: w polu `cena` i w samym warunku IF.
+:::
+
+Gałąź **true** (cena spadła poniżej progu) prowadzi do node'a Telegram. Gałąź **false** zostaje
+niepodłączona - workflow po prostu kończy działanie bez żadnej akcji.
+
+### 7. Wyślij alert Telegram
+
+Node **Telegram** w operacji **Send Message** wysyła wiadomość z aktualną ceną i adresem produktu
+do czatu wskazanego w polu **Chat ID**. Credentials (token bota) skonfigurujesz dokładnie tak, jak
+opisuję w gotowcu [Poranny brief na Telegram](/workflow-poranny-brief-telegram) - stamtąd też
+weźmiesz swój Chat ID, jeśli jeszcze go nie znasz.
+
+## Co może pójść nie tak
+
+### Sklep zmienił HTML - selektor przestał działać
+
+- **Objaw:** node Wyciągnij cenę zwraca pusty tekst albo `undefined` zamiast ceny, mimo że strona
+  w przeglądarce wygląda normalnie.
+- **Przyczyna:** sklepy regularnie zmieniają wygląd strony (redesign, nowy szablon), a wraz z nim
+  zmieniają się klasy CSS elementów - Twój zapisany selektor przestaje pasować.
+- **Naprawa:** powtórz krok "Znajdź selektor CSS ceny w DevTools" na aktualnej wersji strony i
+  podmień wartość w node'cie. To najczęstsza rutynowa konserwacja tego typu workflow.
+
+### Strona jest renderowana JavaScriptem - HTTP Request dostaje HTML bez ceny
+
+- **Objaw:** node HTTP Request kończy się poprawnie (status 200), ale w pobranym HTML nigdzie nie
+  ma ceny - selektor CSS "nie znajduje" elementu, bo go tam po prostu nie ma.
+- **Przyczyna:** część sklepów dogrywa cenę dopiero po stronie przeglądarki, skryptem JavaScript.
+  Zwykłe żądanie HTTP - takie jak to, które wysyła node HTTP Request - dostaje od serwera dokładnie
+  to, co ten zwróci w odpowiedzi; to dopiero przeglądarka parsuje ten HTML i wykonuje osadzone w nim
+  skrypty, jak opisuje [MDN w artykule o działaniu przeglądarek](https://developer.mozilla.org/en-US/docs/Web/Performance/How_browsers_work).
+  Bez silnika przeglądarki te skrypty się nie uruchomią, więc cena dogrywana przez JS nie trafia do
+  pobranego HTML.
+- **Naprawa:** nie ma tu gwarancji uniwersalnego rozwiązania. Zajrzyj w DevTools do zakładki
+  **Network** podczas ładowania strony - często cena przychodzi z osobnego zapytania do
+  wewnętrznego API sklepu w formacie JSON, które możesz odpytać bezpośrednio zamiast parsować
+  HTML. Jeśli takiego zapytania nie znajdziesz, ten konkretny sklep może po prostu nie nadawać
+  się do tej metody.
+
+### Sklep blokuje żądanie - błąd 403 albo podobny
+
+- **Objaw:** node HTTP Request kończy się błędem, często z kodem `403 Forbidden`.
+- **Przyczyna:** mechanizmy anti-bot rozpoznają, że żądanie nie pochodzi ze zwykłej przeglądarki -
+  brak nagłówka User-Agent bywa jedną z najprostszych poszlak.
+- **Naprawa:** sprawdź, czy nagłówek User-Agent jest włączony (jest w tym gotowcu domyślnie).
+  Jeśli to nie pomaga, zatrzymaj się i sprawdź regulamin sklepu - część serwisów świadomie
+  zakazuje scrapingu. W takiej sytuacji uczciwsze rozwiązanie to poszukanie oficjalnego kanału
+  powiadomień (newsletter, RSS, aplikacja mobilna) zamiast prób obchodzenia zabezpieczeń.
+
+### `[undefined]` w wyrażeniu czyszczącym cenę
+
+- **Objaw:** node Oczyść cenę zwraca błąd albo wartość `NaN`, a w polu wyrażenia widać
+  `[undefined]`.
+- **Przyczyna:** niemal zawsze zła nazwa pola we wyrażeniu - np. odwołanie do `$json.cena`
+  zamiast `$json.cena_tekst`, albo literówka w nazwie klucza ustawionej w node'cie HTML.
+- **Naprawa:** sprawdź w panelu danych poprzedniego node'a (Wyciągnij cenę), jak dokładnie nazywa
+  się pole z tekstem ceny, i popraw wyrażenie tak, by się z nim zgadzało. To dokładnie ten sam
+  mechanizm debugowania, który opisuję w [Moduł 3: Praca z danymi](/modul-3-praca-z-danymi).
+
+## Jak to rozbudować
+
+- **Wiele produktów naraz** - zamiast jednego adresu na stałe, przygotuj listę URL-i (np. w Edit
+  Fields albo arkuszu) i przepuść ją przez ten sam ciąg node'ów; n8n domyślnie przetworzy każdy
+  produkt jako osobny item, bez dodatkowej pętli (patrz [Moduł 3: Praca z danymi](/modul-3-praca-z-danymi)).
+- **Historia cen w arkuszu** - zamiast tylko alertować, dopisuj każdy odczyt ceny do arkusza Google
+  Sheets albo bazy danych, by zobaczyć trend w czasie. Integrację z zewnętrznymi API opisuje
+  [Moduł 4: Integracje i API](/modul-4-integracje-api).
+- **Monitoring dostępności zamiast ceny** - ten sam schemat (pobierz → wyciągnij → IF → alert)
+  działa też dla "produkt wrócił do sprzedaży" czy "wolny termin się pojawił" - wystarczy zmienić
+  selektor CSS i warunek w IF.
+
+<Takeaways title="Co warto zapamiętać">
+  - Node IF w praktyce: dwie gałęzie, typ danych **musi** być Number przy porównaniu liczb - stringi
+    porównują się inaczej i dają zaskakujące wyniki.
+  - Wyrażenie czyszczące tekst do liczby to łańcuch `.replace()` zakończony `Number(...)` - bez tego
+    ostatniego kroku dane zostają tekstem, nawet jeśli "wyglądają" jak liczba.
+  - HTTP Request pobiera wyłącznie surowy HTML - strony renderowane JavaScriptem wymagają innego
+    podejścia (np. wewnętrznego API sklepu z zakładki Network w DevTools).
+  - Selektory CSS z czasem się psują wraz ze zmianami strony - to rutynowa konserwacja, nie błąd
+    Twojego workflow.
+  - Scrapuj z umiarem i w zgodzie z regulaminem: rozsądny interwał, dane publiczne, szacunek dla
+    cudzego serwera.
+</Takeaways>
+
+Szukasz kolejnego gotowca do wdrożenia od razu? Zobacz [wszystkie gotowe workflow](/gotowe-workflow).

@@ -271,6 +271,42 @@ WooCommerce" zamiast "HTTP Request1"). Czytelne nazwy node'ów sprawiają, że w
 odwołujące się do nich (`{{ $('Pobierz zamówienia').item.json... }}`) same się dokumentują.
 :::
 
+## Sprawdź się
+
+Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na
+kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
+
+1. Dlaczego Manual Trigger nigdy nie uruchomi workflow "sam z siebie", nawet jeśli
+   przełączysz workflow na Active - co konkretnie odróżnia go pod tym względem od Schedule
+   i Webhooka? Jeśli nie masz pewności -
+   [Triggery: Manual, Schedule i Webhook](#triggery-manual-schedule-i-webhook).
+2. Kolejny node w Twoim przepływie "nie widzi" pola, którego się spodziewałeś, i się
+   wywala. Gdzie w edytorze sprawdzisz, jak naprawdę wygląda output poprzedniego node'a,
+   zanim zaczniesz zgadywać? Jeśli nie masz pewności -
+   [Podgląd danych między node'ami](#podgląd-danych-między-nodeami).
+3. Wracasz po pół roku do workflow, w którym node'y nazywają się "HTTP Request1", "Set1",
+   "IF1". Co stracisz, a czego byś nie stracił, gdybyś od razu nadał im opisowe nazwy?
+   Jeśli nie masz pewności -
+   [Organizacja pracy - dobre praktyki od początku](#organizacja-pracy---dobre-praktyki-od-początku).
+4. Wczorajsze, produkcyjne uruchomienie zakończyło się błędem, a Ciebie przy tym nie było.
+   Jak teraz sprawdzisz, na którym dokładnie kroku i z jakimi danymi coś poszło nie tak?
+   Jeśli nie masz pewności - [Lista i szczegóły executions](#lista-i-szczegóły-executions).
+
+<details>
+<summary>Mini-zadanie: zamień Schedule Trigger na Webhook</summary>
+
+Bazujesz na workflow z tego modułu (Schedule Trigger → HTTP Request → Edit Fields).
+
+1. Usuń Schedule Trigger i dodaj w jego miejsce node **Webhook** (metoda `GET`).
+2. Połącz go z istniejącym HTTP Request i Edit Fields - reszta przepływu zostaje bez zmian.
+3. Kliknij **Listen for test event** i otwórz Test URL w przeglądarce (albo wywołaj go
+   `curl`-em).
+4. Sprawdź w panelu Output node'a Edit Fields, że dane przeszły tak samo jak wcześniej.
+5. Żeby to zadziałało "na produkcji", pamiętaj o dwóch rzeczach z tego modułu: aktywacji
+   workflow (Active) i użyciu Production URL zamiast Test URL.
+
+</details>
+
 <Takeaways>
   - Edytor n8n to: kanwa, panel node'ów (Tab / +), panel parametrów i ustawień node'a, lista workflow i executions.
   - Każdy workflow startuje od triggera; uniwersalny wzorzec to "kiedy → skąd → co z tym zrobić".

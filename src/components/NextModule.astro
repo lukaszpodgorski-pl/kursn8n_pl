@@ -1,0 +1,64 @@
+---
+/**
+ * Karta "Nastepny krok" zamykajaca kazdy modul - czyta rejestr MODULES
+ * (src/config/modules.ts), wiec zmiana kolejnosci/etykiet modulow aktualizuje
+ * karty automatycznie. Gdy QUICK_WINS ma gotowca odblokowanego przez biezacy
+ * modul (afterModule), karta dodaje link "Umiesz juz dosc, zeby wdrozyc".
+ * Renderowana centralnie w MarkdownContent.astro - nie wklejaj jej do .mdx.
+ * Pod kartami: stała linijka CTA "żywego wiki" - zaproszenie do zgłoszenia
+ * nieaktualnego/niejasnego fragmentu (patrz `.k-next-feedback` w kursn8n.css).
+ */
+import { LinkCard } from '@astrojs/starlight/components';
+import { MODULES, QUICK_WINS, QUICK_WINS_HUB_SLUG } from '../config/modules';
+
+const pathname = Astro.url.pathname;
+const slug = pathname.split('/').filter(Boolean)[0];
+const index = MODULES.findIndex((m) => m.slug === slug);
+
+// Ta sama filozofia strazy co w Panel.astro: build bez "astro check" nie
+// sprawdza uzycia - komponent na stronie spoza rejestru modulow renderowalby
+// bezsensowna karte po cichu.
+if (index === -1) {
+	throw new Error(
+		`Komponent <NextModule> uzyty na stronie "${pathname}", ktora nie jest modulem kursu. ` +
+			'Karta "Nastepny krok" dziala wylacznie na stronach z rejestru MODULES (src/config/modules.ts); ' +
+			'renderuje ja centralnie MarkdownContent.astro.'
+	);
+}
+
+const current = MODULES[index];
+const next = MODULES[index + 1];
+// filter, nie find: moduł może odblokować wiecej niz jeden gotowiec (np. Modul 6
+// ma dwa - RSS i notatke glosowa) - kazdy pasujacy dostaje wlasna karte.
+const unlockedQuickWins = QUICK_WINS.filter((w) => w.afterModule === Number(current.number));
+---
+
+<div class="k-next-module">
+	<h2>Następny krok</h2>
+	{
+		next ? (
+			<LinkCard
+				href={`/${next.slug}`}
+				title={`Moduł ${next.number}: ${next.label}`}
+				description={next.description}
+			/>
+		) : (
+			<LinkCard
+				href={`/${QUICK_WINS_HUB_SLUG}`}
+				title="Gotowe workflow - wdrażaj to, czego się nauczyłeś"
+				description="To był ostatni moduł kursu. Czas na praktykę: gotowe workflow do pobrania, z budową krok po kroku."
+			/>
+		)
+	}
+	{unlockedQuickWins.map((quickWin) => (
+		<LinkCard
+			href={`/${quickWin.slug}`}
+			title={`Umiesz już dość, żeby wdrożyć: ${quickWin.label}`}
+			description={quickWin.description}
+		/>
+	))}
+	<p class="k-next-feedback">
+		Utknąłeś w tym module albo coś jest nieaktualne? <a href="/#o-autorze">Napisz do mnie</a> -
+		poprawię materiał.
+	</p>
+</div>

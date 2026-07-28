@@ -1,0 +1,178 @@
+{
+  "name": "RSS z podsumowaniem AI na Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "id": "trigger-harmonogram",
+      "name": "Harmonogram"
+    },
+    {
+      "parameters": {
+        "url": "ADRES_KANALU_RSS",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [460, 300],
+      "id": "rss-wczytaj-kanal",
+      "name": "Wczytaj kanał RSS"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "warunek-data-24h",
+              "leftValue": "={{ $json.isoDate }}",
+              "rightValue": "={{ $now.minus({ hours: 24 }).toISO() }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [680, 300],
+      "id": "filter-ostatnie-24h",
+      "name": "Tylko ostatnie 24h"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "title, link, contentSnippet, isoDate",
+        "destinationFieldName": "wpisy",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "id": "aggregate-polacz-wpisy",
+      "name": "Połącz wpisy"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer TWOJ_KLUCZ_API_OPENAI"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'NAZWA_MODELU_AI', messages: [ { role: 'system', content: 'Jesteś redaktorem newslettera. Przygotowujesz krótkie, rzeczowe podsumowanie nowości z branżowego kanału RSS, po polsku, w formie krótkiej listy.' }, { role: 'user', content: 'Podsumuj poniższe wpisy z kanału RSS. Dla każdego wpisu napisz jedno, maksymalnie dwuzdaniowe podsumowanie i dodaj link źródłowy. Pomiń wpisy czysto promocyjne, jeśli takie się pojawią. Wpisy w formacie JSON: ' + JSON.stringify($json.wpisy) } ] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300],
+      "id": "http-podsumowanie-ai",
+      "name": "Podsumowanie AI"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "TWOJ_CHAT_ID",
+        "text": "={{ $json.choices[0].message.content }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1340, 300],
+      "id": "telegram-wyslij-podsumowanie",
+      "name": "Wyślij podsumowanie"
+    }
+  ],
+  "connections": {
+    "Harmonogram": {
+      "main": [
+        [
+          {
+            "node": "Wczytaj kanał RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wczytaj kanał RSS": {
+      "main": [
+        [
+          {
+            "node": "Tylko ostatnie 24h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tylko ostatnie 24h": {
+      "main": [
+        [
+          {
+            "node": "Połącz wpisy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Połącz wpisy": {
+      "main": [
+        [
+          {
+            "node": "Podsumowanie AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podsumowanie AI": {
+      "main": [
+        [
+          {
+            "node": "Wyślij podsumowanie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

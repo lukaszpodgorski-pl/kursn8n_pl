@@ -1,0 +1,332 @@
+---
+title: "Gotowy workflow: notatka głosowa z Telegrama do Notion"
+description: "Gotowy workflow n8n: nagraj notatkę głosową w Telegramie, a jej transkrypcja trafia prosto do Notion. Telegram Trigger, OpenAI Whisper i Notion - po Module 6."
+head:
+  - tag: title
+    content: "Gotowy workflow: notatka głosowa z Telegrama do Notion (n8n) | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Gotowy workflow: notatka głosowa z Telegrama do Notion"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Nagrywasz notatkę głosową w Telegramie, a po chwili jej transkrypcja czeka w Notion - gotowy workflow n8n z Telegram Trigger, OpenAI (Whisper) i Notion."
+datePublished: 2026-07-24
+educationalLevel: Intermediate
+teaches:
+  - Jak Telegram Trigger reaguje na nowe wiadomości i jak z wiadomości głosowej wyciągnąć plik audio (voice.file_id)
+  - Jak node Telegram (resource File, operacja Get a file) pobiera binarny plik audio na kanwę
+  - Jak node OpenAI transkrybuje audio na tekst (resource Audio, operacja Transcribe a Recording, model Whisper)
+  - Jak zapisać dane jako nową stronę w bazie Notion i jak poprawnie udostępnić bazę integracji
+  - Jak zbudować świadomy guard (IF) filtrujący tylko wiadomości głosowe, zamiast reagować na każdą wiadomość
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Telegram
+    sameAs: https://en.wikipedia.org/wiki/Telegram_(software)
+  - name: Whisper (system rozpoznawania mowy)
+    sameAs: https://en.wikipedia.org/wiki/Whisper_(speech_recognition_system)
+  - name: Notion
+    sameAs: https://en.wikipedia.org/wiki/Notion_(productivity_software)
+faq:
+  - q: "Czy transkrypcja notatek głosowych jest darmowa?"
+    a: "Nie - node OpenAI korzysta z płatnego API (transkrypcja Whisper), rozliczanego za długość nagrania. Aktualny cennik sprawdź w [cenniku OpenAI](https://openai.com/api/pricing/), bo stawki zmieniają się częściej niż ten artykuł."
+  - q: "Dlaczego workflow próbuje przetworzyć każdą wiadomość, a nie tylko głosowe?"
+    a: "Najpewniej brakuje albo jest rozłączony node IF \"To wiadomość głosowa?\" - to on sprawdza, czy w wiadomości w ogóle jest pole voice, zanim workflow spróbuje pobrać plik. Bez tego guarda zwykła wiadomość tekstowa trafi do node'a Pobierz plik głosowy i skończy się błędem, bo nie ma czego pobierać."
+  - q: "Notion zwraca błąd, że nie widzi mojej bazy - co robię źle?"
+    a: "Najczęstsza przyczyna to brak udostępnienia (share) bazy integracji - Notion domyślnie nie daje żadnej integracji dostępu do żadnej strony ani bazy, dopóki nie zrobisz tego ręcznie przez menu \"...\" > Connections > Connect to. Sam poprawny token integracji w credentials to za mało."
+  - q: "Jak długą notatkę głosową obsłuży ten workflow?"
+    a: "W praktyce ogranicza Cię krótszy z dwóch limitów: standardowe Telegram Bot API pozwala pobrać (getFile) pliki tylko do 20 MB, a OpenAI ogranicza rozmiar pliku do transkrypcji do 25 MB. Zwykła kilkuminutowa notatka głosowa w skompresowanym formacie OGG/Opus mieści się w tym z dużym zapasem."
+  - q: "Czy mogę transkrybować notatki w innym języku niż polski?"
+    a: "Tak - w node'cie Transkrybuj notatkę zmień parametr Language of the Audio File (kod ISO-639-1, np. `en` dla angielskiego) albo usuń go całkiem, jeśli chcesz, by Whisper sam rozpoznawał język nagrania."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Gotowy workflow · po Module 6"
+  readingTime="~13 min"
+  note="Wdrożenie: ~40 min"
+/>
+
+Jedziesz autem albo idziesz na spacer i wpada Ci do głowy pomysł, który na pewno zapomnisz, zanim
+usiądziesz do klawiatury? Nagrywasz notatkę głosową botowi na Telegramie - i po chwili jej pełna
+transkrypcja czeka jako nowa strona w Twojej bazie Notion. Ręce zostają wolne, a pomysł nie ginie
+w gąszczu wiadomości.
+
+Ten gotowiec łączy trzy tematy z dalszej części kursu: reagowanie na zdarzenia z zewnętrznego
+serwisu (Telegram Trigger), transkrypcję mową-na-tekst przez model AI (OpenAI Whisper) i zapis do
+zewnętrznej bazy danych (Notion). To dobry poligon na sensowny "quick win" po ukończeniu
+[Modułu 6: AI i agenci](/modul-6-ai-agenci) - korzysta z node'a OpenAI, ale bez pełnego ciężaru
+AI Agenta czy pamięci konwersacji.
+
+## Czego potrzebujesz
+
+- **Moduł 6 ukończony** - a wcześniej też [Moduł 3: Praca z danymi](/modul-3-praca-z-danymi) (dane
+  binarne, klucz `binary`) i [Moduł 4: Integracje i API](/modul-4-integracje-api) (credentials,
+  OAuth i API key). Ten gotowiec zakłada, że oba tematy już Ci nieobce.
+- **Działająca instancja n8n** - Cloud, Docker albo dowolny hosting z
+  [Modułu 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+- **Bota Telegram i jego token** - załóż go przez BotFather dokładnie tak, jak w sekcji budowy
+  bota w gotowcu [Poranny brief na Telegram](/workflow-poranny-brief-telegram). Tutaj tej
+  instrukcji nie powtarzam.
+- **Konto OpenAI z kluczem API** - transkrypcja Whisper jest płatna (patrz FAQ o kosztach niżej),
+  więc potrzebujesz aktywnego konta z metodą płatności na
+  [platform.openai.com](https://platform.openai.com/).
+- **Konto Notion i baza, do której chcesz zapisywać notatki** - wystarczy prosta baza z kolumną
+  tytułową i jedną kolumną tekstową (rich text) na transkrypcję.
+
+## Jak to działa
+
+<Flow
+  title="notatka-glosowa-notion"
+  alt="Diagram: Telegram Trigger reaguje na nową wiadomość. Node IF sprawdza, czy wiadomość zawiera pole voice - jeśli nie, workflow kończy się bez żadnej akcji. Jeśli tak, node Telegram pobiera plik głosowy jako dane binarne, node OpenAI transkrybuje audio na tekst, a node Notion tworzy nową stronę w bazie z tą transkrypcją."
+  caption="Gałąź true node'a IF (wiadomość ma pole voice) prowadzi przez pobranie pliku i transkrypcję aż do zapisu w Notion. Gałąź false nie jest z niczym połączona - workflow po prostu kończy się, gdy przyjdzie wiadomość, która nie jest notatką głosową."
+>
+  <FlowNode icon="fa-telegram" family="fab" label="Telegram Trigger" sub="nowa wiadomość" from="#0ea5e9" to="#0369a1" />
+  <FlowNode icon="fa-code-branch" label="IF" sub="czy to voice?" from="#ea4b71" to="#6d28d9" />
+  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="pobierz plik głosowy" from="#0ea5e9" to="#0369a1" />
+  <FlowNode icon="fa-microphone" label="OpenAI" sub="transkrybuj (Whisper)" from="#16a34a" to="#15803d" />
+  <FlowNode icon="fa-file-lines" label="Notion" sub="utwórz stronę" from="#64748b" to="#475569" />
+</Flow>
+
+## Pobierz gotowy workflow
+
+Cały workflow w formacie JSON, gotowy do zaimportowania:
+[notatka-glosowa-notion.json](/workflows/notatka-glosowa-notion.json).
+
+<Steps>
+
+1. Pobierz plik `notatka-glosowa-notion.json` (link wyżej).
+2. W n8n otwórz listę workflow i wybierz **Import from File** (albo przeciągnij plik na kanwę
+   nowego, pustego workflow).
+3. Uzupełnij placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
+
+</Steps>
+
+| Placeholder | Gdzie | Co wpisać |
+| --- | --- | --- |
+| `ID_BAZY_NOTION` | node Zapisz w Notion (pole Database ID) | ID bazy Notion, do której mają trafiać notatki - jak je znaleźć, patrz krok 6 niżej |
+| `NAZWA_KOLUMNY_TYTULOWEJ` | node Zapisz w Notion (klucz właściwości w `propertiesUi`) | dokładna nazwa tytułowej kolumny Twojej bazy Notion (często "Name" albo "Nazwa") |
+| `NAZWA_KOLUMNY_TRANSKRYPCJI` | node Zapisz w Notion (klucz właściwości w `propertiesUi`) | dokładna nazwa kolumny typu Text (rich text), do której trafi pełna transkrypcja |
+
+Na koniec podepnij credentials pod każdy z trzech node'ów zewnętrznych - Telegram (token bota),
+OpenAI (klucz API) i Notion (Internal Integration Secret) - bez tego każdy z nich zgłosi błąd
+uwierzytelniania przy pierwszym uruchomieniu.
+
+:::note[Wersja n8n]
+Nazwy pól i typy node'ów w tym gotowcu bazują na aktualnej dokumentacji n8n (stan na lipiec 2026).
+Node Notion przeszedł w n8n istotną przebudowę (wersja 3 wprowadza pojęcie "data source" zgodnie
+ze zmianami w samym API Notion) - ten gotowiec celowo używa starszej, wciąż wspieranej wersji 2.2
+z prostszym modelem "baza danych". Jeśli Twoja instancja pokaże inne etykiety pól przy Notion
+(np. "Data Source" zamiast "Database"), sprawdź
+[dokumentację node'a Notion](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.notion/)
+- koncepcja (udostępnienie integracji, mapowanie właściwości) zostaje ta sama.
+
+Ta sama zasada dotyczy dwóch pozostałych node'ów zewnętrznych w tym pliku: **OpenAI**
+(`typeVersion: 1.8` zamiast aktualnie domyślnej `2.3`) i **Telegram Trigger**
+(`typeVersion: 1.1` zamiast aktualnie domyślnej `1.5`) - to również świadomie starsze, w pełni
+wspierane wersje, nie przeoczenie. Pola, z których korzysta ten gotowiec przy obu node'ach
+(`resource`/`operation`/`binaryPropertyName` przy transkrypcji, `updates` przy triggerze) są
+identyczne w nowszych wersjach, więc dodanie tych node'ów ręcznie od zera - z domyślną, nowszą
+wersją, którą zaproponuje n8n - da dokładnie ten sam efekt.
+:::
+
+## Budowa krok po kroku
+
+Jeśli wolisz zbudować workflow od zera zamiast tylko edytować zaimportowany plik - poniżej masz
+każdy node z dokładnymi wartościami.
+
+### 1. Telegram Trigger - nowa wiadomość
+
+Dodaj node **Telegram Trigger**, podłącz credentials z tokenem bota i w polu **Updates** zaznacz
+**Message** - to zdarzenie obejmuje nową, przychodzącą wiadomość dowolnego typu (tekst, zdjęcie,
+plik, notatkę głosową). Pełną listę dostępnych zdarzeń znajdziesz w
+[dokumentacji Telegram Trigger](https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.telegramtrigger/).
+
+Trigger nie filtruje typów wiadomości sam - zwraca surowy obiekt Update
+[Telegram Bot API](https://core.telegram.org/bots/api#update) dokładnie tak, jak przysyła go
+Telegram. Gdy przyjdzie notatka głosowa, ten obiekt zawiera zagnieżdżone pole
+[`message.voice`](https://core.telegram.org/bots/api#voice) z kluczami `file_id`, `duration`
+i `mime_type` - to właśnie `file_id` posłuży w kolejnym kroku do pobrania samego pliku audio.
+Gdy przyjdzie zwykła wiadomość tekstowa, pola `message.voice` po prostu nie ma - stąd potrzebny
+jest kolejny node.
+
+### 2. To wiadomość głosowa? - Guard IF
+
+Dodaj node **IF** i nadaj mu nazwę **To wiadomość głosowa?** - dokładnie tak, jak ten sam node
+nazywa się w gotowym pliku JSON do importu, żeby pasowało do dalszych odwołań w sekcji "Co może
+pójść nie tak" i FAQ. Ustaw warunek: typ danych **Object**, lewa strona wyrażenie
+`{{ $json.message.voice }}`, operator **exists**. Bez tego warunku workflow próbowałby pobrać
+plik audio z każdej wiadomości - łącznie z tekstową, w której pola `voice` po prostu nie ma - i
+kolejny node zakończyłby się błędem zamiast po cichu zignorować taką wiadomość.
+
+Gałąź **true** (pole `voice` istnieje) prowadzi do pobrania pliku. Gałąź **false** zostaje
+niepodłączona - workflow po prostu kończy działanie, gdy przyjdzie coś innego niż notatka
+głosowa.
+
+### 3. Pobierz plik głosowy - Telegram (Get a file)
+
+Dodaj kolejny node **Telegram**, tym razem z **Resource** ustawionym na **File** i
+**Operation** na **Get a file**. W polu **File ID** wpisz wyrażenie
+`{{ $json.message.voice.file_id }}` - dokładnie ten identyfikator, który przyszedł z triggera.
+Parametr **Download** zostaw włączony (to jego wartość domyślna) - dzięki temu node faktycznie
+pobiera zawartość pliku, a nie tylko jego metadane. Pełny opis operacji znajdziesz w
+[dokumentacji operacji na plikach Telegram](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/file-operations).
+
+Node zapisuje pobrany plik audio jako dane binarne pod kluczem `data` - dokładnie ten sam
+mechanizm `json` / `binary`, który poznałeś w
+[Moduł 3: Praca z danymi](/modul-3-praca-z-danymi). Zerknij w panel danych tego node'a i sprawdź
+zakładkę **Binary** - powinieneś tam zobaczyć plik z `mimeType` w rodzaju `audio/ogg`, bo
+Telegram domyślnie koduje notatki głosowe w formacie OGG/Opus.
+
+### 4. Transkrybuj notatkę - OpenAI (Whisper)
+
+Dodaj node **OpenAI** i nadaj mu nazwę **Transkrybuj notatkę** - tak samo jak w gotowym pliku
+JSON, żeby zgadzało się z dalszymi odwołaniami w sekcji "Co może pójść nie tak" i FAQ. Podłącz
+credentials z kluczem API (patrz krok 5 niżej), ustaw
+**Resource** na **Audio** i **Operation** na **Transcribe a Recording**. Pole **Input Data Field
+Name** zostaw domyślne `data` - to dokładnie ta sama nazwa, pod którą poprzedni node zapisał plik
+binarny. W sekcji opcji możesz dodatkowo ustawić **Language of the Audio File** na `pl` (kod
+ISO-639-1) - to podpowiedź dla modelu, która poprawia trafność i szybkość rozpoznawania polskiej
+mowy. Pełny opis parametrów, w tym limit rozmiaru pliku i obsługiwane formaty, znajdziesz w
+[dokumentacji operacji audio node'a OpenAI](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/audio-operations/).
+
+Node transkrybuje audio modelem Whisper i zwraca wynik w polu `text` - to właśnie
+`{{ $json.text }}` trafi w kolejnym kroku do Notion.
+
+:::note[Transkrypcja kosztuje]
+W przeciwieństwie do reszty tego gotowca (Telegram i podstawowe użycie Notion są darmowe),
+transkrypcja audio przez API OpenAI jest płatna i rozliczana za długość nagrania. Zanim
+podepniesz ten workflow do produkcyjnego użytku, sprawdź aktualne stawki w
+[cenniku OpenAI](https://openai.com/api/pricing/) - nie podaję tu konkretnych liczb, bo
+zmieniają się częściej, niż zdążyłbym je zaktualizować w tym artykule.
+:::
+
+### 5. Skonfiguruj integrację Notion i udostępnij bazę
+
+Zanim ostatni node zadziała, Notion musi wiedzieć, że Twoja integracja (czyli n8n) w ogóle ma
+prawo cokolwiek zapisywać. To dwuetapowy proces, opisany w
+[dokumentacji credentials Notion w n8n](https://docs.n8n.io/integrations/builtin/credentials/notion/):
+
+<Steps>
+
+1. Wejdź na [notion.com/my-integrations](https://www.notion.com/my-integrations) i kliknij
+   **+ New integration**.
+2. Nadaj integracji nazwę (np. "n8n") i w zakładce **Capabilities** zaznacz uprawnienia do
+   odczytu, aktualizacji i wstawiania treści (**Read content**, **Update content**, **Insert
+   content**), a potem zapisz zmiany.
+3. W zakładce **Secrets** skopiuj **Internal Integration Secret** - to token, który wklejasz w
+   n8n przy zakładaniu credentials **Notion API**.
+4. To najważniejszy, najczęściej pomijany krok: otwórz w Notion bazę, do której mają trafiać
+   notatki, kliknij menu **"..."** w prawym górnym rogu, w sekcji **Connections** wybierz
+   **Connect to** i odszukaj swoją integrację z listy.
+5. ID bazy znajdziesz w adresie URL strony bazy w przeglądarce - to ciąg znaków między ostatnim
+   `/` a znakiem `?` (jeśli w adresie jest znak zapytania).
+
+</Steps>
+
+Bez kroku 4 credentials mogą wyglądać na poprawnie skonfigurowane, a mimo to node Notion zwróci
+błąd - integracja bez udostępnionej strony/bazy po prostu jej "nie widzi", niezależnie od tego,
+jak poprawny jest token.
+
+### 6. Zapisz w Notion - utwórz stronę w bazie
+
+Dodaj node **Notion**, ustaw **Resource** na **Database Page** i **Operation** na **Create**. W
+polu **Database ID** wklej ID bazy z kroku 5. Zmapuj przynajmniej dwie właściwości: kolumnę
+tytułową (typ **Title**) - w gotowcu wypełnioną datą i godziną notatki - oraz kolumnę tekstową
+(typ **Text**), do której trafia `{{ $json.text }}`, czyli cała transkrypcja. Nazwy właściwości
+muszą się zgadzać co do litery z nazwami kolumn w Twojej bazie - stąd placeholdery
+`NAZWA_KOLUMNY_TYTULOWEJ` i `NAZWA_KOLUMNY_TRANSKRYPCJI` w tabeli wyżej.
+
+## Co może pójść nie tak
+
+### Trigger reaguje na każdą wiadomość, nie tylko głosową
+
+- **Objaw:** node Pobierz plik głosowy kończy się błędem (pusty albo `undefined` File ID) przy
+  zwykłej wiadomości tekstowej.
+- **Przyczyna:** node IF "To wiadomość głosowa?" jest rozłączony, wyłączony albo warunek
+  sprawdza złe pole - workflow próbuje pobrać plik z wiadomości, która żadnego pliku nie ma.
+- **Naprawa:** sprawdź, czy IF stoi między triggerem a node'em Pobierz plik głosowy, i czy
+  warunek dokładnie odwołuje się do `{{ $json.message.voice }}` z operatorem **exists**.
+
+### Transkrypcja jest po polsku, ale słabej jakości
+
+- **Objaw:** tekst zwrócony przez node Transkrybuj notatkę zawiera oczywiste błędy albo całe
+  zdania nie mają sensu, mimo że nagranie w Telegramie brzmi wyraźnie.
+- **Przyczyna:** hałas w tle, słaby mikrofon telefonu albo brak podpowiedzi języka - bez
+  ustawionego parametru **Language of the Audio File** model sam zgaduje język nagrania, co przy
+  krótkich albo niewyraźnych notatkach bywa zawodne.
+- **Naprawa:** ustaw pole **Language of the Audio File** na `pl` w node'cie Transkrybuj notatkę
+  (patrz krok 4 wyżej) - to podpowiedź modelu, opisana w
+  [dokumentacji operacji audio OpenAI](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/audio-operations/).
+
+### Notion "nie widzi" bazy, mimo poprawnego ID
+
+- **Objaw:** node Zapisz w Notion kończy się błędem przy tworzeniu strony, mimo że Database ID
+  wygląda na poprawny, a credentials są podłączone.
+- **Przyczyna:** integracja Notion nie została udostępniona (shared) do tej konkretnej bazy -
+  Notion domyślnie nie daje żadnej integracji dostępu do żadnej strony, dopóki nie zrobisz tego
+  ręcznie.
+- **Naprawa:** powtórz krok 4 z sekcji "Skonfiguruj integrację Notion i udostępnij bazę" -
+  otwórz bazę w Notion, menu **"..."** > **Connections** > **Connect to**, i wybierz swoją
+  integrację.
+
+### Długa notatka głosowa nie chce się pobrać albo przetranskrybować
+
+- **Objaw:** node Pobierz plik głosowy albo Transkrybuj notatkę kończy się błędem tylko przy
+  dłuższych nagraniach, krótsze działają bez problemu.
+- **Przyczyna:** dwa niezależne limity rozmiaru pliku nakładają się na siebie - standardowe
+  Telegram Bot API pozwala pobrać plik metodą `getFile` tylko do 20 MB, a OpenAI ogranicza
+  rozmiar pliku do transkrypcji do 25 MB. Dla zwykłego bota (bez własnego lokalnego serwera Bot
+  API) węższym gardłem jest limit Telegrama.
+- **Naprawa:** nagrywaj krótsze notatki - kilka-kilkanaście minut głosu w skompresowanym formacie
+  OGG/Opus, w jakim Telegram domyślnie zapisuje notatki głosowe, to zwykle daleko poniżej 20 MB.
+  Limit możesz sprawdzić dokładnie w
+  [dokumentacji metody getFile Telegram Bot API](https://core.telegram.org/bots/api#getfile).
+
+### Node Notion zwraca błąd o nieznanej właściwości (property)
+
+- **Objaw:** node Zapisz w Notion kończy się błędem wskazującym na nieistniejącą właściwość,
+  mimo że baza i integracja są poprawnie skonfigurowane.
+- **Przyczyna:** nazwa właściwości w node'cie (placeholder `NAZWA_KOLUMNY_TYTULOWEJ` albo
+  `NAZWA_KOLUMNY_TRANSKRYPCJI`) nie zgadza się co do litery z nazwą kolumny w Twojej bazie Notion
+  - wielkość liter i spacje mają znaczenie.
+- **Naprawa:** otwórz swoją bazę w Notion, sprawdź dokładne nazwy obu kolumn i popraw placeholdery
+  w node'cie tak, by pasowały co do znaku.
+
+## Jak to rozbudować
+
+- **AI porządkuje transkrypcję zamiast surowego tekstu** - między node'em Transkrybuj notatkę a
+  Notion dodaj kolejny node OpenAI (operacja tekstowa, np. Message a Model) z promptem w stylu
+  "rozbij poniższy tekst na czytelne punkty albo listę zadań". Do Notion trafia już
+  uporządkowana treść, nie surowa transkrypcja. Więcej o promptach i modelach w
+  [Moduł 6: AI i agenci](/modul-6-ai-agenci).
+- **Zadanie w Todoist zamiast strony Notion** - zamień ostatni node na Todoist (albo dowolny inny
+  menedżer zadań) i mapuj `{{ $json.text }}` na treść zadania zamiast właściwości Notion. Sama
+  konfiguracja credentials i node'a to temat
+  [Moduł 4: Integracje i API](/modul-4-integracje-api).
+- **Automatyczne tagowanie po słowach kluczowych** - dodaj node AI klasyfikujący treść
+  transkrypcji (np. "praca", "zakupy", "pomysł") i zapisuj wynik w dodatkowej kolumnie typu
+  Select w Notion, obok kolumny z pełnym tekstem.
+
+<Takeaways title="Co warto zapamiętać">
+  - Telegram Trigger zwraca surowy obiekt Update Telegram Bot API - to skąd bierze się
+    `message.voice.file_id` przy notatce głosowej.
+  - Guard IF sprawdzający istnienie pola przed dalszym przetwarzaniem to dobra, ogólna praktyka -
+    nie tylko przy Telegramie.
+  - Pobrany plik audio to dane binarne (klucz `binary`, pole `data`) - dokładnie ten sam
+    mechanizm co w Moduł 3, tylko teraz robi realną robotę.
+  - Notion nie "widzi" żadnej bazy, dopóki jej ręcznie nie udostępnisz integracji przez
+    Connections > Connect to - sam poprawny token w credentials to za mało.
+  - Transkrypcja API OpenAI jest płatna i ma limit rozmiaru pliku (25 MB) - w połączeniu z
+    limitem pobierania Telegram Bot API (20 MB) to on w praktyce ogranicza długość notatki.
+</Takeaways>
+
+Szukasz kolejnego gotowca do wdrożenia od razu? Zobacz [wszystkie gotowe workflow](/gotowe-workflow).

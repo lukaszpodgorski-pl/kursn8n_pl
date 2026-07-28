@@ -7,7 +7,7 @@ export const collections = {
 		loader: docsLoader(),
 		schema: docsSchema({
 			extend: z.object({
-				// GEO/AEO — dane strukturalne (schema.org) przenoszone z meta.php
+				// GEO/AEO - dane strukturalne (schema.org) przenoszone z meta.php
 				// starego serwisu; generowanie JSON-LD z tych pól: Etap 2 migracji.
 				educationalLevel: z
 					.enum(['Beginner', 'Intermediate', 'Advanced'])

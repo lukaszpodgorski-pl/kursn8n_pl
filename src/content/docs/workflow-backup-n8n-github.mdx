@@ -1,0 +1,344 @@
+---
+title: "Gotowy workflow: automatyczny backup workflow n8n do GitHuba"
+description: "Gotowy workflow n8n do pobrania: co noc eksportuje wszystkie Twoje workflow przez API n8n do repozytorium GitHub. Uczysz się node'a n8n, itemów i node'a GitHub."
+head:
+  - tag: title
+    content: "Gotowy workflow: backup workflow n8n do GitHuba | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Gotowy workflow: backup workflow n8n do GitHuba"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Pobierz gotowy workflow n8n: co noc eksportuje wszystkie workflow do repozytorium GitHub przez API n8n - wersjonowanie definicji, nie pełny disaster recovery."
+datePublished: 2026-07-24
+educationalLevel: Advanced
+teaches:
+  - Jak wywołać własne API n8n z poziomu workflow - node n8n, resource Workflow, operacja Get Many
+  - Jak wygenerować klucz n8n API (Settings → n8n API) i skonfigurować credentials do niego
+  - Jak Code Node w trybie Run Once for Each Item przygotowuje nazwę i treść pliku dla każdego workflow bez osobnej pętli
+  - Różnicę między operacjami Create i Edit w node'cie GitHub - i jak Edit radzi sobie z aktualizacją istniejącego pliku
+  - Dlaczego eksport definicji workflow to nie pełny backup - i co brakuje względem zasady 3-2-1 z Modułu 7
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: GitHub
+    sameAs: https://en.wikipedia.org/wiki/GitHub
+  - name: Git
+    sameAs: https://en.wikipedia.org/wiki/Git
+  - name: JSON
+    sameAs: https://en.wikipedia.org/wiki/JSON
+faq:
+  - q: "Czy ten backup zawiera moje credentials (klucze API, tokeny OAuth)?"
+    a: "Nie. API n8n, którym posługuje się ten workflow, nie eksportuje credentials w jawnej, użytecznej postaci - w pliku JSON dostajesz wyłącznie definicje workflow (node'y, połączenia, parametry). Pełny backup, który obejmuje też credentials, opisuję w \"Backupy 3-2-1 i testowane odtwarzanie\" z Modułu 7: kopia bazy danych plus bezpiecznie przechowany klucz N8N_ENCRYPTION_KEY."
+  - q: "Co się stanie przy pierwszym uruchomieniu, skoro plików jeszcze nie ma w repozytorium?"
+    a: "Operacja Edit w node'cie GitHub najpierw pobiera SHA istniejącego pliku, żeby bezpiecznie go nadpisać - a dla świeżo dodanego workflow tego pliku jeszcze nie ma, więc node zgłosi błąd. Rozwiązanie opisuję w kroku 5 i w sekcji \"Co może pójść nie tak\": dla nowego workflow uruchamiasz node raz ręcznie z operacją przełączoną na Create, a potem wracasz do Edit."
+  - q: "Ile workflow mogę zbackupować w ten sposób?"
+    a: "W praktyce tyle, ile masz - dopóki w node'cie n8n włączony jest Return All (domyślnie tak), node sam przechodzi przez wszystkie strony odpowiedzi z API. Sama REST API n8n paginuje wyniki (domyślnie 100 na stronę, maksymalnie 250), ale to Return All bierze tę paginację na siebie, nie Ty."
+  - q: "Czy mogę użyć repozytorium, którego używam też do innych rzeczy?"
+    a: "Technicznie tak, ale lepiej nie. Osobne, dedykowane repozytorium na kopie workflow jest czytelniejsze (historia commitów nie miesza się z niczym innym) i bezpieczniejsze - token GitHub podłączony do tego workflow powinien mieć dostęp tylko tam, gdzie faktycznie musi zapisywać."
+  - q: "Jak odtworzyć workflow z takiego backupu?"
+    a: "Pobierz odpowiedni plik JSON z historii repozytorium GitHub i zaimportuj go w n8n tak samo, jak każdy inny eksportowany workflow - Import from File albo przeciągnięcie pliku na kanwę. Musisz jednak ręcznie podłączyć credentials w każdym node'cie, który ich wymaga - te, jak wyjaśniam wyżej, nie są częścią tego backupu."
+  - q: "Czy każda noc nadpisuje poprzedni plik, czy zachowuję historię zmian?"
+    a: "Zachowujesz pełną historię - operacja Edit tworzy nowy commit przy każdej aktualizacji pliku, więc w historii repozytorium widzisz, jak dany workflow wyglądał każdej nocy. To jedna z głównych zalet tego podejścia względem zwykłego nadpisywania pliku na dysku."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Flow from '../../components/Flow.astro';
+import FlowNode from '../../components/FlowNode.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Gotowy workflow · po Module 7"
+  readingTime="~16 min"
+  note="Wdrożenie: ~40 min"
+/>
+
+Eksportujesz workflow ręcznie, klikając "Download" za każdym razem, gdy coś zmienisz - i czasem
+zwyczajnie o tym zapominasz? Ten gotowiec robi to za Ciebie każdej nocy: pobiera wszystkie workflow
+z Twojej instancji n8n przez jej własne API i zapisuje je jako pliki JSON w repozytorium GitHub.
+Dostajesz to, czego zwykły plik na dysku nie daje - pełną historię zmian, commit po commicie.
+
+To praktyczne domknięcie zasady backupu 3-2-1 z [Modułu 7: Produkcja](/modul-7-produkcja#backupy-3-2-1-i-testowane-odtwarzanie):
+wersjonowanie definicji workflow w Git, dokładnie tak, jak opisuję w sekcji o backupach. Po drodze
+ćwiczysz też coś, czego jeszcze nie robiłeś w kursie - wywołanie własnego API n8n z poziomu
+workflow, node'em, który nazywa się po prostu **n8n**.
+
+## Czego potrzebujesz
+
+- **Moduł 7 ukończony** - a przynajmniej sekcję [Backupy 3-2-1 i testowane odtwarzanie](/modul-7-produkcja#backupy-3-2-1-i-testowane-odtwarzanie),
+  żeby rozumieć, gdzie ten gotowiec wpasowuje się w pełną strategię backupu.
+- **Instancja n8n z dostępnym REST API** - Cloud albo self-hosting z [Modułu 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+  API n8n bywa wyłączone administracyjnie na niektórych planach/wdrożeniach - jeśli Settings → n8n API
+  nie istnieje w Twoim panelu, ten gotowiec nie zadziała bez zmiany konfiguracji.
+- **Konto GitHub i puste repozytorium** przeznaczone na kopie workflow - może być prywatne.
+- **Znajomość items i wyrażeń** z [Modułu 3: Praca z danymi](/modul-3-praca-z-danymi) oraz Code Node
+  z [Modułu 5: Kod i sub-workflow](/modul-5-kod-sub-workflow) - w tym gotowcu Code Node robi realną robotę.
+
+## Jak to działa
+
+<Flow
+  title="backup-n8n-github"
+  alt="Diagram: Harmonogram uruchamia się co noc o 3:00 i wywołuje node n8n, który przez własne API n8n
+  pobiera wszystkie workflow z instancji - każdy jako osobny item. Code przygotowuje dla każdego itemu
+  nazwę pliku i treść JSON. GitHub zapisuje albo aktualizuje ten plik w repozytorium."
+  caption="Cztery node'y, bez osobnej pętli - node n8n zwraca jeden item na każdy workflow, więc Code i GitHub
+  przetwarzają je automatycznie, po kolei, tak jak każdy inny zestaw itemów w n8n."
+>
+  <FlowNode icon="fa-clock" label="Harmonogram" sub="codziennie 3:00" from="#64748b" to="#475569" />
+  <FlowNode icon="fa-server" label="n8n" sub="pobierz workflow" from="#2563eb" to="#1e40af" />
+  <FlowNode icon="fa-code" label="Code" sub="przygotuj plik" from="#d97706" to="#b45309" />
+  <FlowNode icon="fa-github" family="fab" label="GitHub" sub="zapisz w repo" from="#16a34a" to="#15803d" />
+</Flow>
+
+:::danger[Czego ten backup NIE robi]
+API n8n, z którego korzysta ten workflow, eksportuje **definicje workflow** - node'y, połączenia,
+parametry - ale **nie eksportuje credentials** w użytecznej, odtwarzalnej postaci. Ten gotowiec to
+wersjonowanie i możliwość odtworzenia logiki workflow, nie kompletny disaster recovery. Pełny backup,
+który obejmuje też credentials, to kopia bazy danych plus bezpiecznie przechowany klucz
+`N8N_ENCRYPTION_KEY` - dokładnie tak, jak opisuję w [Modułu 7 - sekcja o backupach](/modul-7-produkcja#backupy-3-2-1-i-testowane-odtwarzanie).
+Traktuj te dwa mechanizmy jako uzupełniające się, nie zamienne.
+:::
+
+## Pobierz gotowy workflow
+
+Cały workflow w formacie JSON, gotowy do zaimportowania:
+[backup-n8n-github.json](/workflows/backup-n8n-github.json).
+
+<Steps>
+
+1. Pobierz plik `backup-n8n-github.json` (link wyżej).
+2. W n8n otwórz listę workflow i wybierz **Import from File** (albo przeciągnij plik na kanwę
+   nowego, pustego workflow).
+3. Uzupełnij trzy placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
+4. Podłącz pod właściwymi node'ami dwa zestawy credentials - n8n API i GitHub API - patrz kroki
+   2 i 6 w sekcji "Budowa krok po kroku".
+
+</Steps>
+
+| Placeholder | Gdzie | Co wpisać |
+| --- | --- | --- |
+| `WLASCICIEL` | node Zapisz w repozytorium GitHub (pole Repository Owner) | nazwa użytkownika albo organizacji na GitHubie, właściciela repozytorium |
+| `REPO` | node Zapisz w repozytorium GitHub (pole Repository Name) | nazwa repozytorium, do którego trafiają kopie workflow |
+| `SCIEZKA_W_REPO` | node Przygotuj plik backupu (stała `folder` w kodzie) | ścieżka folderu w repo na pliki backupu, np. `backups/workflows` |
+
+## Budowa krok po kroku
+
+### 1. Harmonogram - Schedule Trigger co noc o 3:00
+
+Node **Schedule Trigger** ustawiony na interwał **Days** z wartością `1`, godziną `3` i minutą `0`
+uruchamia workflow raz na dobę, w nocy - poza godzinami, gdy realnie edytujesz workflow na
+produkcji. Szczegóły konfiguracji interwałów (w tym różnicę między Days, Hours i wyrażeniem cron)
+znajdziesz w [dokumentacji Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/).
+Jak w każdym gotowcu z triggerem czasowym - workflow musi być **opublikowany** (aktywny), żeby
+Harmonogram w ogóle zadziałał.
+
+### 2. Wygeneruj klucz n8n API i podłącz credentials
+
+Zanim node n8n będzie mógł cokolwiek pobrać, potrzebujesz klucza do własnego API instancji:
+
+<Steps>
+
+1. W n8n przejdź do **Settings → n8n API**.
+2. Wybierz **Create an API key**, nadaj etykietę (Label) i ustaw datę wygaśnięcia (Expiration).
+3. Skopiuj wygenerowany klucz - zobaczysz go tylko raz.
+4. W n8n utwórz nowe credentials typu **n8n API**: wklej klucz w pole **API Key**, a w polu
+   **Base URL** wpisz adres API swojej instancji - dla self-hostingu w formacie
+   `https://twoja-domena/api/v1`, dla n8n Cloud `https://twoja-instancja.app.n8n.cloud/api/v1`.
+5. Podepnij te credentials pod node'em **Pobierz workflow z n8n**.
+
+</Steps>
+
+Pełny opis generowania i użycia klucza znajdziesz w
+[dokumentacji autentykacji API n8n](https://docs.n8n.io/connect/n8n-api/authentication). Traktuj
+ten klucz jak hasło do całej instancji - na kontach bez planu Enterprise ma pełny dostęp do
+wszystkich zasobów, nie tylko do odczytu workflow.
+
+### 3. Pobierz workflow z n8n - resource Workflow, operacja Get Many
+
+Node **n8n** to osobna kategoria node'ów w n8n - taka, która woła **własne** API instancji, a nie
+usługę zewnętrzną. W tym gotowcu resource to **Workflow**, operacja **Get Many**, z włączonym
+**Return All**. Pełny opis dostępnych resource'ów (Workflow, Execution, Credential, Audit) i
+operacji znajdziesz w [dokumentacji node'a n8n](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.n8n/).
+
+Operacja Get Many zwraca **jeden item na każdy workflow** - dokładnie ten sam mechanizm co przy
+zwykłej liście rekordów z [Modułu 3: Praca z danymi](/modul-3-praca-z-danymi). Dzięki temu w tym
+gotowcu **nie ma osobnego node'a Loop** - Code i GitHub, które idą dalej w łańcuchu, same
+przetworzą każdy workflow po kolei, bo n8n domyślnie iteruje po itemach bez dodatkowej pętli.
+
+:::tip[Return All a paginacja API]
+Sama REST API n8n zwraca wyniki stronami - domyślnie 100 workflow na stronę, maksymalnie 250
+([dokumentacja paginacji API](https://docs.n8n.io/connect/n8n-api/pagination)). Dopóki w tym
+node'cie **Return All** jest włączone (domyślna wartość), node sam przechodzi przez wszystkie
+strony i dostajesz komplet workflow - to ważne przy większych instancjach, gdzie workflow jest
+więcej niż 100.
+:::
+
+### 4. Przygotuj plik backupu - Code Node (Run Once for Each Item)
+
+Node **Code** działa w trybie **Run Once for Each Item** - dokładnie tak, jak opisuję w
+[Moduł 5: Kod i sub-workflow](/modul-5-kod-sub-workflow): `$json` to bieżący workflow, bez pętli.
+Dla każdego workflow node buduje ścieżkę pliku ze slugu nazwy i ID, treść pliku jako sformatowany
+JSON oraz treść commita:
+
+```javascript
+// $json to pojedynczy workflow - n8n przetwarza go osobno dla każdego itemu
+// (patrz Moduł 3: Praca z danymi), bez potrzeby osobnej pętli.
+const workflow = $json;
+
+const folder = 'SCIEZKA_W_REPO';
+
+const slug = workflow.name
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/\p{Diacritic}/gu, '')
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '');
+
+return {
+  json: {
+    sciezka: `${folder}/${slug}-${workflow.id}.json`,
+    tresc: JSON.stringify(workflow, null, 2),
+    wiadomoscCommit: `Backup workflow: ${workflow.name}`
+  }
+};
+```
+
+Czytając to krok po kroku:
+
+- `.normalize('NFD').replace(/\p{Diacritic}/gu, '')` - rozdziela polskie znaki na literę i
+  "ogonek" (znak diakrytyczny), a potem usuwa sam ogonek (`ą` → `a`, `ć` → `c`), żeby ścieżka
+  pliku nie zawierała znaków, które bywają kłopotliwe w adresach URL i niektórych systemach plików.
+- `.replace(/[^a-z0-9]+/g, '-')` - wszystko, co nie jest literą ani cyfrą (spacje, myślniki,
+  znaki specjalne), zamienia na pojedynczy dywiz.
+- `${workflow.id}` w nazwie pliku gwarantuje unikalność, nawet gdy dwa workflow nazywają się tak
+  samo - sam slug nazwy do tego nie wystarczy.
+- `JSON.stringify(workflow, null, 2)` formatuje JSON z wcięciami - czytelny w historii commitów
+  GitHuba, nie jeden nieczytelny wiersz.
+
+### 5. Zapisz w repozytorium GitHub - resource File, operacja Edit
+
+Node **GitHub** w resource **File** ma pięć operacji: Create, Delete, Edit, Get i List
+([dokumentacja node'a GitHub](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.github/)).
+W tym gotowcu wybrana jest **Edit** - i to nieprzypadkowo. Operacja Edit sama pobiera aktualny SHA
+pliku (skrót identyfikujący jego bieżącą wersję w Git) i dopiero z nim wysyła nadpisanie - to
+mechanizm [Contents API GitHuba](https://docs.github.com/en/rest/repos/contents#create-or-update-file-contents),
+który chroni przed przypadkowym nadpisaniem cudzej zmiany. Dzięki temu nie musisz sam zarządzać
+SHA, jak przy gołym wywołaniu API. Operacja **Create** tego nie robi - nie sprawdza w ogóle, czy
+plik już istnieje, więc użyta na ścieżce, pod którą coś już jest, po prostu zwróci błąd.
+
+Pola `filePath`, `fileContent` i `commitMessage` wskazują wyrażeniami wprost na pola przygotowane
+przez poprzedni node: `{{ $json.sciezka }}`, `{{ $json.tresc }}` i `{{ $json.wiadomoscCommit }}`.
+Treść pliku możesz wpisać jako zwykły tekst - node sam zakoduje ją do Base64, którego wymaga API
+GitHuba, nie musisz robić tego ręcznie.
+
+:::caution[Pierwsze uruchomienie dla nowego workflow]
+Ponieważ Edit najpierw pobiera SHA istniejącego pliku, dla **świeżo dodanego** workflow (którego
+plik jeszcze nie istnieje w repo) node zgłosi błąd - nie ma czego pobrać. Rozwiązanie: dla tego
+jednego workflow uruchom node raz ręcznie z operacją przełączoną na **Create**, żeby założyć plik,
+a potem wróć do **Edit** na kolejne, cykliczne uruchomienia. Więcej w sekcji "Co może pójść nie tak"
+niżej.
+:::
+
+### 6. Podłącz credentials GitHub - Personal Access Token
+
+Node GitHub potrzebuje własnych credentials, osobnych od tych z kroku 2. n8n zaleca **Personal
+Access Token (classic)** zamiast tokena fine-grained - ma mniej ograniczeń
+([dokumentacja credentials GitHub](https://docs.n8n.io/integrations/builtin/credentials/github/)).
+
+<Steps>
+
+1. Na GitHubie przejdź do **Settings → Developer settings → Personal access tokens → Tokens
+   (classic)**.
+2. Wybierz **Generate new token (classic)**, nadaj opisową nazwę (np. "n8n - backup workflow") i
+   ustaw datę wygaśnięcia.
+3. Zaznacz **wyłącznie** scope **repo** - to minimalny zakres, który pozwala node'owi GitHub
+   czytać i zapisywać pliki w repozytorium. Nie zaznaczaj nic więcej.
+4. Skopiuj token i wklej go w nowe credentials typu **GitHub API** w n8n, razem ze swoją nazwą
+   użytkownika GitHub.
+5. Podepnij te credentials pod node'em **Zapisz w repozytorium GitHub**.
+
+</Steps>
+
+## Co może pójść nie tak
+
+### 401 z API n8n - zły albo wygasły klucz
+
+- **Objaw:** node "Pobierz workflow z n8n" kończy się błędem `401 Unauthorized`.
+- **Przyczyna:** klucz API wygasł (miał ustawioną datę wygaśnięcia) albo został usunięty w
+  **Settings → n8n API**, albo w credentials wpisana jest zła **Base URL** - przy self-hostingu to
+  częsty błąd: brak `/api/v1` na końcu adresu, `http` zamiast `https`, albo adres, pod którym ten
+  proces n8n faktycznie nie odpowiada.
+- **Naprawa:** sprawdź w **Settings → n8n API**, czy klucz nadal istnieje i ma ważną datę wygaśnięcia.
+  Przy self-hostingu upewnij się, że Base URL kończy się dokładnie na `/api/v1` i wskazuje ten sam
+  adres, pod którym normalnie otwierasz panel n8n.
+
+### GitHub zwraca błąd przy zapisie pliku (SHA / konflikt)
+
+- **Objaw:** node "Zapisz w repozytorium GitHub" (operacja Edit) kończy się błędem podczas próby
+  nadpisania pliku - najczęściej informacją o brakującym albo nieprawidłowym SHA, rzadziej wprost
+  kodem `409 Conflict` z API GitHuba.
+- **Przyczyna:** Edit najpierw pobiera aktualny SHA pliku i dopiero z nim wysyła nadpisanie (patrz
+  krok 5). Błąd pojawia się, gdy plik o tej ścieżce jeszcze nie istnieje - najczęstszy przypadek to
+  świeżo dodany workflow - albo gdy SHA zdążył się zmienić między odczytem a zapisem, bo dwa
+  uruchomienia próbowały nadpisać ten sam plik niemal równocześnie (np. nakładający się ręczny test
+  i harmonogram, albo wciąż trwające poprzednie wykonanie).
+- **Naprawa:** dla nowego workflow uruchom node raz ręcznie z operacją przełączoną na **Create**,
+  żeby założyć plik, a potem wróć do **Edit**. Jeśli podejrzewasz nakładające się uruchomienia,
+  sprawdź w zakładce **Executions**, czy poprzednia noc na pewno się zakończyła, zanim wystartowała
+  kolejna.
+
+### Duża instancja - w repo brakuje części workflow
+
+- **Objaw:** w repozytorium brakuje plików dla części workflow, mimo że w n8n istnieją.
+- **Przyczyna:** REST API n8n paginuje wyniki - domyślnie 100 workflow na stronę, maksymalnie 250
+  ([dokumentacja paginacji](https://docs.n8n.io/connect/n8n-api/pagination)). Node z wyłączonym
+  **Return All** (albo ręcznie ustawionym, niskim **Limit**) pobierze tylko pierwszą stronę wyników.
+- **Naprawa:** upewnij się, że w node'cie "Pobierz workflow z n8n" pole **Return All** jest włączone
+  (domyślna wartość) - wtedy node sam przechodzi przez wszystkie strony za Ciebie.
+
+### Token GitHub ma zbyt szeroki zakres uprawnień
+
+- **Objaw:** to nie awaria workflow, tylko ryzyko bezpieczeństwa - token użyty w credentials może
+  zrobić w Twoich repozytoriach więcej, niż ten workflow faktycznie potrzebuje.
+- **Przyczyna:** przy generowaniu tokena classic łatwo zaznaczyć więcej scope'ów "na wszelki
+  wypadek" albo zostawić dostęp do wszystkich repozytoriów zamiast jednego, dedykowanego.
+- **Naprawa:** ogranicz token do scope **repo** (patrz krok 6) i, jeśli to możliwe, do jednego
+  repozytorium przeznaczonego wyłącznie na te kopie. Token używany tylko przez ten workflow nie
+  powinien mieć dostępu do niczego więcej.
+
+## Jak to rozbudować
+
+- **Commit message z datą** - dopisz do `wiadomoscCommit` w Code Node aktualną datę (np. przez
+  `$now` z [Modułu 5: Kod i sub-workflow](/modul-5-kod-sub-workflow)), żeby historia commitów była
+  czytelna na pierwszy rzut oka, bez rozwijania szczegółów.
+- **Osobny branch na backupy** - zamiast pisać wprost do `main`, ustaw w polu Branch (Additional
+  Parameters node'a GitHub) dedykowaną gałąź na kopie, np. `backups` - trzymasz historię backupów
+  osobno od głównej linii repozytorium.
+- **Powiadomienie o niepowodzeniu** - podepnij Error Trigger (patrz [Moduł 5: Kod i sub-workflow](/modul-5-kod-sub-workflow),
+  sekcja o obsłudze błędów), żeby dostać alert, gdy nocny backup się nie powiedzie - inaczej cicha
+  awaria potrafi trwać tygodniami, zanim ją zauważysz.
+- **Rozróżnienie Create/Edit automatycznie** - zamiast ręcznego przełączania operacji dla nowych
+  workflow (krok 5), dodaj przed node'em GitHub operację **Get** z włączonym **Continue On Fail** i
+  node IF sprawdzający, czy plik już istnieje - w zależności od wyniku kieruj do Create albo Edit.
+- **Backup tylko zmienionych workflow** - zamiast zapisywać wszystko co noc, porównaj pole
+  `updatedAt` z poprzednim zapisanym stanem (np. w osobnym pliku albo arkuszu) i pomiń workflow,
+  które się nie zmieniły - mniej commitów, ta sama kompletność.
+
+<Takeaways title="Co warto zapamiętać">
+  - Node n8n woła własne API instancji - resource Workflow, operacja Get Many zwraca jeden item na
+    każdy workflow, więc dalsze node'y iterują bez osobnej pętli.
+  - Klucz n8n API generujesz w Settings → n8n API; credentials do niego mają dwa pola - API Key i
+    Base URL (self-hosted kończy się na `/api/v1`).
+  - W node'cie GitHub Edit sam pobiera SHA pliku przed nadpisaniem - Create tego nie robi i zawiedzie
+    na istniejącym pliku; dla nowego pliku potrzebujesz Create, dla aktualizacji Edit.
+  - Return All w node'cie n8n ma znaczenie realnie tylko przy dużych instancjach - REST API paginuje
+    wyniki domyślnie po 100, maksymalnie 250.
+  - Ten backup to wersjonowanie definicji workflow w Git, nie pełny disaster recovery - credentials i
+    `N8N_ENCRYPTION_KEY` backupujesz osobno, jak w Module 7.
+</Takeaways>
+
+Szukasz kolejnego gotowca do wdrożenia od razu? Zobacz [wszystkie gotowe workflow](/gotowe-workflow).
