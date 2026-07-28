@@ -1,11 +1,12 @@
 # Naglowki bezpieczenstwa - odtworzone 1:1 ze starego public_html/.htaccess.
 # Cloudflare (Workers static assets) czyta ten plik tak samo jak _redirects.
-# CSP celowo dopuszcza Matomo (analytics.kursn8n.pl) i Sendy (form-action
-# lukaszpodgorski.pl) - to jedyne zewnetrzne zaleznosci strony.
+# CSP celowo dopuszcza Sendy (form-action lukaszpodgorski.pl) i beacon Cloudflare
+# Web Analytics - to jedyne zewnetrzne zaleznosci strony. Beacon wstrzykuje sam
+# Cloudflare po wlaczeniu w panelu, dlatego wpis zostaje mimo ze dzis nie dziala.
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://analytics.kursn8n.pl; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://analytics.kursn8n.pl; form-action 'self' https://lukaszpodgorski.pl; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; form-action 'self' https://lukaszpodgorski.pl; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
