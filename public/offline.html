@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1a1d23">
+<title>Brak połączenia z internetem - KursN8N.pl</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --fg: #1a1d23; --muted: #6b7280;
+    --line: #e5e7eb; --accent: #378CCF; --accent-2: #2A6FA8;
+    --on-accent: #ffffff;
+  }
+  body {
+    margin: 0; min-height: 100vh; padding: 1.5rem;
+    display: grid; place-items: center;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+    background: var(--bg); color: var(--fg);
+    font-family: Inter, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main {
+    width: 100%; max-width: 27rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 32px -12px rgba(0,0,0,.18);
+  }
+  .bar { height: 4px; background: linear-gradient(90deg, #1a1d23 0%, #1a1d23 38%, #378CCF 38%); }
+  .pad { padding: 2.5rem 2rem 2rem; text-align: center; }
+  .wordmark {
+    display: inline-block; margin: 0 0 1.75rem;
+    font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em;
+    color: inherit; text-decoration: none; 
+  }
+  .wordmark b { color: var(--accent); font-weight: 700; }
+  .glyph { color: var(--accent); display: block; margin: 0 auto 1.5rem; opacity: .9; }
+  h1 { font-size: 1.45rem; line-height: 1.25; margin: 0 0 0.6rem; font-family: Inter, "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-weight: 700; }
+  .lead { margin: 0 0 1.75rem; color: var(--muted); }
+  .hint {
+    margin: 1.75rem 0 0; padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.85rem; color: var(--muted);
+  }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer; width: 100%;
+    padding: 0.8rem 1.5rem; border: 0; border-radius: 0.5rem;
+    background: var(--accent); color: var(--on-accent);
+    transition: transform .15s ease, background-color .15s ease;
+  }
+  button:hover { background: var(--accent-2); }
+  button:active { transform: translateY(1px); }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .wordmark:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    button { transition: none; }
+    button:active { transform: none; }
+  }
+  @media (max-width: 26rem) {
+    .pad { padding: 2rem 1.25rem 1.5rem; }
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15171c; --surface: #1a1d23; --fg: #e5e7eb; --muted: #9ca3af;
+      --line: #2b2f38; --accent: #4A9FDD; --accent-2: #378CCF;
+      --on-accent: #111114;
+    }
+    .bar { background: linear-gradient(90deg, #4A9FDD 0%, #4A9FDD 38%, #3a4150 38%); }
+    main { box-shadow: none; }
+  }
+  :root {
+    --bad: #dc2626; --bad-bg: #fef2f2; --bad-line: #fecaca;
+  }
+  .flow { width: 100%; max-width: 14rem; height: auto; opacity: 1; }
+  .exec {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    flex-wrap: wrap; justify-content: center;
+    max-width: 100%; margin: -0.9rem 0 1.6rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--bad-line); border-radius: 0.4rem;
+    background: var(--bad-bg); color: var(--bad);
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.72rem; line-height: 1.4;
+  }
+  .exec-dot {
+    width: 0.45rem; height: 0.45rem; border-radius: 50%;
+    background: var(--bad); flex: none;
+  }
+  .exec-node { font-weight: 700; }
+  .exec-msg { opacity: 0.85; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bad: #f87171; --bad-bg: #241416; --bad-line: #4c2226; }
+  }
+
+</style>
+</head>
+<body>
+  <main>
+    <div class="bar" aria-hidden="true"></div>
+    <div class="pad">
+      <a class="wordmark" href="/">Kurs<b>N8N</b>.pl</a>
+      <svg class="glyph flow" viewBox="0 0 224 72" width="224" height="72" fill="none" aria-hidden="true"><rect x="8.75" y="20.75" width="52" height="32" rx="9" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/><path d="M29 30l10 6-10 6z" fill="var(--accent)"/><circle cx="61" cy="36" r="3.5" fill="var(--accent)"/><path d="M65 36H93" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 5" stroke-linecap="round"/><path d="M131 36H159" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 5" stroke-linecap="round" opacity=".5"/><circle cx="112" cy="36" r="14.25" fill="var(--surface)" stroke="var(--bad)" stroke-width="1.5"/><path d="M107 31l10 10M117 31l-10 10" stroke="var(--bad)" stroke-width="2" stroke-linecap="round"/><circle cx="163" cy="36" r="3.5" fill="var(--bad)"/><rect x="163.75" y="20.75" width="52" height="32" rx="9" fill="none" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="4 4"/><path d="M190 29v9" stroke="var(--bad)" stroke-width="2" stroke-linecap="round"/><circle cx="190" cy="43.5" r="1.4" fill="var(--bad)"/></svg>
+      <h1>Brak połączenia z internetem</h1>
+      <p class="lead">Wygląda na to, że połączenie zostało przerwane. Sprawdź Wi-Fi albo dane komórkowe - kurs wróci w to samo miejsce.</p>
+      <div class="exec" aria-hidden="true"><span class="exec-dot"></span><span class="exec-node">HTTP Request</span><span class="exec-msg">ECONNREFUSED - wykonanie zatrzymane</span></div>
+      <button type="button" id="retry">Spróbuj ponownie</button>
+      <p class="hint">Strona wróci sama, gdy połączenie zostanie przywrócone.</p>
+    </div>
+  </main>
+  <script>
+    document.getElementById('retry').addEventListener('click', () => location.reload());
+    window.addEventListener('online', () => location.reload());
+  </script>
+</body>
+</html>
