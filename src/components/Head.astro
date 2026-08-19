@@ -86,3 +86,15 @@ if (faq && faq.length > 0) blocks.push(buildFaqPage(faq));
 {blocks.map((block) => (
 	<script type="application/ld+json" is:inline set:html={JSON.stringify(block)} />
 ))}
+
+<!-- Service Worker poziom 1 - przechwytuje wylacznie nawigacje i podaje
+     /offline.html, gdy siec nie odpowiada. Pliki sw.js i offline.html leza
+     w public/, wiec trafiaja do katalogu glownego dist/. Wycofanie: podmien
+     tresc public/sw.js na wersje samolikwidujaca sie (CLAUDE.md, sekcja 1). -->
+<script is:inline>
+	if ('serviceWorker' in navigator) {
+		window.addEventListener('load', () => {
+			navigator.serviceWorker.register('/sw.js');
+		});
+	}
+</script>

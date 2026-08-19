@@ -24,12 +24,13 @@ export const { getStaticPaths, GET } = await OGImageRoute({
 		title: page.title,
 		description: page.description ?? 'Darmowy kurs automatyzacji w n8n po polsku',
 		// CanvasKit dekoduje tylko formaty rastrowe (PNG/JPEG/WebP), nie SVG -
-		// favicon.svg jest wcześniej zrasteryzowany do public/og-logo.png (144x144).
-		// Znak niesie WŁASNE, w pełni nieprzezroczyste tło (#111114, wypalone w
-		// rastrze - sprawdzone piksel po pikselu), więc jako samodzielna plakietka
-		// czyta się tak samo na jasnej karcie, jak na poprzedniej ciemnej - nie
-		// zależy od koloru tła karty. Po każdej zmianie favicon.svg trzeba
-		// zregenerować og-logo.png.
+		// og-logo.png (144x144) to zrasteryzowany monogram ŁP. Znak niesie WŁASNE,
+		// w pełni nieprzezroczyste tło (#111114, wypalone w rastrze - sprawdzone
+		// piksel po pikselu), więc jako samodzielna plakietka czyta się tak samo
+		// na jasnej karcie, jak na poprzedniej ciemnej - nie zależy od koloru tła
+		// karty. og-logo.png jest ŚWIADOMIE odpięty od favicon.svg: favicon to
+		// portret (awatar), karta OG zostaje przy monogramie marki. Zmiana
+		// favicon.svg nie wymaga już regeneracji tego pliku.
 		logo: { path: './public/og-logo.png', size: [72, 72] },
 		// Jasna karta, spójna z public/og-default.png (karta strony głównej) -
 		// ten sam papier #FAFAF7 co token marki. Płaski kolor (oba końce
