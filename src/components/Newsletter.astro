@@ -106,12 +106,34 @@ const BENEFITS = [
 				<button type="submit" name="submit" id="submit" class="k-nl-submit">Zapisz się</button>
 			</div>
 
+			{/*
+				`gdpr` MUSI byc niezaznaczonym checkboxem, nie ukrytym polem.
+
+				W instancji Sendy wlaczony jest tryb zgody RODO, wiec Sendy zapisuje przy
+				subskrybencie potwierdzenie zgody na podstawie tego pola. Ukryte pole z
+				wartoscia "1" oznaczalo, ze system rejestruje zgode, ktorej czlowiek nigdy
+				nie udzielil - a motyw 32 RODO wprost stwierdza, ze pola zaznaczone z gory
+				nie stanowia zgody. Falszywy dowod zgody jest gorszy niz jego brak, bo
+				art. 7 ust. 1 wymaga, by zgode UMIEC WYKAZAC.
+
+				`required` przenosi wymuszenie na przegladarke, wiec formularz nie wyjdzie
+				bez swiadomego zaznaczenia. Wzorzec przeniesiony z przewodnikai.pl.
+			*/}
+			<label class="k-nl-consent" for="gdpr">
+				<input type="checkbox" name="gdpr" id="gdpr" value="true" required />
+				<span>
+					Zgadzam się na otrzymywanie e-mailem powiadomień o nowych materiałach na
+					wiki kursn8n.pl.
+				</span>
+			</label>
+
 			<p class="k-nl-note">
-				Wysyłając formularz, akceptujesz <a href="/regulamin" target="_blank" rel="noopener"
-					>Regulamin</a
+				Zgodę wycofasz w każdej chwili - linkiem w stopce dowolnej wiadomości albo pisząc
+				na <a href="mailto:kontakt@lukaszpodgorski.pl">kontakt@lukaszpodgorski.pl</a>.
+				Szczegóły opisują <a href="/regulamin" target="_blank" rel="noopener">Regulamin</a
 				> i <a href="https://aitomate.pl/polityka-prywatnosci" target="_blank" rel="noopener"
-					>Politykę prywatności</a
-				>. Możesz w każdej chwili zrezygnować, klikając link w stopce dowolnego e-maila.
+					>Polityka prywatności</a
+				>.
 			</p>
 		</div>
 
@@ -119,8 +141,6 @@ const BENEFITS = [
 		<div class="k-nl-hp" aria-hidden="true">
 			<input type="text" name="hp" id="hp" tabindex="-1" autocomplete="off" />
 		</div>
-		{/* Zgoda RODO wyrazana przez swiadome wyslanie formularza (jasna informacja powyzej) */}
-		<input type="hidden" name="gdpr" value="1" />
 		<input type="hidden" name="list" value={SENDY_LIST} />
 		<input type="hidden" name="subform" value="yes" />
 	</form>
@@ -373,6 +393,35 @@ const BENEFITS = [
 
 	.k-nl-submit:active {
 		transform: translateY(0);
+	}
+
+	/* --- Zgoda RODO ---
+	   Checkbox jest widoczny i wyrazny celowo: to jedyny dowod zgody, jaki
+	   zostaje w bazie. Kolor tekstu mocniejszy niz w nocie prawnej, bo to
+	   oswiadczenie czlowieka, a nie drobny druk. */
+	.k-nl-consent {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		margin: 14px 0 0;
+		font-size: 0.8125rem;
+		line-height: 1.5;
+		color: var(--nl-text);
+		cursor: pointer;
+	}
+
+	.k-nl-consent input {
+		flex: none;
+		width: 16px;
+		height: 16px;
+		margin: 2px 0 0;
+		accent-color: var(--nl-accent);
+		cursor: pointer;
+	}
+
+	.k-nl-consent input:focus-visible {
+		outline: 2px solid var(--nl-accent);
+		outline-offset: 2px;
 	}
 
 	/* --- Nota prawna --- */

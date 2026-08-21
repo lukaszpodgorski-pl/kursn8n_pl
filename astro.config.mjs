@@ -93,11 +93,20 @@ export default defineConfig({
 			// Strony powrotne Sendy sa `noindex` (transakcyjne, nie tresc) - nie
 			// moga trafic do sitemapy, bo sitemapa mowilaby "zaindeksuj", a meta
 			// robots "nie indeksuj". Stara sitemapa (public_html/sitemap.xml) tez
-			// ich nie zawierala - trzymamy parytet 13 adresow.
+			// ich nie zawierala.
+			// Pelna lista adresow z opisami: src/config/newsletter.ts. Dokladajac
+			// tam nowa strone powrotna, dopisz ja TAKZE tutaj - inaczej wejdzie
+			// do sitemapy mimo `noindex`.
 			filter: (page) =>
-				!['/zapisano', '/potwierdz-email', '/juz-zapisany', '/wypisano'].includes(
-					new URL(page).pathname.replace(/\/$/, ''),
-				),
+				![
+					'/zapisano',
+					'/potwierdz-email',
+					'/juz-zapisany',
+					'/wypisano',
+					'/blad-zapisu',
+					'/brak-zgody',
+					'/zgoda-potwierdzona',
+				].includes(new URL(page).pathname.replace(/\/$/, '')),
 			serialize(item) {
 				const { pathname } = new URL(item.url);
 				const lastmod = LAST_MOD.get(pathname);
