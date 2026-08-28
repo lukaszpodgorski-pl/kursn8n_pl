@@ -11,7 +11,7 @@ const SITE_URL = 'https://kursn8n.pl';
 const results = [];
 
 /**
- * Rozpoznaje artykuły kursu (moduły + flagowy poradnik + gotowe workflow +
+ * Rozpoznaje artykuły kursu (moduły + poradnik + gotowe workflow +
  * ich hub + troubleshooting) po konwencji nazewniczej sluga - moduły to
  * `modul-<numer>-<opis>`, gotowce to `workflow-<opis>`, reszta to stałe slugi
  * w `EXTRA_ARTICLE_SLUGS` (patrz AGENTS.md). Celowo NIE importujemy tu
@@ -279,7 +279,7 @@ const sourceArticles = sourceRel.filter((r) => r !== 'index.mdx' && isArticleSlu
 const sourcePomocnicze = sourceRel.filter(
 	(r) => r !== 'index.mdx' && !isArticleSlug(slugOfSourceRel(r)),
 );
-// Tylko moduły kursu (bez flagowego poradnika) - liczba syllabusSections
+// Tylko moduły kursu (bez poradnika) - liczba syllabusSections
 // w Course na stronie głównej musi się z tym zgadzać (patrz buildCourse()
 // w src/lib/structured-data.ts, które mapuje `MODULES` 1:1).
 const sourceModuleSlugs = sourceRel
@@ -478,11 +478,11 @@ check('sitemap ma lastmod dla każdej strony albo potwierdzony płytki klon', ()
 check('sitemap rozróżnia priorytety', () => {
 	const xml = readFileSync(join(DIST, 'sitemap-0.xml'), 'utf8');
 	// Priorytety wg serialize() w astro.config.mjs: 1.0 strona główna,
-	// 0.9 flagowy poradnik (GUIDE_SLUG), 0.8 wszystko inne (moduły + strony
+	// 0.9 poradnik (GUIDE_SLUG), 0.8 wszystko inne (moduły + strony
 	// pomocnicze). @astrojs/sitemap serializuje 1.0 jako "1.0", nie jako "1"
 	// (zweryfikowane w dist/sitemap-0.xml).
 	assert(xml.includes('<priority>1.0</priority>'), 'brak priorytetu 1.0 dla strony głównej');
-	assert(xml.includes('<priority>0.9</priority>'), 'brak priorytetu 0.9 dla flagowego poradnika');
+	assert(xml.includes('<priority>0.9</priority>'), 'brak priorytetu 0.9 dla poradnika');
 	assert(xml.includes('<priority>0.8</priority>'), 'brak priorytetu 0.8 dla pozostałych stron');
 	return '1.0 / 0.9 / 0.8';
 });

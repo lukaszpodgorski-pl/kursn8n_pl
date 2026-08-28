@@ -25,6 +25,7 @@ teaches:
   - Wymagania systemowe oraz wybór między SQLite a PostgreSQL
   - Jak wystawić n8n po HTTPS - reverse proxy, Let's Encrypt i Cloudflare Tunnel
   - Rolę klucza N8N_ENCRYPTION_KEY i bezpieczne aktualizowanie instancji
+  - Dlaczego od n8n 3.0 self-hosting wymaga Dockera, a npm i npx znikają
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -91,10 +92,13 @@ produkcji warto mieć zapas.
 
 ### Node.js
 
-Jeśli instalujesz n8n przez npm, potrzebujesz wcześniej zainstalowanego **Node.js w
-wersji od 20.19 do 24.x**. Jeśli używasz Dockera, nie musisz się tym przejmować - Node.js
-jest już w obrazie. To zresztą jeden z głównych powodów, dla których polecam Dockera:
-omijasz zależności i konflikty wersji na hoście.
+Jeśli używasz Dockera, nie musisz się tym przejmować - Node.js jest już w obrazie. To
+zresztą jeden z głównych powodów, dla których polecam tę drogę: omijasz zależności
+i konflikty wersji na hoście.
+
+Instalacja przez npm wymaga wcześniej zainstalowanego **Node.js w wersji od 20.19 do
+24.x** - ale tą ścieżką nie ma już sensu zaczynać, bo znika w n8n 3.0. Wyjaśniam to
+w ramce na końcu sekcji o Dockerze.
 
 ### Baza danych: SQLite czy PostgreSQL?
 
@@ -207,13 +211,22 @@ Oficjalne przewodniki "server setups" w docs n8n pokazują gotowe konfiguracje C
 `n8n_data` i `traefik_data`). To dobry szablon na pełne wdrożenie z własną domeną -
 wrócę do tego w sekcji o HTTPS.
 
-:::note[Inna droga: npm]
-Można też zainstalować n8n bez Dockera: `npx n8n` (uruchamia bez instalacji) lub
+:::caution[npm i npx znikają w n8n 3.0 - październik 2026]
+n8n da się jeszcze uruchomić bez Dockera: `npx n8n` (uruchamia bez instalacji) lub
 globalnie `npm install n8n -g`, a potem komenda `n8n`. _npm_ to menedżer pakietów Node.js
 (narzędzie, które pobiera i instaluje gotowe programy), a _npx_ uruchamia taki program
-bez instalowania go na stałe. Wymaga to wcześniejszego Node.js (20.19-24.x). To wygodne
-do szybkiego testu lokalnego, ale do dłuższego self-hostingu Docker jest stabilniejszy i
-łatwiejszy w utrzymaniu.
+bez instalowania go na stałe. Wymaga to wcześniejszego Node.js (20.19-24.x).
+
+**Ale to ślepa uliczka.** Od wersji **3.0**, która startuje w październiku 2026,
+instalacja przez npm i npx nie jest już wspierana - self-hosting wymaga wtedy Dockera.
+
+- **Zaczynasz teraz?** Zacznij od Dockera i potraktuj tę ramkę jako ciekawostkę.
+- **Masz instalację npm-ową?** Zaplanuj przeprowadzkę na Dockera **zanim** zaktualizujesz
+  do 3.0. Najprościej: wyeksportuj workflow i credentials, postaw kontener na tym samym
+  katalogu `.n8n` i przenieś `N8N_ENCRYPTION_KEY`.
+
+Źródło: [v3.0 Breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes)
+w dokumentacji n8n.
 :::
 
 ## Self-hosting na Raspberry Pi i mini PC
@@ -373,7 +386,7 @@ openssl rand -hex 32
 ```
 
 Wynik podajesz n8n jako zmienną środowiskową - w Dockerze przez `-e` lub w pliku
-Compose, na npm przez eksport zmiennej:
+Compose, a w instalacji npm-owej (dopóki jeszcze działa) przez eksport zmiennej:
 
 ```bash
 export N8N_ENCRYPTION_KEY=<TWÓJ_WYGENEROWANY_KLUCZ>
@@ -433,7 +446,7 @@ docker rm n8n
 ```
 
 Możesz też przypiąć konkretną wersję zamiast najnowszej, podając tag, np.
-`docker.n8n.io/n8nio/n8n:1.81.0` - przydatne, gdy chcesz kontrolować, na co dokładnie
+`docker.n8n.io/n8nio/n8n:2.35.0` - przydatne, gdy chcesz kontrolować, na co dokładnie
 aktualizujesz.
 
 :::caution[Zanim zaktualizujesz produkcję]

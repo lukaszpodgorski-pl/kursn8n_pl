@@ -52,7 +52,8 @@ export const MODULES: ReadonlyArray<CourseModule> = [
 		slug: 'modul-6-ai-agenci',
 		number: '6',
 		label: 'AI i agenci',
-		description: 'AI Agent, modele OpenAI/Anthropic/Ollama, RAG i chatboty na własnych danych.',
+		description:
+			'AI Agent, Agent Builder, modele OpenAI/Anthropic/Ollama, RAG i chatboty na własnych danych.',
 	},
 	{
 		slug: 'modul-7-produkcja',
@@ -71,7 +72,7 @@ export const MODULES: ReadonlyArray<CourseModule> = [
 /** Szybkie sprawdzenie, czy slug jest modułem kursu (klasyfikacja w Head.astro). */
 export const MODULE_SLUGS: ReadonlySet<string> = new Set(MODULES.map((m) => m.slug));
 
-/** Flagowy poradnik - poza listą modułów, ale traktowany jak artykuł. */
+/** Poradnik - poza listą modułów, ale traktowany jak artykuł. */
 export const GUIDE_SLUG = 'porownanie-n8n-hostingow';
 
 /**

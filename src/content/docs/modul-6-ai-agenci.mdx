@@ -19,6 +19,7 @@ teaches:
   - Różnicę między AI Agent (Tools Agent) a zwykłym Chainem
   - Jak podłączyć modele OpenAI, Anthropic i Ollama do workflow
   - "Budowę RAG: embeddingi, bazy wektorowe i chatbota na własnych danych"
+  - "Różnicę między AI Agent node a AI Assistant (Agent Builder) i wymagania tego drugiego"
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -44,6 +45,8 @@ faq:
     a: "Na naukę i prototyp wystarczy Simple Memory (window buffer) - trzyma ostatnie wiadomości, ale znika po restarcie. Do produkcji z wieloma użytkownikami użyj pamięci trwałej (Postgres/Redis/MongoDB Chat Memory) z kluczem sesji per użytkownik, by historie rozmów się nie mieszały i przetrwały restart."
   - q: "Jak nie przepalić budżetu na agentach 24/7?"
     a: "Ustaw limity i alerty zużycia, ogranicz liczbę iteracji agenta (max iterations) oraz timeouty, używaj tańszego modelu do prostych kroków, a droższego tylko tam, gdzie konieczny. Najwięcej oszczędza dobry dobór narzędzia: jeśli zadanie jest jednokrokowe, użyj Chaina zamiast agenta."
+  - q: "Czym różni się AI Agent node od AI Assistant (Agent Buildera)?"
+    a: "AI Agent node to element, który wstawiasz do workflow - działa w trakcie wykonania automatyzacji, podejmuje decyzje i sięga po narzędzia. AI Assistant, czyli Agent Builder, to asystent w interfejsie n8n, który buduje workflow za Ciebie: opisujesz cel zwykłym zdaniem, a on planuje kroki, składa przepływ i testuje go. Pierwszy działa wewnątrz automatyzacji, drugi ją tworzy. Agent Builder wymaga Dockera i jest w statusie Preview, więc wygenerowany workflow zawsze trzeba przejrzeć przed aktywacją."
 ---
 
 import { CardGrid } from '@astrojs/starlight/components';
@@ -57,7 +60,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 6 · Poziom: zaawansowany"
-  readingTime="~20 min"
+  readingTime="~24 min"
 />
 
 n8n to nie tylko "spinanie API". To także pełnoprawny orkiestrator AI: na bazie LangChain
@@ -380,6 +383,78 @@ listę akcji do akceptacji. Gdy zaufasz jego decyzjom na danych produkcyjnych, s
 ręczne potwierdzenia. Autonomię nadawaj _etapami_, nie od razu.
 :::
 
+## AI Assistant i Agent Builder - asystent, który buduje workflow
+
+:::caution[Funkcja w statusie Preview - stan na sierpień 2026]
+Agent Builder potrafi się mylić, a jego zachowanie zmienia się między wydaniami. Każdy
+wygenerowany workflow przeczytaj i zrozum, zanim go aktywujesz. Zanim oprzesz na tym cokolwiek
+produkcyjnego, sprawdź aktualny stan w [dokumentacji n8n](https://docs.n8n.io/build/build-and-manage-agents).
+:::
+
+Cały ten moduł mówił dotąd o **AI Agent node** - elemencie, który wstawiasz do workflow, żeby
+wewnątrz automatyzacji podejmował decyzje i sięgał po narzędzia. To wciąż fundament i to się
+nie zmienia.
+
+**AI Assistant**, nazywany też **Agent Builderem**, to co innego. To nie node w workflow, tylko
+asystent, który **buduje workflow za Ciebie**. Opisujesz cel zwykłym zdaniem, a on planuje kroki,
+składa przepływ z node'ów, uruchamia go i poprawia, aż zacznie działać.
+
+| | AI Agent node | AI Assistant / Agent Builder |
+| --- | --- | --- |
+| Czym jest | node wewnątrz workflow | asystent w interfejsie n8n |
+| Kiedy działa | przy każdym uruchomieniu automatyzacji | wtedy, gdy budujesz automatyzację |
+| Co robi | podejmuje decyzje i używa narzędzi w trakcie wykonania | planuje, składa i testuje workflow |
+| Co zostaje | odpowiedź albo wykonana akcja | gotowy workflow na kanwie |
+
+W jednym zdaniu: AI Agent node to agent działający _wewnątrz_ Twojej automatyzacji, a Agent
+Builder to agent, który tę automatyzację _tworzy_.
+
+### Jak to wygląda w praktyce
+
+- **Dane dostępowe konfigurujesz w trakcie budowy**, nie z góry. Możesz wpisać je ręcznie,
+  pozwolić asystentowi je pobrać, albo zamockować i wrócić do tematu później. Sekrety nie
+  trafiają do treści rozmowy.
+- **Akcje wysokiego ryzyka czekają na Twoją zgodę** - aktywacja workflow nie dzieje się sama.
+  Kontrola zostaje po Twojej stronie.
+- Na n8n Cloud funkcja jest od lipca 2026. Na self-hosted trafiła w wersji **2.35**
+  (sierpień 2026) i od tego wydania konfigurujesz ją klikaniem w ustawieniach instancji,
+  a nie wyłącznie zmiennymi środowiskowymi.
+
+### Czego potrzebujesz na self-hosted
+
+To ważne uzupełnienie [Modułu 1](/modul-1-instalacja-hosting): **Agent Builder wymaga Dockera**.
+Jeśli masz jeszcze instalację przez npm, to kolejny argument za przeprowadzką - npm i tak znika
+w n8n 3.0.
+
+Na czystej maszynie całość stawia jedna komenda:
+
+```bash
+curl -fsSL https://get.n8n.io | sh
+```
+
+| Element | Po co | Uwagi |
+| --- | --- | --- |
+| **Model** | asystent musi mieć czym myśleć | klucz do Anthropic, OpenAI albo OpenRouter, lub dowolny endpoint zgodny z OpenAI - także lokalny. Płacisz bezpośrednio dostawcy, a Twoje prompty i treść workflow trafiają do niego |
+| **Sandbox** | asystent uruchamia kod, żeby testować to, co zbudował | zawsze w izolacji, nigdy na Twoim serwerze n8n. Do nauki wystarcza sandbox na Dockerze dołączony do instalacji; do produkcji n8n zaleca sandbox zarządzany (Daytona) |
+| **Web search** (opcjonalnie) | żeby asystent czerpał z aktualnej dokumentacji, a nie z pamięci modelu | wbudowany SearXNG albo klucz do Brave Search API |
+
+Połączenia zapisują się jako credentials **na poziomie instancji** - osobno od credentiali
+Twoich workflow.
+
+### Kiedy używać czego
+
+- Chcesz zbudować **jedną konkretną automatyzację** szybciej, opisując cel po polsku, a potem
+  dopracować ją ręcznie → **Agent Builder**.
+- Chcesz, żeby Twój **działający workflow** miał w środku agenta podejmującego decyzje podczas
+  wykonania - odpowiadał w czacie, wybierał narzędzia → **AI Agent node**, czyli reszta tego
+  modułu.
+
+:::note[To nie jest skrót omijający naukę n8n]
+Agent Builder generuje workflow, których i tak musisz być w stanie przeczytać, ocenić i
+poprawić - inaczej wdrażasz coś, czego nie rozumiesz. To dokładnie ten scenariusz, przed którym
+ostrzegam przy szablonach w [Module 8](/modul-8-wzorce-wdrozenia). Świadomie, nie na pamięć.
+:::
+
 ## Sprawdź się
 
 Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
@@ -396,6 +471,8 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 4. Które kroki przepływu RAG wykonujesz tylko raz (albo cyklicznie), a które przy każdym pytaniu
    użytkownika? Jeśli nie masz pewności - [Przepływ RAG - od dokumentu do
    odpowiedzi](#przepływ-rag---od-dokumentu-do-odpowiedzi).
+5. Umiesz w jednym zdaniu powiedzieć, czym AI Agent node różni się od Agent Buildera - i który
+   z nich wymaga Dockera? Jeśli nie masz pewności - [AI Assistant i Agent Builder](#ai-assistant-i-agent-builder---asystent-który-buduje-workflow).
 
 <details>
 <summary>Mini-zadanie: sprawdź, czy pamięć agenta naprawdę pamięta</summary>
@@ -420,4 +497,5 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
   - RAG = embeddings + vector store + retrieval; przepływ: ingest → embed → store → retrieve → answer.
   - Chatbota startujesz od Chat Trigger + AI Agent + model + pamięć; narzędzia i RAG dokładasz wedle potrzeb.
   - Agenci 24/7: pilnuj kosztów, pętli (max iterations), halucynacji i kontroli nad akcjami - autonomię nadawaj etapami.
+  - AI Agent node działa wewnątrz workflow; AI Assistant (Agent Builder) buduje workflow za Ciebie - wymaga Dockera i jest w statusie Preview.
 </Takeaways>

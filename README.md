@@ -20,7 +20,7 @@ Nie musisz nic instalować ani zakładać konta. Wejdź na [kursn8n.pl](https://
 | Dodać AI do automatyzacji | [Moduł 6 - AI i agenci](https://kursn8n.pl/modul-6-ai-agenci) |
 | Wybrać hosting dla n8n | [Porównanie hostingów n8n](https://kursn8n.pl/porownanie-n8n-hostingow) |
 
-Materiał to **9 modułów** (od fundamentów po produkcyjne wdrożenia) plus flagowy poradnik porównania hostingów n8n, który jest częścią Modułu 1. Menu boczne prowadzi przez cały program w kolejności nauki, więc można iść po kolei albo wskakiwać w moduł, który akurat jest potrzebny.
+Materiał to **9 modułów** (od fundamentów po produkcyjne wdrożenia) plus poradnik porównania hostingów n8n, który jest częścią Modułu 1. Menu boczne prowadzi przez cały program w kolejności nauki, więc można iść po kolei albo wskakiwać w moduł, który akurat jest potrzebny.
 
 Analityka odwiedzin jest anonimowa (bez cookies śledzących, bez profilowania) - szczegóły na stronie [Prywatność i cookies](https://kursn8n.pl/prywatnosc).
 
@@ -111,7 +111,7 @@ src/content/docs/             # cała treść - płaska struktura, bez podfolder
 ├── index.mdx                 # strona główna
 ├── modul-0-fundamenty.mdx … modul-8-wzorce-wdrozenia.mdx
 ├── regulamin.md  prywatnosc.md
-└── porownanie-n8n-hostingow.mdx   # flagowy poradnik (część Modułu 1, w przygotowaniu)
+└── porownanie-n8n-hostingow.mdx   # poradnik (część Modułu 1, w przygotowaniu)
 src/config/modules.ts           # rejestr 9 modułów - jedyne źródło prawdy dla sidebara,
                                  # kanału RSS i danych strukturalnych Course
 src/assets/<moduł>/              # obrazy artykułów (Astro optymalizuje do WebP/AVIF)
