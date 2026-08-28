@@ -1,6 +1,6 @@
 ---
 title: Instalacja i hosting n8n
-description: "Jak zainstalować i hostować n8n: n8n Cloud, Docker i Docker Compose krok po kroku, VPS i PaaS, Raspberry Pi, HTTPS i reverse proxy, Cloudflare Tunnel, klucz N8N_ENCRYPTION_KEY oraz aktualizacje. Praktycznie i po polsku."
+description: "Jak zainstalować i hostować n8n: od n8n 3.0 self-hosting wymaga Dockera, a npm i npx przestają być wspierane. n8n Cloud, Docker i Docker Compose krok po kroku, migracja z npm, VPS i PaaS, Raspberry Pi, HTTPS i reverse proxy, Cloudflare Tunnel, klucz N8N_ENCRYPTION_KEY oraz aktualizacje. Praktycznie i po polsku."
 # Mechanizm `head:` opisany szczegółowo w modul-0-fundamenty.mdx (scalanie
 # z domyślnym head Starlight po kluczu `tag`, dokładnie jeden <title> trafia
 # do wyjścia). Poniżej: <title> oraz og:title/og:description przepisane 1:1
@@ -15,13 +15,14 @@ head:
   - tag: meta
     attrs:
       property: og:description
-      content: "n8n Cloud, Docker i Docker Compose, VPS i PaaS, HTTPS i reverse proxy, Cloudflare Tunnel oraz klucz szyfrowania - kompletny przewodnik po hostingu n8n po polsku."
+      content: "Od n8n 3.0 self-hosting to Docker - npm i npx odpadają. n8n Cloud, Docker i Docker Compose, migracja z npm, VPS i PaaS, HTTPS i reverse proxy, Cloudflare Tunnel oraz klucz szyfrowania - kompletny przewodnik po hostingu n8n po polsku."
 # Data pierwszej publikacji na żywej stronie (head.php, LearningResource.datePublished).
 datePublished: 2026-05-21
 educationalLevel: Beginner
 teaches:
   - Kiedy wybrać n8n Cloud, a kiedy self-hosting
-  - Instalację n8n przez Dockera i Docker Compose
+  - Instalację n8n przez Dockera i Docker Compose - jedyną wspieraną ścieżkę self-hostingu od n8n 3.0
+  - Jak przenieść istniejącą instalację z npm na Dockera bez utraty workflow i poświadczeń
   - Wymagania systemowe oraz wybór między SQLite a PostgreSQL
   - Jak wystawić n8n po HTTPS - reverse proxy, Let's Encrypt i Cloudflare Tunnel
   - Rolę klucza N8N_ENCRYPTION_KEY i bezpieczne aktualizowanie instancji
@@ -42,6 +43,10 @@ mentions:
 faq:
   - q: "Cloud czy self-hosting - od czego zacząć naukę?"
     a: "Najszybszy start daje n8n Cloud (trial) albo lokalny Docker. Cloud ma zerową konfigurację i od razu działające OAuth, więc świetnie nadaje się do nauki. Gdy poczujesz się pewnie i będziesz chciał kontroli nad danymi oraz kosztami, przejdź na self-hosting przez Dockera."
+  - q: "Czy mogę jeszcze zainstalować n8n przez npm albo uruchomić przez npx?"
+    a: "W tym kursie nie - self-hosting idzie przez Dockera i tego wymagamy już teraz. Technicznie taka instalacja dziś jeszcze zadziała, ale n8n opisuje instalacje z npm jako przestarzałe od wersji 3.0, a sama wersja 3.0 planowana jest na październik 2026 - po niej self-hosting wymaga Dockera. Stawianie dziś instancji na npm oznacza więc zaplanowanie sobie przeprowadzki za kilka tygodni. Do szybkiego testu zamiast `npx n8n` użyj instalatora jednolinijkowego `curl -fsSL https://get.n8n.io | sh`, który stawia n8n w Docker Compose."
+  - q: "Mam n8n zainstalowane przez npm - co teraz zrobić?"
+    a: "Nie musisz działać tej nocy, ale zaplanuj przeniesienie przed wersją 3.0. Kolejność: zatrzymaj n8n, zrób kopię katalogu `~/.n8n` (baza SQLite, plik `config` z kluczem szyfrowania), wgraj tę zawartość do wolumenu Dockera `n8n_data` zamontowanego w `/home/node/.n8n`, uruchom kontener i sprawdź, czy widzisz swoje workflow oraz czy poświadczenia się odszyfrowują. Dopiero po udanym teście usuń pakiet npm."
   - q: "Po restarcie zniknęły mi workflow i poświadczenia - dlaczego?"
     a: "Najczęściej dlatego, że kontener uruchomiono bez wolumenu danych. Upewnij się, że masz `-v n8n_data:/home/node/.n8n` (lub odpowiedni wpis w Compose). Dane n8n - baza, poświadczenia, klucz szyfrowania - żyją w tym wolumenie, nie w samym kontenerze."
   - q: "Czy potrzebuję własnej domeny i HTTPS?"
@@ -61,7 +66,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 1 · Poziom: początkujący"
-  readingTime="~20 min"
+  readingTime="~25 min"
   note="Docker · VPS · Cloud"
 />
 
@@ -69,6 +74,20 @@ Zanim zbudujesz pierwszy workflow, potrzebujesz działającej instancji n8n. W t
 pokażę Ci wszystkie realne ścieżki - od najszybszego n8n Cloud, przez Dockera na własnym
 serwerze, po VPS, Raspberry Pi i Cloudflare Tunnel. Skupię się na tym, **dlaczego** dana
 opcja ma sens, a nie tylko na klikaniu po kroku.
+
+:::danger[Self-hosting w tym kursie idzie przez Dockera. Bez wyjątków]
+Jeśli stawiasz n8n na swoim, robisz to **Dockerem**. Nie ma tu wariantu "albo tak, albo
+inaczej" i nie jest to kwestia gustu: n8n zapowiedziało, że od wersji 3.0 self-hosting
+wymaga wdrożenia opartego o Dockera. Stawiam ten wymóg **już teraz**, a nie dopiero
+w październiku, żebyś nie budował instancji, którą za chwilę trzeba przenosić.
+
+Do wyboru zostaje **gdzie** ten Docker postawisz: na własnym komputerze, na Raspberry Pi,
+na VPS-ie czy na platformie PaaS. O tym jest reszta modułu. Nie chcesz w ogóle
+administrować serwerem? Wtedy właściwym wyborem jest [n8n Cloud](#n8n-cloud---najszybszy-start).
+
+Trafiłeś kiedyś na poradnik z `npm install n8n` albo `npx n8n`? Przeczytaj koniecznie
+[Uwaga na poradniki z npm](#uwaga-na-poradniki-z-npm) niżej.
+:::
 
 ## Wymagania systemowe
 
@@ -89,12 +108,19 @@ rozmiarem przetwarzanych danych (np. duże pliki, obszerne odpowiedzi API) i nod
 Na słabej maszynie ciężki workflow potrafi przeciążyć pamięć i ubić proces - dlatego do
 produkcji warto mieć zapas.
 
-### Node.js
+### Node.js? Nie Twój problem
 
-Jeśli instalujesz n8n przez npm, potrzebujesz wcześniej zainstalowanego **Node.js w
-wersji od 20.19 do 24.x**. Jeśli używasz Dockera, nie musisz się tym przejmować - Node.js
-jest już w obrazie. To zresztą jeden z głównych powodów, dla których polecam Dockera:
-omijasz zależności i konflikty wersji na hoście.
+n8n jest napisany w Node.js, ale w obrazie Dockera Node.js **jest już w środku** - nie
+instalujesz go, nie pilnujesz wersji i nie kolidujesz z innymi projektami na tej samej
+maszynie. To był zawsze jeden z argumentów za Dockerem, a od n8n 3.0 przestaje być
+argumentem, bo alternatywy nie ma.
+
+Wersja Node.js ma znaczenie tylko wtedy, gdy nadal trzymasz starą instalację z npm - ta
+wymaga Node.js **od 20.19 do 24.x**
+([docs](https://docs.n8n.io/deploy/host-n8n/install-options/install-with-npm)). Jeśli
+właśnie zastanawiasz się, czy zainstalować odpowiedniego Node.js, to sygnał, że idziesz
+ścieżką, która się kończy - przeskocz od razu do
+[Dockera](#docker-i-docker-compose-krok-po-kroku).
 
 ### Baza danych: SQLite czy PostgreSQL?
 
@@ -149,9 +175,40 @@ skonfigurowane za Ciebie. Konto zakładasz na stronie n8n.io.
 
 ## Docker i Docker Compose krok po kroku
 
-Docker to najpopularniejszy sposób self-hostingu n8n - i mój domyślny wybór w kursie.
-Dostajesz gotowy obraz z odpowiednim Node.js, izolację od reszty systemu oraz
-powtarzalność: ta sama komenda da ten sam efekt na laptopie, VPS-ie i Raspberry Pi.
+To jest **ta jedna droga** zapowiedziana na początku modułu. Dostajesz gotowy obraz z
+odpowiednim Node.js w środku, izolację od reszty systemu oraz powtarzalność: ta sama
+komenda da ten sam efekt na laptopie, VPS-ie i Raspberry Pi. Od n8n 3.0 jest to również
+jedyny wspierany sposób self-hostingu, więc ucząc się tego, nie uczysz się niczego
+tymczasowego.
+
+Dalej pokazuję dwie drogi do tego samego celu. **Najszybsza** to instalator, który zrobi
+wszystko za Ciebie. **Najprostsza do zrozumienia** to ręczna komenda `docker run`, przy
+której rozbieram każdy przełącznik na czynniki pierwsze. Jeśli chcesz tylko zobaczyć n8n -
+weź instalator. Jeśli chcesz wiedzieć, co się dzieje - przeczytaj obie.
+
+### Najszybszy start: instalator jednolinijkowy
+
+To miejsce, które w tym module wcześniej zajmowało `npx n8n`. n8n udostępnia skrypt,
+który sprawdza Dockera, tworzy katalog `n8n`, zapisuje konfigurację i podnosi instancję
+w Docker Compose:
+
+```bash
+curl -fsSL https://get.n8n.io | sh
+```
+
+Warunek jest jeden: **działający Docker z pluginem Compose v2**. Na Windowsie potrzebujesz
+terminala rozumiejącego skrypty powłoki - WSL z włączoną integracją Docker Desktop
+(Git Bash bywa, że wystarczy, ale n8n nie testuje go end-to-end). Skrypt jest pomyślany
+pod świeżą instalację, nie pod przerabianie istniejącej
+([docs](https://docs.n8n.io/deploy/host-n8n/install-options/one-line-setup)).
+
+:::caution[Zanim wpiszesz `curl … | sh`]
+Ta konstrukcja pobiera skrypt z internetu i od razu go wykonuje. Robisz to na zaufanie do
+domeny - tu do `get.n8n.io`. Jeśli wolisz wiedzieć, co uruchamiasz, ściągnij skrypt
+osobno (`curl -fsSL https://get.n8n.io -o n8n-setup.sh`), przeczytaj go i dopiero wtedy
+odpal `sh n8n-setup.sh`. Ta sama zasada dotyczy każdego instalatora w tej formie, nie
+tylko n8n.
+:::
 
 ### Najprostszy start (jeden kontener, SQLite)
 
@@ -169,7 +226,6 @@ docker run -it --rm \
  -e GENERIC_TIMEZONE="Europe/Warsaw" \
  -e TZ="Europe/Warsaw" \
  -e N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \
- -e N8N_RUNNERS_ENABLED=true \
  -v n8n_data:/home/node/.n8n \
  docker.n8n.io/n8nio/n8n
 ```
@@ -184,6 +240,14 @@ Po uruchomieniu otwórz `http://localhost:5678`. Co tu się właściwie dzieje?
   "codziennie o 7:00").
 - `--rm` - usuwa kontener po zatrzymaniu (dane i tak przeżyją w wolumenie). Do trwałego
   działania w tle używa się raczej `-d` zamiast `-it --rm`.
+
+:::note[Czego tu celowo nie ma]
+W starszych poradnikach i w przykładzie z dokumentacji n8n zobaczysz jeszcze
+`-e N8N_RUNNERS_ENABLED=true`. Pomijam go świadomie: **od n8n 2.0 ta zmienna jest
+przestarzała i nie musisz jej ustawiać**
+([docs](https://docs.n8n.io/deploy/host-n8n/install-options/install-with-docker)).
+Jeśli masz ją w swoim Compose, nic złego się nie dzieje - po prostu jest zbędna.
+:::
 
 :::caution[Nie pomiń wolumenu]
 Jeśli uruchomisz kontener bez `-v n8n_data:/home/node/.n8n`, wszystkie dane (workflow,
@@ -207,13 +271,89 @@ Oficjalne przewodniki "server setups" w docs n8n pokazują gotowe konfiguracje C
 `n8n_data` i `traefik_data`). To dobry szablon na pełne wdrożenie z własną domeną -
 wrócę do tego w sekcji o HTTPS.
 
-:::note[Inna droga: npm]
-Można też zainstalować n8n bez Dockera: `npx n8n` (uruchamia bez instalacji) lub
-globalnie `npm install n8n -g`, a potem komenda `n8n`. _npm_ to menedżer pakietów Node.js
-(narzędzie, które pobiera i instaluje gotowe programy), a _npx_ uruchamia taki program
-bez instalowania go na stałe. Wymaga to wcześniejszego Node.js (20.19-24.x). To wygodne
-do szybkiego testu lokalnego, ale do dłuższego self-hostingu Docker jest stabilniejszy i
-łatwiejszy w utrzymaniu.
+## Uwaga na poradniki z npm
+
+Sieć jest pełna artykułów, filmów i odpowiedzi czatów, w których n8n instaluje się
+komendą `npm install n8n -g` albo uruchamia przez `npx n8n`. Nie są złośliwe - są po
+prostu starsze niż decyzja n8n.
+
+:::danger[Jeśli gdziekolwiek zobaczysz instalację n8n przez npm lub npx - to nie będzie wspierane]
+n8n zapowiedziało, że **od wersji 3.0 self-hosting wymaga wdrożenia opartego o Dockera, a
+instalacje uruchamiane przez `npm` i `npx n8n` przestaną być wspierane**. Wersja 3.0
+planowana jest na **październik 2026**, a dokumentacja instalacji z npm nosi już dziś
+adnotację "npm-based installs are deprecated from n8n 3.0".
+
+Co z tym zrobić, zależnie od tego, gdzie jesteś:
+
+- **Czytasz właśnie taki poradnik** - zamknij go i wróć do
+  [Dockera](#docker-i-docker-compose-krok-po-kroku). Zaoszczędzisz sobie przeprowadzki.
+- **Masz już taką instancję** - dziś działa i nikt Ci jej nie wyłączy w nocy. Problem
+  pojawi się przy pierwszej aktualizacji do 3.x, więc przenieś ją wcześniej - instrukcja
+  jest zaraz niżej.
+- **Chcesz tylko szybko obejrzeć n8n** - zamiast `npx n8n` użyj
+  [instalatora jednolinijkowego](#najszybszy-start-instalator-jednolinijkowy).
+
+Źródła: [v3.0 Breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes) ·
+[Install with npm](https://docs.n8n.io/deploy/host-n8n/install-options/install-with-npm)
+:::
+
+## Migracja z npm na Dockera
+
+Ta sekcja jest dla Ciebie, jeśli masz działającą instalację zrobioną kiedyś przez
+`npm install n8n -g`. Reszta może ją spokojnie pominąć.
+
+Przypomnienie, czym te narzędzia są: _npm_ to menedżer pakietów Node.js (pobiera i
+instaluje gotowe programy), a _npx_ uruchamia taki program bez instalowania go na stałe.
+
+### Dlaczego to nie jest tylko kosmetyka
+
+Instalacja z npm wiąże n8n z Node.js na Twoim hoście: to Ty pilnujesz wersji Node'a,
+kompilacji zależności natywnych i tego, żeby aktualizacja systemu niczego nie wywróciła.
+Obraz Dockera zdejmuje z Ciebie całą tę warstwę. Ubocznie znika też najczęstsza przyczyna
+zgłoszeń "u mnie nie działa" - różnice między maszynami.
+
+### Gdzie leżą Twoje dane
+
+To jest cała tajemnica bezbolesnej przeprowadzki: **n8n z npm i n8n z Dockera trzymają
+dane w tym samym miejscu**, tylko widzianym z innej strony.
+
+| | npm | Docker |
+| --- | --- | --- |
+| Katalog danych | `~/.n8n` na hoście | `/home/node/.n8n` w kontenerze |
+| Co w nim jest | baza SQLite, plik `config` z kluczem szyfrowania, dane binarne | to samo |
+| Gdzie fizycznie | dysk hosta | wolumen `n8n_data` |
+
+Migracja sprowadza się więc do przeniesienia zawartości `~/.n8n` do wolumenu Dockera.
+
+### Przeprowadzka krok po kroku
+
+1. **Zatrzymaj n8n.** Nie kopiuj bazy SQLite w trakcie pracy instancji - ryzykujesz
+   niespójny plik.
+2. **Zrób kopię `~/.n8n`.** Cały katalog, razem z plikiem `config`. To w nim siedzi
+   automatycznie wygenerowany `N8N_ENCRYPTION_KEY` - bez niego nie odszyfrujesz
+   poświadczeń. Kopię trzymaj poza maszyną, dopóki migracja się nie uda.
+3. **Utwórz wolumen i wgraj do niego dane.** Wolumen tworzysz komendą
+   `docker volume create n8n_data`, a zawartość `~/.n8n` przenosisz do zamontowanego
+   `/home/node/.n8n`. Pilnuj właściciela plików - w obrazie n8n pracuje użytkownik `node`.
+4. **Uruchom kontener** komendą z sekcji
+   [Najprostszy start](#najprostszy-start-jeden-kontener-sqlite), z tym samym wolumenem.
+5. **Sprawdź trzy rzeczy**, zanim cokolwiek skasujesz: czy widzisz swoje workflow, czy
+   **poświadczenia się otwierają** (to test klucza szyfrowania) i czy webhooki mają
+   poprawne adresy.
+6. **Dopiero teraz** usuń pakiet npm (`npm uninstall -g n8n`) i wyłącz stary autostart -
+   usługę systemd, wpis w `pm2` albo cokolwiek podnosiło n8n po restarcie. Zapomniany
+   autostart to najczęstszy powód, dla którego po migracji "coś zajmuje port 5678".
+
+:::caution[Klucz szyfrowania jest ważniejszy niż baza]
+Bazę bez klucza da się otworzyć - zobaczysz workflow, ale **każde poświadczenie będzie
+trzeba wpisać od nowa**. Dlatego w kroku 2 kopiujesz cały katalog, a nie sam plik bazy.
+Więcej: [Klucz N8N_ENCRYPTION_KEY](#klucz-n8n_encryption_key-i-zmienne-środowiskowe).
+:::
+
+:::note[Nie masz czym się przejmować, jeśli używałeś tylko `npx n8n`]
+`npx` nie instaluje niczego na stałe, więc nie ma czego odinstalowywać. Ale uwaga: dane z
+takich uruchomień też lądowały w `~/.n8n`. Jeśli zbudowałeś tam cokolwiek, co chcesz
+zachować, potraktuj ten katalog dokładnie tak samo jak przy instalacji npm.
 :::
 
 ## Self-hosting na Raspberry Pi i mini PC
@@ -372,12 +512,27 @@ uruchomisz n8n po raz pierwszy. Wygenerujesz mocny, losowy klucz np. tak (komend
 openssl rand -hex 32
 ```
 
-Wynik podajesz n8n jako zmienną środowiskową - w Dockerze przez `-e` lub w pliku
-Compose, na npm przez eksport zmiennej:
+Wynik podajesz n8n jako zmienną środowiskową - przy `docker run` przez `-e`, a w Compose
+w sekcji `environment` usługi:
 
 ```bash
-export N8N_ENCRYPTION_KEY=<TWÓJ_WYGENEROWANY_KLUCZ>
+docker run -d --name n8n \
+ -p 5678:5678 \
+ -e N8N_ENCRYPTION_KEY=<TWÓJ_WYGENEROWANY_KLUCZ> \
+ -v n8n_data:/home/node/.n8n \
+ docker.n8n.io/n8nio/n8n:2.36.7
 ```
+
+```yaml
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.36.7
+    environment:
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+```
+
+W wariancie Compose sama wartość siedzi w pliku `.env` obok `docker-compose.yml` - dzięki
+temu klucz nie ląduje w pliku, który wrzucasz do repozytorium.
 
 :::tip[Gdzie trzymać klucz]
 
@@ -433,8 +588,17 @@ docker rm n8n
 ```
 
 Możesz też przypiąć konkretną wersję zamiast najnowszej, podając tag, np.
-`docker.n8n.io/n8nio/n8n:1.81.0` - przydatne, gdy chcesz kontrolować, na co dokładnie
-aktualizujesz.
+`docker.n8n.io/n8nio/n8n:2.36.7` (wersja stabilna na sierpień 2026) - przydatne, gdy
+chcesz kontrolować, na co dokładnie aktualizujesz.
+
+| Tag | Co dostajesz |
+| --- | --- |
+| `:stable` | najnowsze wydanie stabilne - to chcesz na produkcji |
+| `:2.36.7` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
+| `:beta` | najświeższe wydanie eksperymentalne - do testów, nie na produkcję |
+
+Numery wersji podane wyżej to stan na sierpień 2026 - aktualny stabilny tag sprawdzisz w
+[release notes n8n](https://docs.n8n.io/changelog/release-notes-2.x).
 
 :::caution[Zanim zaktualizujesz produkcję]
 
@@ -444,6 +608,11 @@ aktualizujesz.
   (breaking changes) między większymi wersjami.
 - **Nie przeskakuj o wiele wersji naraz** na ważnej instancji - aktualizuj rozsądnymi
   krokami i testuj.
+- **Wersja 3.0 (październik 2026) to wydanie z listą zmian łamiących zgodność** - poza
+  końcem npm znikają m.in. stare node'y Function i Function Item, node Item List, tryby
+  agenta AI w wersji 1 oraz import workflow z adresu URL. Domyślny limit dekompresji
+  spada z 2 GiB do 256 MiB. Zanim podniesiesz produkcję, przeczytaj
+  [pełną listę](https://docs.n8n.io/changelog/v30-breaking-changes).
 
 :::
 
@@ -473,6 +642,10 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 4. Planujesz w przyszłości tryb kolejkowy (queue mode) z kilkoma workerami. Dlaczego
    wszystkie muszą mieć dokładnie ten sam `N8N_ENCRYPTION_KEY`, a nie każdy swój? Jeśli nie
    masz pewności - [Jak ustawić własny klucz](#jak-ustawić-własny-klucz).
+5. Kolega ma n8n postawione przez `npm install n8n -g` i pyta, czy musi coś robić.
+   Dlaczego odpowiedź brzmi "dziś nie, ale przed październikiem 2026 tak", i który katalog
+   jest w tej przeprowadzce ważniejszy niż sama baza? Jeśli nie masz pewności -
+   [Migracja z npm na Dockera](#migracja-z-npm-na-dockera).
 
 <details>
 <summary>Mini-zadanie: sprawdź, czy Twój wolumen naprawdę chroni dane</summary>
@@ -491,9 +664,12 @@ Potrzebujesz Dockera i kilkunastu minut.
 </details>
 
 <Takeaways>
+  - Self-hosting stawiasz Dockerem - już teraz, bez wariantów. Od n8n 3.0 (październik 2026) `npm install n8n` i `npx n8n` przestają być wspierane.
+  - Widzisz gdzieś poradnik z npm? Jest starszy niż decyzja n8n - nie idź tą drogą.
+  - Masz instalację z npm? Przenieś zawartość `~/.n8n` do wolumenu `n8n_data` - razem z plikiem `config`, bo w nim jest klucz szyfrowania.
   - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj 2 GB+ RAM i PostgreSQL.
   - n8n Cloud = najszybszy start bez administracji; self-host = kontrola i niższy koszt długofalowy.
-  - Docker to domyślny self-host: pamiętaj o wolumenie `n8n_data` - bez niego tracisz dane.
+  - Docker to jedyny wspierany self-host: pamiętaj o wolumenie `n8n_data` - bez niego tracisz dane.
   - OAuth i webhooki potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel.
   - Za reverse proxy ustaw `WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
   - `N8N_ENCRYPTION_KEY` szyfruje poświadczenia - utrata klucza = utrata poświadczeń. Backupuj go razem z bazą.

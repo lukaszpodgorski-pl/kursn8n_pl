@@ -157,7 +157,10 @@ fair-code pod licencją Sustainable Use License. Wszystkie omawiane tu rozwiąza
 ### Oficjalne minimum systemowe
 
 - **2 GB RAM**, 2 rdzenie CPU, 20 GB pamięci masowej
-- **Node.js v20.19+** na systemie Linux
+- **Docker** na systemie Linux - odpowiedni Node.js siedzi w obrazie, sam go nie
+  instalujesz. Od n8n 3.0 (październik 2026) self-hosting wymaga Dockera, a instalacje
+  przez npm przestają być wspierane
+  ([changelog](https://docs.n8n.io/changelog/v30-breaking-changes)).
 - Wbudowana baza **SQLite** działa od ręki; PostgreSQL rekomendowany dla większego
   obciążenia
 
@@ -375,10 +378,14 @@ hostuje n8n 24/7.
 
 ### Instalacja n8n
 
-1. **npm + systemd** - najlżejsze zużycie pamięci, ale najmniej "produkcyjny".
-2. **Docker Compose z SQLite** - najpopularniejszy starter.
-3. **Docker Compose + PostgreSQL + reverse proxy** - wersja produkcyjna. Stos: n8n +
+1. **Docker Compose z SQLite** - domyślny starter.
+2. **Docker Compose + PostgreSQL + reverse proxy** - wersja produkcyjna. Stos: n8n +
    Postgres + Caddy/Traefik + cloudflared.
+
+Wariant "npm + systemd", który długo krążył jako najlżejszy pamięciowo, wypadł z tej
+listy. Od n8n 3.0 instalacje przez npm przestają być wspierane, a malinka to ostatnie
+miejsce, w którym chcesz robić przeprowadzkę bazy - szczegóły w
+[Module 1](/modul-1-instalacja-hosting#uwaga-na-poradniki-z-npm).
 
 ### Bezpieczeństwo, RODO, backupy
 
