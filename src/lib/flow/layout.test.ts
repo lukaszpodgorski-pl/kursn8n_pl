@@ -67,6 +67,18 @@ test('nastepnik rodzica AI schodzi pod stos sub-nodow', () => {
 	assert.ok(boxOf(layout, 'Dalej').y > boxOf(layout, 'Model').y);
 });
 
+test('rodzenstwo z wlasnymi sub-nodami nie przesuwa sie nawzajem', () => {
+	const layout = layoutFlow(parseFlow('A -> X\nB -> X\nC -> X\nA <- M1\nB <- M2\nC <- M3'), 'tb');
+	const m1 = boxOf(layout, 'M1');
+	const m2 = boxOf(layout, 'M2');
+	const m3 = boxOf(layout, 'M3');
+	assert.equal(m1.y, m2.y);
+	assert.equal(m2.y, m3.y);
+	assert.notEqual(m1.x, m2.x);
+	assert.ok(boxOf(layout, 'X').y > m1.y, 'nastepnik ma byc pod stosami sub-nodow');
+	assert.ok(layout.height < 400, `wysokosc ${layout.height} rosnie ponad potrzebe`);
+});
+
 test('uklad pionowy schodzi w dol, nie w prawo', () => {
 	const layout = layoutFlow(parseFlow('A -> B\nB -> C'), 'tb');
 	assert.ok(boxOf(layout, 'A').y < boxOf(layout, 'B').y);

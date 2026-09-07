@@ -242,19 +242,30 @@ export function layoutFlow(graph: FlowGraph, dir: Direction): Layout {
 		childrenOf.get(edge.from)!.push(child);
 	}
 
-	for (const [parentName, children] of childrenOf) {
-		const parent = byName.get(parentName)!;
+	// Sub-nody wisza pod rodzicem, wiec rzedy ponizej musza zejsc nizej - ale
+	// raz na rzad, o najwyzszy stos w tym rzedzie. Rodzenstwo w jednym rzedzie
+	// stoi obok siebie w osi x, wiec ich stosy sobie nie przeszkadzaja.
+	if (dir === 'tb' && childrenOf.size > 0) {
+		const stosDla = (ile: number) => ile * (NODE_H + AI_SIBLING_GAP) - AI_SIBLING_GAP + AI_GAP;
 
-		if (dir === 'tb') {
-			// Stos sub-nodow wchodzi POD rodzica, wiec wszystko nizej musi zejsc
-			// nizej. Sub-nody w prawo (jak w lr) rozpychaly diagram szerzej niz
-			// telefon, a uklad pionowy istnieje wlasnie po to, zeby sie miescil.
-			const stos = children.length * (NODE_H + AI_SIBLING_GAP) - AI_SIBLING_GAP + AI_GAP;
-			for (const box of boxes) {
-				if (box.y > parent.y) box.y += stos;
-			}
+		const rzedy = new Map<number, number>();
+		for (const [parentName, children] of childrenOf) {
+			const y = byName.get(parentName)!.y;
+			rzedy.set(y, Math.max(rzedy.get(y) ?? 0, stosDla(children.length)));
 		}
 
+		// Od dolu do gory: przesuniecie nizszego rzedu nie rusza rzedow wyzszych,
+		// wiec klucze pozostalych rzedow zostaja aktualne.
+		for (const y of [...rzedy.keys()].sort((a, b) => b - a)) {
+			const stos = rzedy.get(y)!;
+			for (const box of boxes) {
+				if (box.y > y) box.y += stos;
+			}
+		}
+	}
+
+	for (const [parentName, children] of childrenOf) {
+		const parent = byName.get(parentName)!;
 		let cursor = dir === 'lr' ? parent.x : parent.y + NODE_H + AI_GAP;
 		for (const child of children) {
 			const w = width.get(child.name)!;
