@@ -8,7 +8,7 @@ Wskazówki dla agentów AI (Claude Code i pokrewnych) pracujących w tym repozyt
 
 [kursn8n.pl](https://kursn8n.pl) - otwarta wiki i darmowy kurs automatyzacji w n8n po polsku, zbudowany na **Astro 7 + Starlight**, hostowany na **Cloudflare Workers** (static assets, konfiguracja w `wrangler.jsonc`). Model pracy: "żywe wiki" - treść w Markdownie/MDX, zmiany przez pull requesty, publikacja automatyczna.
 
-**To repozytorium treści, nie aplikacji.** Program kursu to **9 modułów** (`modul-0-fundamenty` … `modul-8-wzorce-wdrozenia`) plus flagowy poradnik `porownanie-n8n-hostingow` (część Modułu 1, `GUIDE_SLUG` w `src/config/modules.ts`), w `src/content/docs/`. W przeciwieństwie do typowego Starlighta struktura jest **płaska** - żadnych podfolderów sekcji, każdy plik leży bezpośrednio w `src/content/docs/`. Kilkanaście własnych komponentów (`ModuleHero.astro`, `ConceptCard.astro`, `Flow.astro`/`FlowNode.astro`, `Panel.astro`, `Takeaways.astro`, `TwoCol.astro`, `Faq.astro`, `Footer.astro`, `Video.astro`), zero logiki biznesowej i zero testów jednostkowych. Większość zadań to edycja Markdowna/MDX.
+**To repozytorium treści, nie aplikacji.** Program kursu to **9 modułów** (`modul-0-fundamenty` … `modul-8-wzorce-wdrozenia`) plus flagowy poradnik `porownanie-n8n-hostingow` (część Modułu 1, `GUIDE_SLUG` w `src/config/modules.ts`), w `src/content/docs/`. W przeciwieństwie do typowego Starlighta struktura jest **płaska** - żadnych podfolderów sekcji, każdy plik leży bezpośrednio w `src/content/docs/`. Kilkanaście własnych komponentów (`ModuleHero.astro`, `ConceptCard.astro`, `Flow.astro`, `Panel.astro`, `Takeaways.astro`, `TwoCol.astro`, `Faq.astro`, `Footer.astro`, `Video.astro`), zero logiki biznesowej. Wyjątkiem jest potok diagramów `src/lib/flow/` (`parseFlow`, `assertIcons`, `layoutFlow`, `renderFlow`) - ma własne testy jednostkowe na `node --test`, opisane w sekcji Komendy. Większość zadań to edycja Markdowna/MDX.
 
 ## Komendy
 
@@ -17,16 +17,18 @@ npm install
 npm run dev        # localhost:4321
 npm run build      # build produkcyjny do ./dist/ - to jest nasz "test suite"
 npm run preview    # podgląd builda
+npm run test:flow  # testy jednostkowe potoku diagramow (node --test), src/lib/flow/
 ```
 
 Weryfikacja przed commitem (te same kroki co CI, uruchamiane lokalnie):
 
 ```powershell
 npm run build
+npm run test:flow
 npx --yes markdownlint-cli2 "src/content/**/*.md" "*.md"
 ```
 
-Nie ma frameworka testowego. `npm run build` jest jedynym pełnym sprawdzeniem - wykrywa złamane linki wewnętrzne, błędy frontmattera (schemat Zod) i błędy MDX.
+Poza potokiem diagramów (`src/lib/flow/`) nie ma frameworka testowego - `npm run build` jest tam jedynym pełnym sprawdzeniem: wykrywa złamane linki wewnętrzne, błędy frontmattera (schemat Zod) i błędy MDX. Gramatyka DSL propsa `spec` komponentu `<Flow>` mieszka w `CONTRIBUTING.md`, nie tutaj.
 
 Serwer deweloperski uruchamiaj w tle: `astro dev --background`; zarządzanie: `astro dev stop`, `astro dev status`, `astro dev logs`.
 
@@ -37,6 +39,7 @@ Serwer deweloperski uruchamiaj w tle: `astro dev --background`; zarządzanie: `a
 | `lint.yml` | zmiany w `**/*.md(x)` | markdownlint-cli2 wg `.markdownlint.jsonc` |
 | `links.yml` | PR + cotygodniowy cron | lychee - linki zewnętrzne i wewnętrzne |
 | `media.yml` | zmiany w `src/assets/**`, `public/media/**` | obraz ≤ 1 MB, wideo ≤ 5 MB, **GIF-y odrzucane** |
+| `flow.yml` | zmiany w `src/lib/flow/**`, `src/components/Flow.astro` | `npm run test:flow` - testy jednostkowe potoku diagramów |
 | `verify-geo.yml` | push na `main` + PR | `npm run verify:geo` - dane strukturalne, obrazy OG, sitemapa na zbudowanym `dist/` |
 
 Każdy PR wymaga akceptacji code ownera (`.github/CODEOWNERS`).

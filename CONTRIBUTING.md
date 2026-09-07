@@ -75,13 +75,84 @@ Nazwy plików: **małe litery, bez polskich znaków, myślniki zamiast spacji** 
 | Chcesz dodać… | Użyj | Nie używaj |
 | --- | --- | --- |
 | Zrzut ekranu interfejsu n8n | PNG lub JPG (Astro sam zoptymalizuje do WebP/AVIF) | BMP, TIFF |
-| Diagram, schemat workflow, ikonę | **SVG** | PNG z tekstem (nieczytelny przy zoomie) |
+| Schemat workflow (kroki, węzły, strzałki) | komponent **`<Flow />`** - zobacz niżej | SVG rysowane ręcznie |
+| Ikonę, ilustrację, logo | **SVG** | PNG z tekstem (nieczytelny przy zoomie) |
 | Krótką animację (do ~30 s) | **WebM** + opcjonalnie MP4 jako fallback | **GIF** ❌ |
 | Dłuższe wideo, tutorial | Embed z YouTube | Plik wideo w repo |
 
 **Dlaczego nie GIF?** GIF-y są 5-10× większe niż WebM przy gorszej jakości i spowalniają stronę na telefonach. Jeśli masz animację jako GIF, przekonwertuj ją (patrz niżej).
 
-**Diagramy:** docelowo planujemy wsparcie bloków ` ```mermaid ` (diagramy edytowalne tekstowo w PR - idealne dla wiki); dopóki nie zostanie włączone, dodawaj diagramy jako SVG lub komponentem `<Flow />`/`<FlowNode />`.
+**Diagramy:** rysujemy je komponentem `<Flow />` (`src/components/Flow.astro`), nie jako SVG z ręki - opis w sekcji "Diagramy przepływu (komponent `<Flow>`)" niżej.
+
+## Diagramy przepływu (komponent `<Flow>`)
+
+Diagramy workflow (schematy krok po kroku, jak w edytorze n8n) rysujemy komponentem `<Flow />`, nie jako SVG z ręki i nie zewnętrznym edytorem. Układ - współrzędne kafelków i krawędzi - liczy się w całości w buildzie; do przeglądarki trafia gotowy HTML i SVG, zero JavaScriptu po stronie klienta.
+
+Diagram opisujesz zwięzłym DSL-em w propsie `spec` - jedna linia to jeden nod albo jedna krawędź:
+
+```text
+NOD      := nazwa ["(" podtytuł ")"] [":" ikona] ["@" ton]
+STRZAŁKA := "->"           zwykłe połączenie
+          | "-etykieta->"  połączenie z podpisem
+          | "~>"           krawędź zwrotna, rysowana łukiem
+          | "<-"           sub-nody AI podpięte pod rodzica, lista po przecinku
+LINIA    := NOD STRZAŁKA NOD ["," NOD ...] | NOD | "#" komentarz | pusta linia
+```
+
+### Cztery rodzaje strzałek
+
+| Strzałka | Znaczenie |
+| --- | --- |
+| `->` | zwykłe połączenie między dwoma nodami. |
+| `-etykieta->` | połączenie z podpisem nad krawędzią, np. `-tak->`. |
+| `~>` | krawędź zwrotna (pętla) - rysowana jako łuk, nie bierze udziału w układaniu kolumn. |
+| `<-` | podpina sub-nody AI (model, pamięć, narzędzie) pod rodzica - cel po prawej stronie to lista po przecinku. |
+
+Strzałka musi być otoczona spacjami i leżeć poza nawiasem oraz poza cudzysłowem - inaczej dywiz w podtytule (np. "root node - decyduje") myli się ze strzałką.
+
+### Atrybuty niesie pierwsza wzmianka
+
+Podtytuł, ikonę i ton przypisujesz nodowi przy **pierwszej wzmiance** o jego nazwie. Kolejne wystąpienia tej samej nazwy w dalszych liniach podają samą nazwę, bez atrybutów - dopisanie atrybutów drugi raz do tego samego noda przerywa build, żeby ten sam nod nie mógł dostać dwóch różnych wyglądów.
+
+### Nazwa w cudzysłowie
+
+Nazwa zawierająca znak `(`, `)`, `:`, `@` lub `"` musi być w cudzysłowie prostym, np. `"Kwota > 100 (VAT)"`.
+
+### Ikony
+
+Ikony Font Awesome podajesz bez prefiksu `fa-` (`bolt`, `server`, `robot`...). Ikony marek dostają jawny prefiks rodziny: `fab/slack`, `fab/github`.
+
+### Osiem tonów
+
+| Ton | Gradient |
+| --- | --- |
+| `green` | `#16a34a` → `#15803d` |
+| `blue` | `#2563eb` → `#1e40af` |
+| `pink` | `#ea4b71` → `#6d28d9` |
+| `slate` | `#64748b` → `#475569` |
+| `sky` | `#0ea5e9` → `#0369a1` |
+| `amber` | `#d97706` → `#b45309` |
+| `red` | `#dc2626` → `#b91c1c` |
+| `violet` | `#6d28d9` → `#4c1d95` |
+
+### Przykład - rozgałęzienie z etykietami
+
+```mdx
+<Flow
+  title="walidacja-zamowienia"
+  alt="Diagram: Webhook odbiera zamówienie, węzeł IF sprawdza kwotę - powyżej 100 idzie do ręcznej akceptacji, poniżej prosto do Slacka"
+  caption="Zamówienia powyżej 100 zł trafiają do ręcznej akceptacji."
+  spec={`
+    Webhook (odbiera zamówienie):bolt @green -> IF (kwota > 100?):code-branch @amber
+    IF -tak-> Akceptacja (ręczna):user-check @red
+    IF -nie-> Slack (powiadomienie):fab/slack @sky
+  `}
+/>
+```
+
+### Co przerywa build
+
+Brak propsa `alt`, nieistniejąca ikona, nieznany ton, cykl w krawędziach `->` (bez ucieczki przez `~>`), za długa etykieta lub podtytuł (kafelek przekracza limit szerokości) i rozpadnięty graf (nod bez połączenia z resztą) - każdy z tych błędów przerywa `npm run build` komunikatem wskazującym konkretną linię w propsie `spec`.
 
 ## Limity rozmiaru (sprawdzane automatycznie w CI)
 
