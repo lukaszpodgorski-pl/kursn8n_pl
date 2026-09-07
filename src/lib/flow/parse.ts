@@ -69,15 +69,18 @@ function parseNodeToken(token: string, line: number, source: string): ParsedNode
 	};
 }
 
-/** Rozdziela liste sub-nodow po przecinku, nie tnac wewnatrz cudzyslowu. */
+/** Rozdziela liste sub-nodow po przecinku, nie tnac wewnatrz cudzyslowu ani nawiasu. */
 function splitTargets(text: string): string[] {
 	const out: string[] = [];
 	let current = '';
 	let quoted = false;
+	let depth = 0;
 
 	for (const char of text) {
 		if (char === '"') quoted = !quoted;
-		if (char === ',' && !quoted) {
+		if (!quoted && char === '(') depth += 1;
+		if (!quoted && char === ')' && depth > 0) depth -= 1;
+		if (char === ',' && !quoted && depth === 0) {
 			out.push(current);
 			current = '';
 			continue;

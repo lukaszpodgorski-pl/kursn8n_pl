@@ -125,6 +125,7 @@
 	box-shadow: 0 14px 38px rgba(0, 0, 0, 0.34);
 	overflow: hidden;
 	margin: 20px 0 6px;
+	container-type: inline-size;
 }
 
 .k-flow-bar {
@@ -162,15 +163,12 @@
 	overflow-x: auto;
 }
 
-/* Dwa uklady policzone w buildzie - poziomy od 50rem, pionowy nizej. Skalowanie
-   jednego przez viewBox dawaloby na telefonie font rzedu 5 px. */
+/* Dwa uklady policzone w buildzie - pionowy jest domyslny, poziomy wlacza go
+   regula @container wstrzykiwana per-diagram przez render.ts (prog to faktyczna
+   szerokosc ukladu lr, nie stala szerokosc okna). Skalowanie jednego przez
+   viewBox dawaloby na telefonie font rzedu 5 px. */
 .k-flow-lr { display: none; }
 .k-flow-tb { display: block; }
-
-@media (min-width: 50rem) {
-	.k-flow-lr { display: block; }
-	.k-flow-tb { display: none; }
-}
 
 .k-flow-edges {
 	position: absolute;

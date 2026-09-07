@@ -47,10 +47,24 @@ test('sub-nody AI ida pod rodzica w ukladzie poziomym', () => {
 	assert.equal(layout.paths.filter((p) => p.kind === 'ai').length, 2);
 });
 
-test('sub-nody AI ida obok rodzica w ukladzie pionowym', () => {
+test('sub-nody AI ida pod rodzica takze w ukladzie pionowym', () => {
 	const layout = layoutFlow(parseFlow('Agent <- Model, Pamiec'), 'tb');
-	assert.ok(boxOf(layout, 'Model').x > boxOf(layout, 'Agent').x);
+	assert.ok(boxOf(layout, 'Model').y > boxOf(layout, 'Agent').y);
 	assert.ok(boxOf(layout, 'Pamiec').y > boxOf(layout, 'Model').y);
+	assert.equal(boxOf(layout, 'Model').x, boxOf(layout, 'Pamiec').x);
+});
+
+test('sub-nody AI w ukladzie pionowym nie rozpychaja diagramu wszerz', () => {
+	const spec =
+		'Agent (root node - decyduje i orkiestruje):robot <- Model (OpenAI / Ollama):microchip, ' +
+		'Pamiec (kontekst rozmowy):database, Narzedzie (Calculator, HTTP):wrench';
+	const tb = layoutFlow(parseFlow(spec), 'tb');
+	assert.ok(tb.width <= 390, `tb.width = ${tb.width}, ma sie miescic na telefonie`);
+});
+
+test('nastepnik rodzica AI schodzi pod stos sub-nodow', () => {
+	const layout = layoutFlow(parseFlow('Agent -> Dalej\nAgent <- Model'), 'tb');
+	assert.ok(boxOf(layout, 'Dalej').y > boxOf(layout, 'Model').y);
 });
 
 test('uklad pionowy schodzi w dol, nie w prawo', () => {

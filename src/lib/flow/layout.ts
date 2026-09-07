@@ -33,9 +33,11 @@ export const NODE_MAX_W = 320;
 
 // Ikona 34 + odstep 10 + padding 2 x 14 + obramowanie 2.
 const CHROME_W = 74;
-// Szerokosc znaku przy 13 px/700 i 11 px/400 w foncie strony. Wartosci sa
+// Szerokosc znaku przy 13 px/700 i 11 px/400 w foncie strony. Skalibrowane
+// pomiarem w przegladarce na /temp-flow: dla etykiety maksimum wyszlo 7,8
+// px/znak ("Pomin"), dla podtytulu 5,56 ("kwota > 100?"). Wartosci sa
 // szacunkiem z gornej strony - lepiej kafelek troche za szeroki niz przyciety.
-const LABEL_CH = 7.5;
+const LABEL_CH = 8.2;
 const SUB_CH = 6.1;
 
 const LAYER_GAP_LR = 64;
@@ -43,6 +45,7 @@ const LAYER_GAP_TB = 48;
 const TRACK_GAP = 24;
 const AI_GAP = 56;
 const AI_SIBLING_GAP = 16;
+const AI_INDENT = 24;
 const PAD = 22;
 
 interface Cubic {
@@ -241,13 +244,24 @@ export function layoutFlow(graph: FlowGraph, dir: Direction): Layout {
 
 	for (const [parentName, children] of childrenOf) {
 		const parent = byName.get(parentName)!;
-		let cursor = dir === 'lr' ? parent.x : parent.y;
+
+		if (dir === 'tb') {
+			// Stos sub-nodow wchodzi POD rodzica, wiec wszystko nizej musi zejsc
+			// nizej. Sub-nody w prawo (jak w lr) rozpychaly diagram szerzej niz
+			// telefon, a uklad pionowy istnieje wlasnie po to, zeby sie miescil.
+			const stos = children.length * (NODE_H + AI_SIBLING_GAP) - AI_SIBLING_GAP + AI_GAP;
+			for (const box of boxes) {
+				if (box.y > parent.y) box.y += stos;
+			}
+		}
+
+		let cursor = dir === 'lr' ? parent.x : parent.y + NODE_H + AI_GAP;
 		for (const child of children) {
 			const w = width.get(child.name)!;
 			const box: Box =
 				dir === 'lr'
 					? { node: child, x: cursor, y: parent.y + NODE_H + AI_GAP, w, h: NODE_H }
-					: { node: child, x: parent.x + parent.w + AI_GAP, y: cursor, w, h: NODE_H };
+					: { node: child, x: parent.x + AI_INDENT, y: cursor, w, h: NODE_H };
 			boxes.push(box);
 			byName.set(child.name, box);
 			cursor += (dir === 'lr' ? w : NODE_H) + AI_SIBLING_GAP;
@@ -341,9 +355,9 @@ function cubicFor(
 						x2: b.x + b.w / 2, y2: b.y,
 					}
 				: {
-						x1: a.x + a.w, y1: a.y + a.h / 2,
-						cx1: a.x + a.w + 24, cy1: a.y + a.h / 2,
-						cx2: b.x - 24, cy2: b.y + b.h / 2,
+						x1: a.x + AI_INDENT / 2, y1: a.y + a.h,
+						cx1: a.x + AI_INDENT / 2, cy1: b.y + b.h / 2,
+						cx2: a.x + AI_INDENT / 2, cy2: b.y + b.h / 2,
 						x2: b.x, y2: b.y + b.h / 2,
 					};
 	} else if (dir === 'lr') {

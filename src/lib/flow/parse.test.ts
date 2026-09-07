@@ -111,3 +111,10 @@ test('drugi opis tego samego noda wywraca build', () => {
 		/ma juz atrybuty z linii 2/
 	);
 });
+
+test('przecinek w podtytule sub-noda nie rozdziela listy', () => {
+	const graph = parseFlow('Agent:robot <- Tool (Calculator, HTTP):wrench, Model:microchip');
+	assert.equal(graph.edges.length, 2);
+	assert.deepEqual(graph.nodes.map((n) => n.name), ['Agent', 'Tool', 'Model']);
+	assert.equal(graph.nodes[1].sub, 'Calculator, HTTP');
+});

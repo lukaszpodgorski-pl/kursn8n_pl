@@ -75,13 +75,24 @@ function renderStage(layout: Layout, variant: 'lr' | 'tb', uid: string): string 
 }
 
 export function renderFlow(graph: FlowGraph, meta: FlowMeta): string {
-	// Oba uklady lecza do HTML, przelacza je media query. Skalowanie jednego
-	// przez viewBox dawaloby na telefonie font rzedu 5 px.
-	const lr = renderStage(layoutFlow(graph, 'lr'), 'lr', `${meta.uid}-lr`);
-	const tb = renderStage(layoutFlow(graph, 'tb'), 'tb', `${meta.uid}-tb`);
+	const lrLayout = layoutFlow(graph, 'lr');
+	const tbLayout = layoutFlow(graph, 'tb');
+
+	const lr = renderStage(lrLayout, 'lr', `${meta.uid}-lr`);
+	const tb = renderStage(tbLayout, 'tb', `${meta.uid}-tb`);
+	const id = `k-flow-${meta.uid}`;
+
+	// Prog przelaczania porownuje diagram z kontenerem, nie z oknem: kolumna
+	// tresci Starlighta ma okolo 718 px niezaleznie od szerokosci ekranu, wiec
+	// media query na szerokosc okna wpuszczalo uklad poziomy takze tam, gdzie
+	// sie nie miescil, i wracal scroll w scrollu.
+	const przelacznik =
+		`<style>@container (min-width: ${lrLayout.width}px) {` +
+		`#${id} .k-flow-lr { display: block } #${id} .k-flow-tb { display: none } }</style>`;
 
 	return (
-		`<div class="k-flow not-content" role="img" aria-label="${esc(meta.alt)}">` +
+		`<div class="k-flow not-content" id="${id}" role="img" aria-label="${esc(meta.alt)}">` +
+		przelacznik +
 		'<div class="k-flow-bar" aria-hidden="true">' +
 		'<span class="k-d k-r"></span><span class="k-d k-y"></span><span class="k-d k-g"></span>' +
 		`<span class="k-flow-title">${esc(meta.title)}</span></div>` +
