@@ -154,11 +154,53 @@
 }
 
 .k-flow-stage {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 32px 22px;
+	position: relative;
+	margin: 24px auto;
+	max-width: 100%;
+	/* Zapas na skrajnie szeroki kafelek na waskim telefonie - przy typowych
+	   diagramach uklad pionowy miesci sie bez przewijania. */
 	overflow-x: auto;
+}
+
+/* Dwa uklady policzone w buildzie - poziomy od 50rem, pionowy nizej. Skalowanie
+   jednego przez viewBox dawaloby na telefonie font rzedu 5 px. */
+.k-flow-lr { display: none; }
+.k-flow-tb { display: block; }
+
+@media (min-width: 50rem) {
+	.k-flow-lr { display: block; }
+	.k-flow-tb { display: none; }
+}
+
+.k-flow-edges {
+	position: absolute;
+	inset: 0;
+	overflow: visible;
+}
+
+.k-edge {
+	fill: none;
+	stroke: #6b7280;
+	stroke-width: 2;
+}
+
+.k-edge-ai {
+	stroke: var(--k-accent);
+	stroke-dasharray: 4 4;
+}
+
+.k-flow-edges marker path { fill: #6b7280; }
+
+.k-edge-label rect {
+	fill: #15171c;
+	stroke: rgba(255, 255, 255, 0.12);
+}
+
+.k-edge-label text {
+	fill: rgba(255, 255, 255, 0.72);
+	font-size: 11px;
+	font-weight: 600;
+	text-anchor: middle;
 }
 
 .k-flow-cap {
@@ -171,17 +213,17 @@
 
 /* ============ FlowNode ============ */
 .k-node {
-	flex: 0 0 auto;
+	position: absolute;
 	display: flex;
 	align-items: center;
 	gap: 10px;
+	height: 52px;
 	background: #23262e;
 	border: 1px solid rgba(255, 255, 255, 0.12);
 	border-radius: 12px;
-	padding: 11px 14px;
-	min-height: 52px;
-	position: relative;
+	padding: 0 14px;
 	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+	overflow: hidden;
 }
 
 .k-node-ic {
@@ -213,39 +255,6 @@
 	font-size: 11px;
 	color: rgba(255, 255, 255, 0.5);
 	white-space: nowrap;
-}
-
-/* Lacznik dokladany automatycznie miedzy wezlami. */
-.k-flow-stage > .k-node:not(:last-child)::after {
-	content: '';
-	position: absolute;
-	right: -30px;
-	top: 50%;
-	transform: translateY(-50%);
-	width: 30px;
-	height: 2px;
-	background: linear-gradient(90deg, #6b7280, var(--k-accent));
-}
-
-.k-flow-stage > .k-node:not(:last-child) {
-	margin-right: 30px;
-}
-
-/* Porty wejscia/wyjscia. */
-.k-flow-stage > .k-node::before {
-	content: '';
-	position: absolute;
-	left: -5px;
-	top: 50%;
-	transform: translateY(-50%);
-	width: 9px;
-	height: 9px;
-	border-radius: 50%;
-	background: #6b7280;
-}
-
-.k-flow-stage > .k-node:first-child::before {
-	display: none;
 }
 
 /* ============ ModuleHero ============ */
