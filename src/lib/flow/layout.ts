@@ -82,7 +82,12 @@ export function nodeWidth(node: FlowNodeSpec): number {
 }
 
 function assertConnected(graph: FlowGraph): void {
-	if (graph.nodes.length === 0) return;
+	if (graph.nodes.length === 0) {
+		throw new FlowError(
+			'Diagram nie ma ani jednego noda. Sprawdz, czy props "spec" nie sklada sie z samych ' +
+				'komentarzy i pustych linii.'
+		);
+	}
 
 	const neighbours = new Map<string, string[]>();
 	for (const node of graph.nodes) neighbours.set(node.name, []);
@@ -249,23 +254,51 @@ export function layoutFlow(graph: FlowGraph, dir: Direction): Layout {
 		}
 	}
 
-	// Luk petli w ukladzie pionowym idzie w LEWO od kolumny, a .k-flow ma
-	// overflow: hidden - bez tego marginesu polowa luku zostalaby przycieta.
-	const hasLoop = graph.edges.some((e) => e.kind === 'loop');
-	if (dir === 'tb' && hasLoop) {
-		for (const box of boxes) box.x += 48;
+	const boxBottom = Math.max(...boxes.map((b) => b.y + b.h));
+	const boxLeft = Math.min(...boxes.map((b) => b.x));
+
+	const cubics = graph.edges.map((edge) => cubicFor(edge, byName, dir, boxBottom, boxLeft));
+
+	// Krzywa szescienna miesci sie w otoczce wypuklej swoich czterech punktow,
+	// wiec prostokat na tych punktach bezpiecznie ja ogranicza. Luk petli
+	// wychodzi poza kafelki, a .k-flow ma overflow: hidden, wiec plotno liczymy
+	// z faktycznej geometrii zamiast doklejac staly zapas.
+	const xs = boxes.flatMap((b) => [b.x, b.x + b.w]);
+	const ys = boxes.flatMap((b) => [b.y, b.y + b.h]);
+	for (const c of cubics) {
+		xs.push(c.x1, c.cx1, c.cx2, c.x2);
+		ys.push(c.y1, c.cy1, c.cy2, c.y2);
 	}
 
-	const bottom = Math.max(...boxes.map((b) => b.y + b.h));
-	const left = Math.min(...boxes.map((b) => b.x));
+	const dx = PAD - Math.min(...xs);
+	const dy = PAD - Math.min(...ys);
 
-	const paths: EdgePath[] = graph.edges.map((edge) => cubicFor(edge, byName, dir, bottom, left));
+	for (const box of boxes) {
+		box.x += dx;
+		box.y += dy;
+	}
+
+	const paths: EdgePath[] = cubics.map((cubic, index) => {
+		const moved: Cubic = {
+			x1: cubic.x1 + dx,
+			y1: cubic.y1 + dy,
+			cx1: cubic.cx1 + dx,
+			cy1: cubic.cy1 + dy,
+			cx2: cubic.cx2 + dx,
+			cy2: cubic.cy2 + dy,
+			x2: cubic.x2 + dx,
+			y2: cubic.y2 + dy,
+		};
+		const mid = midOf(moved);
+		const edge = graph.edges[index];
+		return { d: toPath(moved), kind: edge.kind, label: edge.label, lx: mid.x, ly: mid.y };
+	});
 
 	return {
 		boxes,
 		paths,
-		width: Math.max(...boxes.map((b) => b.x + b.w)) + PAD,
-		height: bottom + PAD + (hasLoop && dir === 'lr' ? 48 : 0),
+		width: Math.max(...xs) + dx + PAD,
+		height: Math.max(...ys) + dy + PAD,
 	};
 }
 
@@ -275,7 +308,7 @@ function cubicFor(
 	dir: Direction,
 	bottom: number,
 	left: number
-): EdgePath {
+): Cubic {
 	const a = byName.get(edge.from)!;
 	const b = byName.get(edge.to)!;
 	let cubic: Cubic;
@@ -331,6 +364,5 @@ function cubicFor(
 		};
 	}
 
-	const mid = midOf(cubic);
-	return { d: toPath(cubic), kind: edge.kind, label: edge.label, lx: mid.x, ly: mid.y };
+	return cubic;
 }

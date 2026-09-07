@@ -98,3 +98,27 @@ test('za dluga etykieta wywraca build', () => {
 		/linia 3/
 	);
 });
+
+const pointsOf = (d: string): number[][] => {
+	const nums = d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+	const out: number[][] = [];
+	for (let i = 0; i < nums.length; i += 2) out.push([nums[i], nums[i + 1]]);
+	return out;
+};
+
+test('luk petli miesci sie w plotnie takze przy kilku torach', () => {
+	const spec = 'A -> B\nA -> C\nA -> D\nB -> M\nC ~> B';
+	for (const dir of ['lr', 'tb'] as const) {
+		const layout = layoutFlow(parseFlow(spec), dir);
+		for (const path of layout.paths) {
+			for (const [x, y] of pointsOf(path.d)) {
+				assert.ok(x >= 0 && x <= layout.width, `x ${x} poza plotnem (${dir}, ${path.kind})`);
+				assert.ok(y >= 0 && y <= layout.height, `y ${y} poza plotnem (${dir}, ${path.kind})`);
+			}
+		}
+	}
+});
+
+test('diagram bez nodow wywraca build', () => {
+	assert.throws(() => layoutFlow(parseFlow('# tylko komentarz'), 'lr'), /ani jednego noda/);
+});
