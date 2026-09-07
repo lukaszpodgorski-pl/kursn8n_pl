@@ -3,7 +3,12 @@ import path from 'node:path';
 import { FlowError } from './error.ts';
 import type { FlowGraph } from './parse.ts';
 
+// Sciezka do wyswietlania w komunikatach bledow - czytelna, liczona od korzenia repo.
 const CSS_PATH = 'public/assets/fa/css/all.min.css';
+// Sciezka do faktycznego odczytu - wzgledem tego pliku (import.meta.dirname),
+// nie process.cwd(). Build na Cloudflare potrafi wystartowac z innego
+// katalogu roboczego niz korzen repo, wiec process.cwd() tam pada.
+const CSS_ABS_PATH = path.join(import.meta.dirname, '../../../', CSS_PATH);
 const DEFAULT_ICON = 'diagram-project';
 const FAMILIES = new Set(['fas', 'far', 'fab']);
 
@@ -18,7 +23,7 @@ let cache: Set<string> | null = null;
 export function availableIcons(): Set<string> {
 	if (cache) return cache;
 
-	const css = fs.readFileSync(path.join(process.cwd(), CSS_PATH), 'utf8');
+	const css = fs.readFileSync(CSS_ABS_PATH, 'utf8');
 	const names = new Set<string>();
 	for (const match of css.matchAll(/\.fa-([a-z0-9-]+):before/g)) names.add(match[1]);
 

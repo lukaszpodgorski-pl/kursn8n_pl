@@ -1,5 +1,5 @@
 import { iconClass } from './icons.ts';
-import { layoutFlow, type Box, type EdgePath, type Layout } from './layout.ts';
+import { layoutFlow, SUB_CH, type Box, type EdgePath, type Layout } from './layout.ts';
 import type { FlowGraph } from './parse.ts';
 import { resolveTone } from './tokens.ts';
 
@@ -47,7 +47,7 @@ function renderEdge(path: EdgePath, uid: string): string {
 		`marker-end="url(#k-arrow-${uid})" />`;
 	if (!path.label) return line;
 
-	const w = Math.round(path.label.length * 6.1 + 12);
+	const w = Math.round(path.label.length * SUB_CH + 12);
 	return (
 		line +
 		`<g class="k-edge-label"><rect x="${path.lx - w / 2}" y="${path.ly - 9}" ` +
@@ -62,8 +62,13 @@ function renderStage(layout: Layout, variant: 'lr' | 'tb', uid: string): string 
 		'markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
 		'<path d="M0,0 L8,4 L0,8 z" /></marker></defs>';
 
+	// Obie sceny (lr i tb) siedza w HTML zawsze, CSS przelacza ktora widac.
+	// Pagefind nie zna CSS i zaindeksowalby teksty kafelkow dwa razy, wiec
+	// scene ukladu pionowego wylaczamy z indeksu - poziomej wystarczy.
+	const ignore = variant === 'tb' ? ' data-pagefind-ignore' : '';
+
 	return (
-		`<div class="k-flow-stage k-flow-${variant}" aria-hidden="true" ` +
+		`<div class="k-flow-stage k-flow-${variant}" aria-hidden="true"${ignore} ` +
 		`style="width:${layout.width}px;height:${layout.height}px">` +
 		`<svg class="k-flow-edges" viewBox="0 0 ${layout.width} ${layout.height}" ` +
 		`width="${layout.width}" height="${layout.height}" aria-hidden="true">${marker}` +

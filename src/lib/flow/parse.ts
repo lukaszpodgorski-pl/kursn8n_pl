@@ -194,7 +194,7 @@ export function parseFlow(spec: string): FlowGraph {
 
 		const to = declare(parseNodeToken(right, line, raw), line, raw);
 		const kind: EdgeKind = token === '~>' ? 'loop' : 'main';
-		const label = token.startsWith('-') && token !== '->' ? token.slice(1, -2) : undefined;
+		const label = token.startsWith('-') && token !== '->' ? token.slice(1, -2).trim() : undefined;
 		edges.push({ from, to, kind, label, line });
 	});
 

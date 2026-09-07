@@ -247,12 +247,16 @@
 	font-weight: 700;
 	color: #fff;
 	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .k-node-sub {
 	font-size: 11px;
 	color: rgba(255, 255, 255, 0.5);
 	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* ============ ModuleHero ============ */
