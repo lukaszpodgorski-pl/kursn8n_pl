@@ -304,8 +304,8 @@ przechodzisz na **tryb kolejkowy** i rozkładasz pracę na wiele workerów.
   spec={`
     Main (UI, triggery, kolejkuje):server @blue -> Redis (kolejka zadań (Bull)):layer-group @red
     Redis -> Worker 1 (wykonuje workflow):gears @slate
-    Worker 1 -> Worker 2 (wykonuje workflow):gears @slate
-    Worker 2 -> Worker 3 (wykonuje workflow):gears @slate
+    Redis -> Worker 2 (wykonuje workflow):gears @slate
+    Redis -> Worker 3 (wykonuje workflow):gears @slate
   `}
 />
 
