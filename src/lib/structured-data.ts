@@ -15,12 +15,17 @@ const LICENSE = 'https://creativecommons.org/licenses/by-sa/4.0/';
 // zeby wyszukiwarka polaczyla ja z tym wezlem encji, nie jest to wyciek marki).
 export const AUTHOR = {
 	'@type': 'Person',
+	// Ten sam wezel encji co na pozostalych domenach autora - bez @id
+	// konsument grafu widzi tu inna osobe niz na lukaszpodgorski.pl.
+	'@id': 'https://lukaszpodgorski.pl/#person',
+	jobTitle: 'Specjalista AI i automatyzacji',
 	name: 'Łukasz Podgórski',
 	url: 'https://lukaszpodgorski.pl/',
 	sameAs: [
 		'https://youtube.com/@lukaszpodgorski',
 		'https://linkedin.com/in/podgorski-lukasz',
 		'https://instagram.com/lukaszpodgorski_pl',
+		'https://tiktok.com/@lukaszpodgorski_pl',
 		'https://aitomate.pl',
 		'https://przewodnikai.pl',
 		'https://kursn8n.pl',
