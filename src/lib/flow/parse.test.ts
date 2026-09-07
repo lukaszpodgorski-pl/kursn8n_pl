@@ -118,3 +118,15 @@ test('przecinek w podtytule sub-noda nie rozdziela listy', () => {
 	assert.deepEqual(graph.nodes.map((n) => n.name), ['Agent', 'Tool', 'Model']);
 	assert.equal(graph.nodes[1].sub, 'Calculator, HTTP');
 });
+
+test('dywiz w podtytule nie jest mylony ze strzalka etykietowana', () => {
+	const graph = parseFlow('Agent (root node - decyduje i orkiestruje):robot @pink -> Dalej:check @green');
+	assert.deepEqual(graph.nodes.map((n) => n.name), ['Agent', 'Dalej']);
+	assert.equal(graph.nodes[0].sub, 'root node - decyduje i orkiestruje');
+	assert.equal(graph.edges[0].label, undefined);
+});
+
+test('strzalka w cudzyslowie nie rozdziela linii', () => {
+	const graph = parseFlow('"A -> B":code @slate -> C');
+	assert.deepEqual(graph.nodes.map((n) => n.name), ['A -> B', 'C']);
+});

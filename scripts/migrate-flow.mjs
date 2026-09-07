@@ -52,12 +52,36 @@ function nodeToken(source, file) {
 	return token;
 }
 
+// PULAPKA 2: parser DSL (src/lib/flow/parse.ts) mial osobny blad - mylil
+// dywiz w podtytule noda (np. "root node - decyduje i orkiestruje") ze
+// strzalka etykietowana "-etykieta->", gdy w tej samej linii dalej byla
+// prawdziwa strzalka. Naprawione u zrodla w parse.ts (skaner findArrow
+// zamiast prostego regexu ARROW), NIE w tym codemodzie - migrateBlock
+// nizej dalej generuje jedna linie z atrybutami pierwszego noda i strzalka
+// na koncu, tak jak dawniej.
+//
+// Wynik przebiegu tego skryptu w Task 6 (2026-09-07, 20 diagramow w 15
+// plikach) wymagal trzech recznych poprawek w wygenerowanym MDX, ktorych
+// sam skrypt nie wykryl: zgubiony nod "IF" w modul-3-praca-z-danymi.mdx
+// (Pulapka 1 nizej, wewnatrz migrateBlock), dywiz w podtytule w
+// modul-6-ai-agenci.mdx (Pulapka 2 powyzej - rozbite recznie na osobna
+// linie deklaracji noda bez strzalki) i nazwa ikony "shield-halved" w
+// modul-5-kod-sub-workflow.mdx, ktorej self-hostowany Font Awesome 6.0.0
+// (public/assets/fa/css/all.min.css) nie ma pod ta nazwa - dostepny
+// odpowiednik to "shield-alt".
 function migrateBlock(block, file) {
 	const title = attr(block, 'title');
 	const alt = attr(block, 'alt');
 	const caption = attr(block, 'caption');
 
-	const nodes = [...block.matchAll(/<FlowNode\b[^>]*\/>/g)].map((m) => m[0]);
+	// PULAPKA 1 (naprawiona tutaj): klasa [^>]* nie przechodzi przez znak ">"
+	// wewnatrz wartosci atrybutu (np. sub="kwota > 100?") - w takim miejscu
+	// dopasowanie tagu urywalo sie w polowie i caly <FlowNode> znikal z wyniku
+	// bez zadnego bledu czy ostrzezenia. Pierwotny zapis
+	// /<FlowNode\b[^>]*\/>/g zjadl w ten sposob noda "IF" w Module 3 przy
+	// migracji Task 6 (2026-09-07). Naprawione przejsciem na [\s\S]*? -
+	// dowolny znak, niezachlannie do najblizszego "/>".
+	const nodes = [...block.matchAll(/<FlowNode\b[\s\S]*?\/>/g)].map((m) => m[0]);
 	const tokens = nodes.map((node) => nodeToken(node, file));
 	const names = nodes.map((node) => quoteName(attr(node, 'label')));
 

@@ -27,11 +27,47 @@ export interface FlowGraph {
 }
 
 /**
- * Strzalka MUSI byc otoczona bialymi znakami. Bez tego `Sub-workflow -> X`
- * czytaloby sie jako krawedz z etykieta "workflow": dywiz w nazwie zaczynalby
- * wzorzec `-etykieta->`.
+ * Strzalka musi byc otoczona bialymi znakami I lezec poza nawiasem oraz poza
+ * cudzyslowem. Bez tego podtytul z dywizem ("root node - decyduje") w linii,
+ * ktora dalej ma prawdziwa strzalke, dawal falszywe dopasowanie `-etykieta->`
+ * i urywal nazwe noda w polowie.
  */
-const ARROW = /\s+(->|~>|<-|-[^->]+->)\s+/;
+const ARROW_AT = /^\s+(->|~>|<-|-[^->]+->)\s+/;
+
+interface ArrowHit {
+	index: number;
+	length: number;
+	token: string;
+}
+
+function findArrow(line: string): ArrowHit | null {
+	let quoted = false;
+	let depth = 0;
+
+	for (let i = 0; i < line.length; i += 1) {
+		const char = line[i];
+
+		if (char === '"') {
+			quoted = !quoted;
+			continue;
+		}
+		if (quoted) continue;
+		if (char === '(') {
+			depth += 1;
+			continue;
+		}
+		if (char === ')') {
+			if (depth > 0) depth -= 1;
+			continue;
+		}
+		if (depth > 0) continue;
+
+		const hit = ARROW_AT.exec(line.slice(i));
+		if (hit) return { index: i, length: hit[0].length, token: hit[1] };
+	}
+
+	return null;
+}
 
 /**
  * Nazwa albo w cudzyslowie (wtedy dowolne znaki), albo bez `:`, `@`, nawiasow
@@ -129,15 +165,15 @@ export function parseFlow(spec: string): FlowGraph {
 		const text = raw.trim();
 		if (text === '' || text.startsWith('#')) return;
 
-		const arrow = ARROW.exec(raw);
+		const arrow = findArrow(raw);
 		if (!arrow) {
 			declare(parseNodeToken(text, line, raw), line, raw);
 			return;
 		}
 
 		const left = raw.slice(0, arrow.index);
-		const right = raw.slice(arrow.index + arrow[0].length);
-		if (ARROW.test(right)) {
+		const right = raw.slice(arrow.index + arrow.length);
+		if (findArrow(right)) {
 			throw new FlowError(
 				'Dwie strzalki w jednej linii - kazda krawedz zapisujemy w osobnej linii.',
 				line,
@@ -145,7 +181,7 @@ export function parseFlow(spec: string): FlowGraph {
 			);
 		}
 
-		const token = arrow[1];
+		const token = arrow.token;
 		const from = declare(parseNodeToken(left, line, raw), line, raw);
 
 		if (token === '<-') {
