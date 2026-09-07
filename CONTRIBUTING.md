@@ -96,8 +96,15 @@ STRZAŁKA := "->"           zwykłe połączenie
           | "-etykieta->"  połączenie z podpisem
           | "~>"           krawędź zwrotna, rysowana łukiem
           | "<-"           sub-nody AI podpięte pod rodzica, lista po przecinku
-LINIA    := NOD STRZAŁKA NOD ["," NOD ...] | NOD | "#" komentarz | pusta linia
+LINIA    := NOD "<-" NOD ["," NOD ...]   lista po przecinku TYLKO przy "<-"
+          | NOD ("->" | "-etykieta->" | "~>") NOD
+          | NOD                          sama deklaracja, bez krawędzi
+          | "#" komentarz | pusta linia
 ```
+
+Przecinek rozdziela cele **wyłącznie po strzałce `<-`**. Przy `->`, `-etykieta->` i `~>` przecinek jest
+zwykłym znakiem nazwy, więc `A -> B, C` da jeden nod o etykiecie "B, C", a nie rozgałęzienie - i nie
+zgłosi błędu. Rozgałęzienie zapisujesz dwiema liniami: `A -> B` i `A -> C`.
 
 ### Cztery rodzaje strzałek
 
