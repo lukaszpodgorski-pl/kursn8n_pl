@@ -119,10 +119,10 @@ którą wyposażasz roota.
   alt="Schemat klastra AI: węzeł główny AI Agent, a od spodu podpięte sub-node'y Chat Model, Memory i Tool - to nie są kolejne kroki, tylko zdolności dołączone do agenta"
   caption="Cluster node: AI Agent (root) wyposażasz w zdolności, podpinając od spodu sub-node'y - model, pamięć i narzędzia. Wymieniasz je bez przebudowy reszty."
   spec={`
-    AI Agent (root node - decyduje i orkiestruje):robot @pink
-    AI Agent -> Chat Model (OpenAI / Ollama):microchip @blue
-    Chat Model -> Memory (kontekst rozmowy):database @green
-    Memory -> Tool (Calculator, HTTP):screwdriver-wrench @amber
+    Chat Model (OpenAI / Ollama):microchip @blue
+    Memory (kontekst rozmowy):database @green
+    Tool (Calculator, HTTP):screwdriver-wrench @amber
+    AI Agent (root node - decyduje i orkiestruje):robot @pink <- Chat Model, Memory, Tool
   `}
 />
 

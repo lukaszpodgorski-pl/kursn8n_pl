@@ -264,9 +264,9 @@ gałęzi.
   alt="Schemat rozgałęzienia: węzeł IF dzieli dane na ścieżkę true i false"
   caption="IF rozdziela itemy na dwie ścieżki: spełniające warunek (true) i resztę (false). Switch robi to na wiele wyjść, Filter po prostu odsiewa."
   spec={`
-    Dane (lista itemów):list @slate -> IF (kwota > 100?):code-branch @pink
-    IF -> TRUE (wyślij rabat):check @green
-    TRUE -> FALSE (pomiń):xmark @red
+    Dane (lista itemów):list @slate  ->        IF (kwota > 100?):code-branch @pink
+    IF                               -true->   Wyślij rabat:check @green
+    IF                               -false->  Pomiń:xmark @red
   `}
 />
 
@@ -349,9 +349,9 @@ w bazach danych (łączenie dwóch tabel po wspólnej kolumnie - tu rolę kolumn
   alt="Schemat scalania: dwa wejścia (zamówienia i klienci) łączą się w węźle Merge po polu email w jeden wynik"
   caption="Merge łączy dwa wejścia po wspólnym kluczu (email) w jeden wzbogacony strumień - jak JOIN w SQL."
   spec={`
-    Zamówienia (wejście 1):receipt @blue -> Klienci (wejście 2):users @green
-    Klienci -> Merge (po polu email):code-merge @pink
-    Merge -> Wynik (scalone itemy):table-cells @violet
+    Zamówienia (wejście 1):receipt @blue  ->  Merge (po polu email):code-merge @pink
+    Klienci (wejście 2):users @green      ->  Merge
+    Merge                                 ->  Wynik (scalone itemy):table-cells @violet
   `}
 />
 
