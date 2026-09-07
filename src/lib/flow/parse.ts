@@ -60,9 +60,6 @@ function parseNodeToken(token: string, line: number, source: string): ParsedNode
 	}
 
 	const name = (match[1] ?? match[2] ?? '').trim();
-	if (name === '') {
-		throw new FlowError('Nod bez nazwy - nazwa jest jedyna czescia obowiazkowa.', line, source);
-	}
 
 	return {
 		name,
@@ -98,14 +95,19 @@ export function parseFlow(spec: string): FlowGraph {
 
 	const declare = (parsed: ParsedNode, line: number, source: string): string => {
 		const existing = nodes.get(parsed.name);
+		const carries =
+			parsed.sub !== undefined || parsed.icon !== undefined || parsed.tone !== undefined;
+
 		if (!existing) {
 			nodes.set(parsed.name, { ...parsed, line });
 			return parsed.name;
 		}
 
-		const repeats =
-			parsed.sub !== undefined || parsed.icon !== undefined || parsed.tone !== undefined;
-		if (repeats) {
+		if (!carries) return parsed.name;
+
+		const described =
+			existing.sub !== undefined || existing.icon !== undefined || existing.tone !== undefined;
+		if (described) {
 			throw new FlowError(
 				`Nod "${parsed.name}" ma juz atrybuty z linii ${existing.line}. Kolejne wystapienia ` +
 					'podaj sama nazwa - inaczej ten sam nod moglby dostac dwa rozne wyglady.',
@@ -113,6 +115,9 @@ export function parseFlow(spec: string): FlowGraph {
 				source
 			);
 		}
+
+		// Nod byl dotad wymieniony sama nazwa - dopiero ta wzmianka go opisuje.
+		nodes.set(parsed.name, { ...parsed, line });
 		return parsed.name;
 	};
 

@@ -89,6 +89,25 @@ test('dwie strzalki w jednej linii wywracaja build', () => {
 	assert.throws(() => parseFlow('A -> B -> C'), /Dwie strzalki/);
 });
 
-test('pusta nazwa wywraca build z numerem linii', () => {
-	assert.throws(() => parseFlow('A -> :list @green'), /linia 1/);
+test('token bez nazwy wywraca build z numerem linii', () => {
+	assert.throws(
+		() => parseFlow('A -> :list @green'),
+		/Nie rozumiem zapisu noda ":list @green"[\s\S]*linia 1/
+	);
+});
+
+test('atrybuty wolno dolozyc do noda wymienionego wczesniej sama nazwa', () => {
+	const graph = parseFlow('X -> A\nA:robot @pink -> Y');
+	const a = graph.nodes.find((n) => n.name === 'A');
+	assert.equal(a.icon, 'robot');
+	assert.equal(a.tone, 'pink');
+	assert.equal(a.line, 2);
+	assert.deepEqual(graph.nodes.map((n) => n.name), ['X', 'A', 'Y']);
+});
+
+test('drugi opis tego samego noda wywraca build', () => {
+	assert.throws(
+		() => parseFlow('X -> A\nA:robot @pink -> Y\nA:xmark -> Z'),
+		/ma juz atrybuty z linii 2/
+	);
 });
