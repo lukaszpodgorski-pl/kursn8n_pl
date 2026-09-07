@@ -2,6 +2,9 @@
   "name": "kursn8n-pl",
   "type": "module",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
