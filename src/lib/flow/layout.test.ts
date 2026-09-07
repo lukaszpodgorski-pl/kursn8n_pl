@@ -47,6 +47,16 @@ test('sub-nody AI ida pod rodzica w ukladzie poziomym', () => {
 	assert.equal(layout.paths.filter((p) => p.kind === 'ai').length, 2);
 });
 
+test('sub-nody AI w ukladzie poziomym omijaja zajete tory', () => {
+	const layout = layoutFlow(
+		parseFlow('Start -> Agent:robot\nStart -> Inny (rownolegly krok):list\nAgent <- Model:microchip, Pamiec:database'),
+		'lr'
+	);
+	const inny = boxOf(layout, 'Inny');
+	const model = boxOf(layout, 'Model');
+	assert.ok(model.y >= inny.y + inny.h, `Model @${model.y} nachodzi na Inny @${inny.y}+${inny.h}`);
+});
+
 test('sub-nody AI ida pod rodzica takze w ukladzie pionowym', () => {
 	const layout = layoutFlow(parseFlow('Agent <- Model, Pamiec'), 'tb');
 	assert.ok(boxOf(layout, 'Model').y > boxOf(layout, 'Agent').y);

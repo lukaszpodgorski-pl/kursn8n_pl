@@ -38,9 +38,12 @@ const CHROME_W = 74;
 // px/znak ("Pomin"), dla podtytulu 5,56 ("kwota > 100?"). Wartosci sa
 // szacunkiem z gornej strony - lepiej kafelek troche za szeroki niz przyciety.
 const LABEL_CH = 8.2;
-const SUB_CH = 6.1;
+export const SUB_CH = 6.1;
 
-const LAYER_GAP_LR = 64;
+// 56, nie okraglej wartosci - dobrane pod szerokosc kolumny tresci Starlighta
+// (ok. 718 px), zeby wiecej diagramow zmiescilo sie pod progiem przelaczenia
+// na uklad poziomy zamiast spadac do pionowego.
+const LAYER_GAP_LR = 56;
 const LAYER_GAP_TB = 48;
 const TRACK_GAP = 24;
 const AI_GAP = 56;
@@ -266,12 +269,16 @@ export function layoutFlow(graph: FlowGraph, dir: Direction): Layout {
 
 	for (const [parentName, children] of childrenOf) {
 		const parent = byName.get(parentName)!;
+		// Spec, sekcja Uklad, punkt 4: stos sub-nodow zaczyna sie ponizej
+		// OSTATNIEGO zajetego toru, nie tuz pod rodzicem - inaczej nachodzi na
+		// rownolegle galezie i nikt tego nie zauwazy, bo nic nie krzyczy.
+		const dolna = Math.max(...boxes.map((b) => b.y + b.h));
 		let cursor = dir === 'lr' ? parent.x : parent.y + NODE_H + AI_GAP;
 		for (const child of children) {
 			const w = width.get(child.name)!;
 			const box: Box =
 				dir === 'lr'
-					? { node: child, x: cursor, y: parent.y + NODE_H + AI_GAP, w, h: NODE_H }
+					? { node: child, x: cursor, y: dolna + AI_GAP, w, h: NODE_H }
 					: { node: child, x: parent.x + AI_INDENT, y: cursor, w, h: NODE_H };
 			boxes.push(box);
 			byName.set(child.name, box);
