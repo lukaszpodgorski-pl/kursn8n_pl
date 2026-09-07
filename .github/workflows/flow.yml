@@ -1,0 +1,19 @@
+name: Flow
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/lib/flow/**', 'src/components/Flow.astro']
+  pull_request:
+    paths: ['src/lib/flow/**', 'src/components/Flow.astro']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Testy potoku diagramow
+        run: npm run test:flow

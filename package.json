@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "test:flow": "node --test src/lib/flow/tokens.test.ts",
     "verify:geo": "node scripts/verify-geo.mjs",
     "verify:brand": "node scripts/verify-brand.mjs"
   },
