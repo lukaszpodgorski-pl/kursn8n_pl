@@ -56,7 +56,6 @@ faq:
 import { CardGrid, Steps } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -89,11 +88,11 @@ mechanikę OAuth2, a to jedyne zagadnienia, które ten workflow ćwiczy w prakty
     fakturę, Filter przepuszcza tylko itemy z załącznikiem binarnym, Google Drive zapisuje plik
     w folderze Faktury pod nazwą złożoną z daty, nadawcy i oryginalnej nazwy pliku."
   caption="Trzy node'y: nasłuch Gmaila, zabezpieczenie filtrem i zapis na Dysku Google."
->
-  <FlowNode icon="fa-envelope" label="Gmail Trigger" sub="has:attachment filename:pdf" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-filter" label="Filter" sub="ma załącznik binarny?" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-google-drive" family="fab" label="Google Drive" sub="folder Faktury" from="#16a34a" to="#15803d" />
-</Flow>
+  spec={`
+    Gmail Trigger (has:attachment filename:pdf):envelope @pink -> Filter (ma załącznik binarny?):filter @blue
+    Filter -> Google Drive (folder Faktury):fab/google-drive @green
+  `}
+/>
 
 ## Pobierz gotowy workflow
 

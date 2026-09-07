@@ -61,7 +61,6 @@ faq:
 import { CardGrid } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Panel from '../../components/Panel.astro';
 import Takeaways from '../../components/Takeaways.astro';
@@ -144,11 +143,11 @@ je regularnie. n8n przejmuje "klikanie tego samego" i robi to niezawodnie 24/7.
   title="przyklad-synchronizacji"
   alt="Schemat przepływu: formularz, następnie arkusz, następnie powiadomienie na Slacku"
   caption="Przykład: nowe zgłoszenie z formularza trafia do arkusza i odpala powiadomienie na Slacku."
->
-  <FlowNode icon="fa-clipboard-list" label="Formularz" sub="nowe zgłoszenie" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-table-cells" label="Arkusz" sub="dodaj wiersz" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-slack" family="fab" label="Slack" sub="powiadom zespół" from="#6d28d9" to="#4c1d95" />
-</Flow>
+  spec={`
+    Formularz (nowe zgłoszenie):clipboard-list @blue -> Arkusz (dodaj wiersz):table-cells @green
+    Arkusz -> Slack (powiadom zespół):fab/slack @violet
+  `}
+/>
 
 :::caution[Kiedy automatyzacja to zły pomysł]
 Gdy proces zmienia się przy każdym wykonaniu, wymaga ludzkiego osądu na każdym kroku,

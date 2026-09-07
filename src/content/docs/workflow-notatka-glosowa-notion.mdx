@@ -45,7 +45,6 @@ faq:
 
 import { Steps } from '@astrojs/starlight/components';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -88,13 +87,13 @@ AI Agenta czy pamięci konwersacji.
   title="notatka-glosowa-notion"
   alt="Diagram: Telegram Trigger reaguje na nową wiadomość. Node IF sprawdza, czy wiadomość zawiera pole voice - jeśli nie, workflow kończy się bez żadnej akcji. Jeśli tak, node Telegram pobiera plik głosowy jako dane binarne, node OpenAI transkrybuje audio na tekst, a node Notion tworzy nową stronę w bazie z tą transkrypcją."
   caption="Gałąź true node'a IF (wiadomość ma pole voice) prowadzi przez pobranie pliku i transkrypcję aż do zapisu w Notion. Gałąź false nie jest z niczym połączona - workflow po prostu kończy się, gdy przyjdzie wiadomość, która nie jest notatką głosową."
->
-  <FlowNode icon="fa-telegram" family="fab" label="Telegram Trigger" sub="nowa wiadomość" from="#0ea5e9" to="#0369a1" />
-  <FlowNode icon="fa-code-branch" label="IF" sub="czy to voice?" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="pobierz plik głosowy" from="#0ea5e9" to="#0369a1" />
-  <FlowNode icon="fa-microphone" label="OpenAI" sub="transkrybuj (Whisper)" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-file-lines" label="Notion" sub="utwórz stronę" from="#64748b" to="#475569" />
-</Flow>
+  spec={`
+    Telegram Trigger (nowa wiadomość):fab/telegram @sky -> IF (czy to voice?):code-branch @pink
+    IF -> Telegram (pobierz plik głosowy):fab/telegram @sky
+    Telegram -> OpenAI (transkrybuj (Whisper)):microphone @green
+    OpenAI -> Notion (utwórz stronę):file-lines @slate
+  `}
+/>
 
 ## Pobierz gotowy workflow
 

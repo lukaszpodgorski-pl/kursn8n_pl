@@ -47,7 +47,6 @@ faq:
 
 import { Steps } from '@astrojs/starlight/components';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -87,12 +86,12 @@ workflow, node'em, który nazywa się po prostu **n8n**.
   nazwę pliku i treść JSON. GitHub zapisuje albo aktualizuje ten plik w repozytorium."
   caption="Cztery node'y, bez osobnej pętli - node n8n zwraca jeden item na każdy workflow, więc Code i GitHub
   przetwarzają je automatycznie, po kolei, tak jak każdy inny zestaw itemów w n8n."
->
-  <FlowNode icon="fa-clock" label="Harmonogram" sub="codziennie 3:00" from="#64748b" to="#475569" />
-  <FlowNode icon="fa-server" label="n8n" sub="pobierz workflow" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-code" label="Code" sub="przygotuj plik" from="#d97706" to="#b45309" />
-  <FlowNode icon="fa-github" family="fab" label="GitHub" sub="zapisz w repo" from="#16a34a" to="#15803d" />
-</Flow>
+  spec={`
+    Harmonogram (codziennie 3:00):clock @slate -> n8n (pobierz workflow):server @blue
+    n8n -> Code (przygotuj plik):code @amber
+    Code -> GitHub (zapisz w repo):fab/github @green
+  `}
+/>
 
 :::danger[Czego ten backup NIE robi]
 API n8n, z którego korzysta ten workflow, eksportuje **definicje workflow** - node'y, połączenia,

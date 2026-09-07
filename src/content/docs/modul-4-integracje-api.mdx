@@ -50,7 +50,6 @@ faq:
 import { CardGrid } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -260,12 +259,12 @@ odpytywania w pętli. W n8n występuje to w dwie strony: **odbierasz** zdarzenia
   title="webhook-odbior"
   alt="Schemat przepływu webhooka: system zewnętrzny wysyła zdarzenie, Webhook uruchamia workflow, przetwarzanie, odpowiedź"
   caption="Webhook nasłuchuje na publicznym adresie, uruchamia workflow i może odesłać własną odpowiedź wywołującemu."
->
-  <FlowNode icon="fa-bolt" label="System zewn." sub="wysyła zdarzenie" from="#64748b" to="#475569" />
-  <FlowNode icon="fa-satellite-dish" label="Webhook" sub="czeka na POST" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-gears" label="Przetwórz" sub="logika workflow" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-reply" label="Respond" sub="zwróć JSON 200" from="#16a34a" to="#15803d" />
-</Flow>
+  spec={`
+    System zewn. (wysyła zdarzenie):bolt @slate -> Webhook (czeka na POST):satellite-dish @pink
+    Webhook -> Przetwórz (logika workflow):gears @blue
+    Przetwórz -> Respond (zwróć JSON 200):reply @green
+  `}
+/>
 
 ### Odbieranie: node Webhook
 

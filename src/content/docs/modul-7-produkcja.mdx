@@ -49,7 +49,6 @@ faq:
 import { CardGrid } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -302,13 +301,13 @@ przechodzisz na **tryb kolejkowy** i rozkładasz pracę na wiele workerów.
   title="queue-mode"
   alt="Schemat trybu kolejkowego: proces główny przekazuje zadania do Redis, a pula workerów pobiera je i wykonuje równolegle"
   caption="Tryb kolejkowy: proces główny wrzuca wykonania do Redis, a pula workerów pobiera je i przetwarza równolegle. Dokładasz workery, by skalować poziomo."
->
-  <FlowNode icon="fa-server" label="Main" sub="UI, triggery, kolejkuje" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-layer-group" label="Redis" sub="kolejka zadań (Bull)" from="#dc2626" to="#b91c1c" />
-  <FlowNode icon="fa-gears" label="Worker 1" sub="wykonuje workflow" from="#64748b" to="#475569" />
-  <FlowNode icon="fa-gears" label="Worker 2" sub="wykonuje workflow" from="#64748b" to="#475569" />
-  <FlowNode icon="fa-gears" label="Worker 3" sub="wykonuje workflow" from="#64748b" to="#475569" />
-</Flow>
+  spec={`
+    Main (UI, triggery, kolejkuje):server @blue -> Redis (kolejka zadań (Bull)):layer-group @red
+    Redis -> Worker 1 (wykonuje workflow):gears @slate
+    Worker 1 -> Worker 2 (wykonuje workflow):gears @slate
+    Worker 2 -> Worker 3 (wykonuje workflow):gears @slate
+  `}
+/>
 
 Tryb włączasz zmienną `EXECUTIONS_MODE=queue` na procesie głównym i na workerach,
 wskazujesz Redis i uruchamiasz workery komendą `n8n worker`:

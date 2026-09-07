@@ -47,7 +47,6 @@ faq:
 
 import { Steps } from '@astrojs/starlight/components';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -107,14 +106,14 @@ na wersji, którą bezpiecznie zaimportujesz z pliku.
   Telegram jako gotowa wiadomość."
   caption="Trzy pierwsze node'y porządkują dane (wczytaj, przefiltruj, połącz), HTTP Request woła
   model AI, a Telegram dostarcza gotowe podsumowanie."
->
-  <FlowNode icon="fa-clock" label="Harmonogram" sub="codziennie 8:00" from="#64748b" to="#475569" />
-  <FlowNode icon="fa-rss" label="RSS Read" sub="wczytaj kanał" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-filter" label="Filter" sub="tylko ostatnie 24h" from="#0ea5e9" to="#0369a1" />
-  <FlowNode icon="fa-layer-group" label="Aggregate" sub="połącz wpisy" from="#d97706" to="#b45309" />
-  <FlowNode icon="fa-robot" label="Podsumowanie AI" sub="HTTP Request" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="wyślij podsumowanie" from="#16a34a" to="#15803d" />
-</Flow>
+  spec={`
+    Harmonogram (codziennie 8:00):clock @slate -> RSS Read (wczytaj kanał):rss @blue
+    RSS Read -> Filter (tylko ostatnie 24h):filter @sky
+    Filter -> Aggregate (połącz wpisy):layer-group @amber
+    Aggregate -> Podsumowanie AI (HTTP Request):robot @pink
+    Podsumowanie AI -> Telegram (wyślij podsumowanie):fab/telegram @green
+  `}
+/>
 
 :::note[Koszt uruchomienia]
 Node Podsumowanie AI woła płatne API dostawcy modelu - każde codzienne uruchomienie zużywa tokeny

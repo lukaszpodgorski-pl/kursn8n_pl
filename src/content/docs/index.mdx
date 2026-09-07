@@ -28,7 +28,6 @@ tableOfContents: false
 import { Badge, CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import Newsletter from '../../components/Newsletter.astro';
 import { QUICK_WINS } from '../../config/modules';
 
@@ -57,12 +56,12 @@ backup i przewidywalną obsługę błędów.
   title="moj-pierwszy-workflow"
   alt="Diagram przykładowego workflow w edytorze n8n: Schedule uruchamia się codziennie o 7:00, HTTP Request pobiera dane, AI Agent je przetwarza, a Telegram wysyła raport"
   caption="Przykładowy workflow z edytora n8n - od harmonogramu po wysyłkę raportu."
->
-  <FlowNode icon="fa-clock" label="Schedule" sub="codziennie 7:00" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-globe" label="HTTP Request" sub="pobierz dane" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-robot" label="AI Agent" sub="przetwórz" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-paper-plane" label="Telegram" sub="wyślij raport" from="#0ea5e9" to="#0369a1" />
-</Flow>
+  spec={`
+    Schedule (codziennie 7:00):clock @green -> HTTP Request (pobierz dane):globe @blue
+    HTTP Request -> AI Agent (przetwórz):robot @pink
+    AI Agent -> Telegram (wyślij raport):paper-plane @sky
+  `}
+/>
 
 ## Zobacz, co zautomatyzujesz
 
@@ -178,11 +177,11 @@ wrócisz w naturalnej kolejności.
   title="od-czego-zaczac"
   alt="Diagram trzech ścieżek startu na tej wiki: 'Tylko spróbować' prowadzi przez n8n Cloud do Modułu 2, 'Postawić u siebie' prowadzi przez Moduł 1 i poradnik hostingowy, a 'Podstawy znam, chcę AI' prowadzi od Modułu 3 do Modułu 6"
   caption="Trzy najczęstsze punkty startu na tej wiki - wybierz swój."
->
-  <FlowNode icon="fa-bolt" label="Tylko spróbować" sub="n8n Cloud → Moduł 2" from="#0ea5e9" to="#0369a1" />
-  <FlowNode icon="fa-server" label="Postawić u siebie" sub="Moduł 1 + poradnik" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-robot" label="Podstawy znam, chcę AI" sub="Moduł 3 → Moduł 6" from="#ea4b71" to="#6d28d9" />
-</Flow>
+  spec={`
+    Tylko spróbować (n8n Cloud → Moduł 2):bolt @sky -> Postawić u siebie (Moduł 1 + poradnik):server @green
+    Postawić u siebie -> Podstawy znam, chcę AI (Moduł 3 → Moduł 6):robot @pink
+  `}
+/>
 
 <CardGrid>
   <ConceptCard icon="fa-bolt" title="Chcę tylko spróbować, bez serwera">

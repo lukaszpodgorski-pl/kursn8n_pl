@@ -49,7 +49,6 @@ faq:
 
 import { Steps } from '@astrojs/starlight/components';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -86,12 +85,12 @@ bez rejestracji, a jedyne poświadczenia w całym workflow to token bota Telegra
   title="poranny-brief-telegram"
   alt="Schemat przepływu: Schedule Trigger uruchamia się codziennie o 7:00, HTTP Request pobiera prognozę pogody z Open-Meteo, Edit Fields składa treść wiadomości, a node Telegram wysyła ją na czat użytkownika"
   caption="Cztery node'y od triggera czasowego po wysyłkę wiadomości - dokładnie tyle potrzeba do porannego briefu."
->
-  <FlowNode icon="fa-clock" label="Schedule Trigger" sub="codziennie 7:00" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-globe" label="HTTP Request" sub="prognoza z Open-Meteo" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-pen-to-square" label="Edit Fields" sub="złóż wiadomość" from="#d97706" to="#b45309" />
-  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="wyślij na czat" from="#0ea5e9" to="#0369a1" />
-</Flow>
+  spec={`
+    Schedule Trigger (codziennie 7:00):clock @green -> HTTP Request (prognoza z Open-Meteo):globe @blue
+    HTTP Request -> Edit Fields (złóż wiadomość):pen-to-square @amber
+    Edit Fields -> Telegram (wyślij na czat):fab/telegram @sky
+  `}
+/>
 
 ## Pobierz gotowy workflow
 

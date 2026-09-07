@@ -53,7 +53,6 @@ faq:
 
 import { Steps } from '@astrojs/starlight/components';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -103,12 +102,12 @@ teorii.
     wysyła powiadomienie o nowym zgłoszeniu."
   caption="Cztery node'y od formularza po powiadomienie - żadnego zewnętrznego narzędzia
     formularzowego."
->
-  <FlowNode icon="fa-clipboard-list" label="n8n Form Trigger" sub="zbiera zgłoszenie" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-code" label="Code" sub="waliduj i oczyść" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-table" label="Google Sheets" sub="dopisz wiersz" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="wyślij powiadomienie" from="#0ea5e9" to="#0369a1" />
-</Flow>
+  spec={`
+    n8n Form Trigger (zbiera zgłoszenie):clipboard-list @pink -> Code (waliduj i oczyść):code @blue
+    Code -> Google Sheets (dopisz wiersz):table @green
+    Google Sheets -> Telegram (wyślij powiadomienie):fab/telegram @sky
+  `}
+/>
 
 :::note[RODO - dane osobowe zgłaszających]
 Formularz zbiera dane osobowe (imię, e-mail, treść wiadomości). Testując gotowiec na własnym

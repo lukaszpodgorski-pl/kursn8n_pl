@@ -49,7 +49,6 @@ faq:
 import { CardGrid } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Panel from '../../components/Panel.astro';
 import Takeaways from '../../components/Takeaways.astro';
@@ -119,12 +118,13 @@ którą wyposażasz roota.
   title="ai-agent"
   alt="Schemat klastra AI: węzeł główny AI Agent, a od spodu podpięte sub-node'y Chat Model, Memory i Tool - to nie są kolejne kroki, tylko zdolności dołączone do agenta"
   caption="Cluster node: AI Agent (root) wyposażasz w zdolności, podpinając od spodu sub-node'y - model, pamięć i narzędzia. Wymieniasz je bez przebudowy reszty."
->
-  <FlowNode icon="fa-robot" label="AI Agent" sub="root node - decyduje i orkiestruje" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-microchip" label="Chat Model" sub="OpenAI / Ollama" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-database" label="Memory" sub="kontekst rozmowy" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-screwdriver-wrench" label="Tool" sub="Calculator, HTTP" from="#d97706" to="#b45309" />
-</Flow>
+  spec={`
+    AI Agent (root node - decyduje i orkiestruje):robot @pink
+    AI Agent -> Chat Model (OpenAI / Ollama):microchip @blue
+    Chat Model -> Memory (kontekst rozmowy):database @green
+    Memory -> Tool (Calculator, HTTP):screwdriver-wrench @amber
+  `}
+/>
 
 :::note[Dlaczego taka architektura]
 Rozdzielenie roota od sub-node'ów daje ogromną elastyczność: ten sam AI Agent możesz zasilić

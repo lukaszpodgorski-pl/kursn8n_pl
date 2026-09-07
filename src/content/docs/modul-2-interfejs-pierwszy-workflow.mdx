@@ -43,7 +43,6 @@ faq:
 import { CardGrid } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Panel from '../../components/Panel.astro';
 import Takeaways from '../../components/Takeaways.astro';
@@ -119,11 +118,11 @@ co potrzebne. Każdy workflow zaczyna się od triggera - bez niego n8n nie wie, 
   title="moj-pierwszy-workflow"
   alt="Schemat przepływu: Schedule Trigger, następnie HTTP Request, następnie Edit Fields"
   caption="Przepływ, który zbudujesz w tej sekcji: trigger czasowy, pobranie danych z API i wyciągnięcie potrzebnych pól."
->
-  <FlowNode icon="fa-clock" label="Schedule Trigger" sub="codziennie 7:00" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-globe" label="HTTP Request" sub="GET z API" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-pen-to-square" label="Edit Fields" sub="wybierz pola" from="#d97706" to="#b45309" />
-</Flow>
+  spec={`
+    Schedule Trigger (codziennie 7:00):clock @green -> HTTP Request (GET z API):globe @blue
+    HTTP Request -> Edit Fields (wybierz pola):pen-to-square @amber
+  `}
+/>
 
 1. **Utwórz nowy workflow.** Na liście workflow (Overview) kliknij **Create Workflow**.
    Otworzy się pusta kanwa z polem _Add first step…_.

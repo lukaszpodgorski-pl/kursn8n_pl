@@ -46,7 +46,6 @@ faq:
 import { CardGrid } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Panel from '../../components/Panel.astro';
 import Takeaways from '../../components/Takeaways.astro';
@@ -330,11 +329,11 @@ automatyzacji.
 <Flow
   title="workflow-rodzic"
   alt="Schemat: w workflow-rodzicu Trigger uruchamia node Execute Sub-workflow, który wywołuje osobny sub-workflow, a wynik trafia do kolejnych kroków"
->
-  <FlowNode icon="fa-bolt" label="Trigger" sub="start" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-diagram-next" label="Execute Sub-workflow" sub="wywołaj jak funkcję" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-arrow-right-long" label="Dalej" sub="kolejne kroki" from="#64748b" to="#475569" />
-</Flow>
+  spec={`
+    Trigger (start):bolt @green -> Execute Sub-workflow (wywołaj jak funkcję):diagram-next @pink
+    Execute Sub-workflow -> Dalej (kolejne kroki):arrow-right-long @slate
+  `}
+/>
 
 _Execute Sub-workflow wywołuje poniższy sub-workflow:_
 
@@ -342,11 +341,11 @@ _Execute Sub-workflow wywołuje poniższy sub-workflow:_
   title="sub-workflow"
   alt="Schemat: w sub-workflow Sub-trigger odbiera dane, node Walidacja wykonuje wspólną logikę, a ostatni krok zwraca wynik rodzicowi"
   caption="Powtarzalną logikę wydzielasz do sub-workflow i wywołujesz ją jak funkcję - jedna zmiana zamiast pięciu kopii."
->
-  <FlowNode icon="fa-right-to-bracket" label="Sub-trigger" sub="odbiera dane" from="#6d28d9" to="#4c1d95" />
-  <FlowNode icon="fa-shield-halved" label="Walidacja" sub="wspólna logika" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-rotate-left" label="Zwróć wynik" sub="oddaj rodzicowi" from="#16a34a" to="#15803d" />
-</Flow>
+  spec={`
+    Sub-trigger (odbiera dane):right-to-bracket @violet -> Walidacja (wspólna logika):shield-alt @blue
+    Walidacja -> Zwróć wynik (oddaj rodzicowi):rotate-left @green
+  `}
+/>
 
 ### Jak to zbudować - krok po kroku
 
@@ -392,11 +391,11 @@ wszystkiego.
   title="error-workflow"
   alt="Schemat obsługi błędów: nieobsłużona awaria w workflow uruchamia Error Trigger, który wysyła alert"
   caption="Każda nieobsłużona awaria (czerwona ścieżka) odpala wspólny error workflow, który wysyła alert i loguje incydent."
->
-  <FlowNode icon="fa-diagram-project" label="Twój workflow" sub="nieobsłużony błąd" from="#64748b" to="#475569" />
-  <FlowNode icon="fa-triangle-exclamation" label="Error Trigger" sub="łapie awarię" from="#dc2626" to="#b91c1c" />
-  <FlowNode icon="fa-bell" label="Alert" sub="Slack / e-mail / log" from="#ea4b71" to="#6d28d9" />
-</Flow>
+  spec={`
+    Twój workflow (nieobsłużony błąd):diagram-project @slate -> Error Trigger (łapie awarię):triangle-exclamation @red
+    Error Trigger -> Alert (Slack / e-mail / log):bell @pink
+  `}
+/>
 
 ### Ustawienia na poziomie node'a
 

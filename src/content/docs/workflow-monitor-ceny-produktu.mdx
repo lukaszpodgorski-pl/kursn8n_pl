@@ -47,7 +47,6 @@ faq:
 
 import { Steps } from '@astrojs/starlight/components';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Takeaways from '../../components/Takeaways.astro';
 
@@ -82,14 +81,14 @@ które łatwo zrozumieć w teorii, a naprawdę utrwalają się dopiero przy real
   title="monitor-ceny-produktu"
   alt="Diagram: Harmonogram co 4 godziny uruchamia HTTP Request, który pobiera stronę produktu. HTML (Extract) wyciąga tekst ceny selektorem CSS. Edit Fields (Set) czyści go do liczby. IF sprawdza, czy cena jest niższa niż próg - jeśli tak, Telegram wysyła alert; jeśli nie, workflow po prostu się kończy bez żadnej akcji."
   caption="Gałąź true node'a IF (cena poniżej progu) prowadzi do wysyłki alertu na Telegram. Gałąź false nie jest z niczym połączona - workflow po prostu kończy się bez żadnej akcji, aż do kolejnego uruchomienia przez Harmonogram."
->
-  <FlowNode icon="fa-clock" label="Harmonogram" sub="co 4 godziny" from="#64748b" to="#475569" />
-  <FlowNode icon="fa-globe" label="HTTP Request" sub="pobierz stronę" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-code" label="HTML (Extract)" sub="wyciągnij cenę" from="#0ea5e9" to="#0369a1" />
-  <FlowNode icon="fa-pen-to-square" label="Edit Fields" sub="oczyść do liczby" from="#d97706" to="#b45309" />
-  <FlowNode icon="fa-code-branch" label="IF" sub="cena < próg?" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-telegram" family="fab" label="Telegram" sub="wyślij alert" from="#16a34a" to="#15803d" />
-</Flow>
+  spec={`
+    Harmonogram (co 4 godziny):clock @slate -> HTTP Request (pobierz stronę):globe @blue
+    HTTP Request -> "HTML (Extract)" (wyciągnij cenę):code @sky
+    "HTML (Extract)" -> Edit Fields (oczyść do liczby):pen-to-square @amber
+    Edit Fields -> IF (cena < próg?):code-branch @pink
+    IF -> Telegram (wyślij alert):fab/telegram @green
+  `}
+/>
 
 :::note[Kultura odpytywania cudzej strony]
 Ten workflow regularnie odpytuje stronę, której nie jesteś właścicielem - traktuj ją z szacunkiem.

@@ -48,7 +48,6 @@ faq:
 import { CardGrid } from '@astrojs/starlight/components';
 import ConceptCard from '../../components/ConceptCard.astro';
 import Flow from '../../components/Flow.astro';
-import FlowNode from '../../components/FlowNode.astro';
 import ModuleHero from '../../components/ModuleHero.astro';
 import Panel from '../../components/Panel.astro';
 import Takeaways from '../../components/Takeaways.astro';
@@ -264,12 +263,12 @@ gałęzi.
   title="rozgalezienie-if"
   alt="Schemat rozgałęzienia: węzeł IF dzieli dane na ścieżkę true i false"
   caption="IF rozdziela itemy na dwie ścieżki: spełniające warunek (true) i resztę (false). Switch robi to na wiele wyjść, Filter po prostu odsiewa."
->
-  <FlowNode icon="fa-list" label="Dane" sub="lista itemów" from="#64748b" to="#475569" />
-  <FlowNode icon="fa-code-branch" label="IF" sub="kwota > 100?" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-check" label="TRUE" sub="wyślij rabat" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-xmark" label="FALSE" sub="pomiń" from="#dc2626" to="#b91c1c" />
-</Flow>
+  spec={`
+    Dane (lista itemów):list @slate -> IF (kwota > 100?):code-branch @pink
+    IF -> TRUE (wyślij rabat):check @green
+    TRUE -> FALSE (pomiń):xmark @red
+  `}
+/>
 
 | Cecha | IF | Switch | Filter |
 | --- | --- | --- | --- |
@@ -349,12 +348,12 @@ w bazach danych (łączenie dwóch tabel po wspólnej kolumnie - tu rolę kolumn
   title="merge-po-email"
   alt="Schemat scalania: dwa wejścia (zamówienia i klienci) łączą się w węźle Merge po polu email w jeden wynik"
   caption="Merge łączy dwa wejścia po wspólnym kluczu (email) w jeden wzbogacony strumień - jak JOIN w SQL."
->
-  <FlowNode icon="fa-receipt" label="Zamówienia" sub="wejście 1" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-users" label="Klienci" sub="wejście 2" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-code-merge" label="Merge" sub="po polu email" from="#ea4b71" to="#6d28d9" />
-  <FlowNode icon="fa-table-cells" label="Wynik" sub="scalone itemy" from="#6d28d9" to="#4c1d95" />
-</Flow>
+  spec={`
+    Zamówienia (wejście 1):receipt @blue -> Klienci (wejście 2):users @green
+    Klienci -> Merge (po polu email):code-merge @pink
+    Merge -> Wynik (scalone itemy):table-cells @violet
+  `}
+/>
 
 :::note[Merge czeka na obie gałęzie]
 Node Merge zwykle uruchamia się dopiero, gdy spłyną do niego dane z obu wejść. Jeśli jedna
@@ -405,13 +404,13 @@ node'y:
   title="pipeline-plikow"
   alt="Schemat pipeline plików: e-mail z CSV, Extract from File, Edit Fields, Convert to File, wysyłka"
   caption="Pipeline plików: z maila wyciągasz CSV, przerabiasz dane i zapisujesz je jako nowy plik XLSX gotowy do wysyłki."
->
-  <FlowNode icon="fa-envelope" label="Email" sub="CSV w załączniku" from="#dc2626" to="#b91c1c" />
-  <FlowNode icon="fa-file-import" label="Extract from File" sub="CSV → itemy" from="#16a34a" to="#15803d" />
-  <FlowNode icon="fa-pen-to-square" label="Edit Fields" sub="wyczyść dane" from="#d97706" to="#b45309" />
-  <FlowNode icon="fa-file-export" label="Convert to File" sub="itemy → XLSX" from="#2563eb" to="#1e40af" />
-  <FlowNode icon="fa-paper-plane" label="Wyślij" sub="mail / chmura" from="#6d28d9" to="#4c1d95" />
-</Flow>
+  spec={`
+    Email (CSV w załączniku):envelope @red -> Extract from File (CSV → itemy):file-import @green
+    Extract from File -> Edit Fields (wyczyść dane):pen-to-square @amber
+    Edit Fields -> Convert to File (itemy → XLSX):file-export @blue
+    Convert to File -> Wyślij (mail / chmura):paper-plane @violet
+  `}
+/>
 
 :::caution[Pamiętaj o danych binarnych]
 
