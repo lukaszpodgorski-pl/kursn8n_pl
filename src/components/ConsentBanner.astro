@@ -121,6 +121,19 @@
 		--kn8n-z: 120;
 	}
 
+	/*
+	  Atrybut `hidden` przegladarka realizuje regula `display: none` o
+	  specyficznosci selektora typu, wiec KAZDY nasz `display` z selektora
+	  klasowego by ja przebil i element zostalby widoczny mimo `hidden`.
+	  Bez tej reguly modal otwiera sie razem z banerem przy pierwszej wizycie.
+	  Zlapane w podgladzie lokalnym przed wdrozeniem.
+	*/
+	#kn8n-consent[hidden],
+	.kn8n-bar[hidden],
+	.kn8n-modal[hidden] {
+		display: none !important;
+	}
+
 	.kn8n-bar {
 		position: fixed;
 		inset-inline: 0;
