@@ -15,6 +15,7 @@ import {
 import { ARTICLE_SLUGS } from '../config/modules';
 import { consentBootstrapScript } from '../lib/consent';
 import { newsletterEvent, pageType } from '../lib/page-context';
+import { CF_BEACON_TOKEN } from '../config/analytics';
 
 const route = Astro.locals.starlightRoute;
 const data = route.entry.data;
@@ -94,6 +95,22 @@ if (faq && faq.length > 0) blocks.push(buildFaqPage(faq));
 		newsletterEvent: newsletterEvent(pathname),
 	})}
 />
+
+{/*
+  Cloudflare Web Analytics - drugi tor pomiaru, POZA banerem zgody.
+
+  Nie zapisuje cookies ani pamieci przegladarki i nie rozpoznaje ludzi po IP,
+  wiec art. 399 PKE w ogole sie nie stosuje i nie ma o co pytac. Podstawa to
+  art. 6 ust. 1 lit. f RODO, opisana w /prywatnosc.
+
+  Snippet jest tu recznie, bo automatyczne wstrzykiwanie Cloudflare nie dziala
+  dla stron serwowanych przez Workers - szczegoly i pomiar w komentarzu przy
+  CF_BEACON_TOKEN w src/config/analytics.ts.
+
+  `defer` zamiast `type="module"` z panelu: modul i tak jest odroczony, a defer
+  nie wymaga od przegladarki obslugi modulow dla jednego zewnetrznego skryptu.
+*/}
+<script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={`{"token": "${CF_BEACON_TOKEN}"}`}></script>
 
 {/* Font Awesome - lokalna kopia, ikony `fas`/`fab` w ConceptCard i FlowNode. */}
 <link rel="stylesheet" href="/assets/fa/css/all.min.css" />

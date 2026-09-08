@@ -42,6 +42,31 @@ export const GA4_ID = 'G-VZJFZDE6X0';
  */
 export const BRAND = 'kursn8n';
 
+/**
+ * Token Cloudflare Web Analytics - drugi, niezalezny tor pomiaru.
+ *
+ * DLACZEGO RECZNY SNIPPET, A NIE AUTOMAT: panel Cloudflare oferuje wariant
+ * "Enable - the JS Snippet will be automatically injected", ale dla tej strony
+ * on NIE DZIALA i robi to po cichu. Automatyczne wstrzykiwanie dzieje sie
+ * w warstwie przepisywania HTML na brzegu, a odpowiedz kursn8n.pl generuje
+ * Worker (static assets), wiec te warstwe omija. Zmierzone 2026-09-08: po
+ * przelaczeniu na "Enable" beacon nie pojawil sie w HTML przez ponad dwie
+ * minuty, takze przy pominietym cache i z naglowkiem przegladarki.
+ *
+ * Ta sama pulapka dotyczy kazdej strony na Workers albo Pages, wiec dotyczy
+ * takze przewodnikai.pl.
+ *
+ * DRUGA PULAPKA, ktora tu wyszla: konto mialo wariant "Enable, excluding
+ * visitor data in the EU". Beacon nie byl wtedy wstrzykiwany NIKOMU z Unii,
+ * czyli calej realnej publicznosci - a panel pokazywal pojedyncze odslony
+ * spoza UE i wygladal na dzialajacy.
+ *
+ * Zgoda nie jest potrzebna: narzedzie nie zapisuje cookies ani pamieci
+ * przegladarki i nie rozpoznaje ludzi po IP, wiec art. 399 PKE sie nie stosuje.
+ * Podstawa to art. 6 ust. 1 lit. f RODO. Opisane w /prywatnosc.
+ */
+export const CF_BEACON_TOKEN = '7c7200cf9f5f4618b0363ff23ecf3842';
+
 /** Wersja zakresu przetwarzania. Podbicie = ponowne pytanie wszystkich. */
 export const CONSENT_VERSION = 1;
 
