@@ -13,6 +13,7 @@ import {
 	type FaqItem,
 } from '../lib/structured-data';
 import { ARTICLE_SLUGS } from '../config/modules';
+import { consentBootstrapScript } from '../lib/consent';
 
 const route = Astro.locals.starlightRoute;
 const data = route.entry.data;
@@ -64,6 +65,23 @@ if (faq && faq.length > 0) blocks.push(buildFaqPage(faq));
 ---
 
 <Default><slot /></Default>
+
+{/*
+  Consent Mode v2 w wariancie zaawansowanym plus kontener GTM.
+
+  KOLEJNOSC WEWNATRZ consentBootstrapScript() JEST WYMOGIEM: sygnaly
+  `consent default` wykonuja sie przed gtm.js, wiec zaden tag Google nie
+  zapisze cookie, dopoki czlowiek nie kliknie w banerze. Odwrotna kolejnosc
+  wywraca cala konstrukcje, a na oko wyglada tak samo.
+
+  Wariant zaawansowany znaczy, ze kontener laduje sie u kazdego, a przed zgoda
+  leci bezcookie'owy ping (czas, przegladarka, referrer, klik reklamowy). Jest
+  to opisane wprost w /prywatnosc - opis strony musi zgadzac sie z zachowaniem.
+
+  Brak <noscript> z iframe GTM jest celowy: bez JavaScriptu nie ma jak zebrac
+  zgody, wiec tag nie ma prawa sie odpalic.
+*/}
+<script is:inline set:html={consentBootstrapScript()} />
 
 {/* Font Awesome - lokalna kopia, ikony `fas`/`fab` w ConceptCard i FlowNode. */}
 <link rel="stylesheet" href="/assets/fa/css/all.min.css" />
