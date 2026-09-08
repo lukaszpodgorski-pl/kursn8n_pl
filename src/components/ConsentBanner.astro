@@ -12,11 +12,15 @@
  * - Zaden przelacznik opcjonalny nie moze byc zaznaczony domyslnie - art. 7
  *   RODO, motyw 32: pola zaznaczone z gory nie stanowia zgody.
  * - Odrzucenie musi byc jednym kliknieciem, dokladnie tak jak akceptacja.
- * - Baner jest paskiem u dolu, nie cookie wallem. Zgoda wymuszona dostepem do
- *   tresci nie jest dobrowolna, a wiec nie jest zgoda.
+ * - Baner jest paskiem u dolu, NIE cookie wallem. Od 2026-09-08 ma
+ *   przyciemnienie tla, ktore trzyma sie do momentu decyzji - to nadal nie jest
+ *   cookie wall, bo "Tylko niezbedne" odslania cala strone natychmiast
+ *   i niczego nie ogranicza. Warunki i uzasadnienie: komentarz przy markupie
+ *   nakladki nizej.
  *
  * Dostepnosc: modal ma role="dialog" i aria-modal, pulapke focusa, Escape
- * zamyka, focus wraca na element, ktory modal otworzyl.
+ * zamyka, focus wraca na element, ktory modal otworzyl. Pasek ma to samo -
+ * skoro nakladka odcina tresc od myszy, Tab tez nie moze z niej uciec.
  *
  * Markup wychodzi z serwera z atrybutem `hidden`, a skrypt tylko go odslania.
  * Wzorzec z aitomate.pl buduje baner w JS po DOMContentLoaded i przez to
@@ -25,10 +29,26 @@
 ---
 
 <div id="kn8n-consent" hidden>
+	{/*
+	  Przyciemnienie tresci na czas decyzji.
+
+	  TO NIE JEST COOKIE WALL i granica jest tu istotna, nie stylistyczna.
+	  Cookie wall znaczy "zgodz sie albo nie wejdziesz" - taka zgoda nie jest
+	  dobrowolna, wiec jest niewazna (EROD, wytyczne 05/2020). Tutaj wymuszamy
+	  DECYZJE, nie ZGODE: klikniecie "Tylko niezbedne" natychmiast odslania cala
+	  strone i niczego nie ogranicza.
+
+	  Warunek, ktorego NIE WOLNO zlamac przy nastepnej edycji: nakladka nie moze
+	  znikac po kliknieciu w nia sama. Gdyby znikala, dawaloby to trzecie wyjscie
+	  "zamknij bez decyzji", ktore w praktyce jest cichym odrzuceniem - a takiego
+	  wyboru nie da sie wykazac.
+	*/}
+	<div class="kn8n-backdrop" id="kn8n-backdrop" hidden></div>
 	<div
 		class="kn8n-bar"
 		id="kn8n-bar"
-		role="region"
+		role="dialog"
+		aria-modal="true"
 		aria-label="Zgoda na pliki cookies"
 		hidden
 	>
@@ -130,8 +150,24 @@
 	*/
 	#kn8n-consent[hidden],
 	.kn8n-bar[hidden],
+	.kn8n-backdrop[hidden],
 	.kn8n-modal[hidden] {
 		display: none !important;
+	}
+
+	/*
+	  Przyciemnienie tresci na czas decyzji - patrz komentarz przy markupie.
+	  Nakladka przechwytuje klikniecia (brak `pointer-events: none`), ale NIE
+	  blokuje przewijania: tresc pozostaje czytelna pod spodem. To swiadomy
+	  wybor - im mniej strona przypomina sciane, tym dalej jest od konstrukcji,
+	  ktora organy kwestionuja.
+	*/
+	.kn8n-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: calc(var(--kn8n-z) - 1);
+		background: rgb(0 0 0 / 50%);
+		animation: kn8n-fade 0.25s ease-out;
 	}
 
 	.kn8n-bar {
@@ -184,14 +220,19 @@
 	/*
 	  Akceptacja i odrzucenie dziela JEDNA klase i maja identyczny wyglad.
 	  To nie jest przeoczenie w stylach - to warunek waznosci zgody.
+
+	  Tlo to CIEMNIEJSZY blekit marki (#2A6FA8), nie podstawowy #378CCF. Powod
+	  jest mierzalny: bialy tekst na #378CCF daje kontrast 3,6:1, czyli ponizej
+	  wymaganych 4,5:1 (CLAUDE.md, sekcja 2). Na #2A6FA8 wychodzi 5,35:1.
+	  Jasniejszy odcien zostaje na obrys focusa, gdzie prog wynosi 3:1.
 	*/
 	.kn8n-btn-primary {
-		background: var(--k-accent, #378ccf);
+		background: var(--k-accent-dark, #2a6fa8);
 		color: #fff;
 	}
 
 	.kn8n-btn-primary:hover {
-		background: var(--k-accent-dark, #2a6fa8);
+		background: #1f5580;
 	}
 
 	.kn8n-btn-ghost {
@@ -296,9 +337,105 @@
 		}
 	}
 
+	@keyframes kn8n-fade {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
-		.kn8n-bar {
+		.kn8n-bar,
+		.kn8n-backdrop {
 			animation: none;
+		}
+	}
+
+	/*
+	  TELEFON. Ten komponent nie mial breakpointu szerokosci w ogole - pasek
+	  dziedziczyl uklad z desktopu, wiec na waskim ekranie tekst i trzy przyciski
+	  zawijaly sie w poszarpany blok.
+
+	  Pomiar tego samego banera przy 390 px (wersja dla domen PHP): "Akceptuje
+	  wszystkie" 173 px i "Tylko niezbedne" 145 px w pierwszym rzedzie,
+	  "Ustawienia" 110 px spychane do drugiego; caly pasek 242 px, czyli 28%
+	  ekranu; przyciski 36 px wysokosci, ponizej progu 44 px dla celu dotykowego
+	  (WCAG 2.5.5 oraz wytyczne Apple i Google).
+
+	  Rozwiazanie: SIATKA dwukolumnowa zamiast zawijanego rzedu. Akceptacja
+	  i odrzucenie stoja w kolumnach `1fr 1fr`, wiec maja identyczna szerokosc
+	  NIEZALEZNIE od dlugosci tekstu - mocniejsza gwarancja rownej wagi niz flex,
+	  gdzie kazdy przycisk dostawal szerokosc od swojej tresci. To warunek
+	  waznosci zgody, nie estetyka.
+
+	  Po zmianie, zmierzone: 390 px - pasek 216 px (25% ekranu), oba glowne
+	  175x44. Na 320 px tekst zawija sie w dwie linie, ale OBA rosna tak samo.
+
+	  Zestaw jest identyczny z przewodnikai.pl i z assets/css/consent.css na
+	  trzech domenach PHP - jeden baner ma wygladac tak samo w calym ekosystemie.
+	*/
+	@media (max-width: 640px) {
+		.kn8n-bar {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.625rem;
+			/* env() chroni przed paskiem gestow iPhone'a. */
+			padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+			max-height: 70vh;
+			overflow-y: auto;
+			overscroll-behavior: contain;
+		}
+
+		.kn8n-bar-text {
+			flex: none;
+			font-size: var(--sl-text-xs);
+		}
+
+		.kn8n-bar-actions {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 0.5rem;
+		}
+
+		.kn8n-btn {
+			width: 100%;
+			min-height: 44px;
+			padding-inline: 0.5rem;
+			/* Tekst ma sie zawinac, a nie rozepchnac przycisku poza siatke.
+			   Oba glowne rosna wtedy rowno, bo dziela kolumne 1fr. */
+			white-space: normal;
+		}
+
+		/* Trzecia opcja pod spodem, przez cala szerokosc siatki. */
+		.kn8n-bar-actions .kn8n-btn-ghost {
+			grid-column: 1 / -1;
+		}
+
+		.kn8n-modal {
+			padding: 0.75rem;
+		}
+
+		.kn8n-dialog {
+			/* 100dvh zamiast 100vh - pasek adresu mobilnej przegladarki zmienia
+			   wysokosc widoku i przy 100vh modal wystaje poza ekran. */
+			max-height: min(85vh, 100dvh - 1.5rem);
+			padding: 1rem;
+			overscroll-behavior: contain;
+		}
+
+		.kn8n-dialog-foot {
+			flex-direction: column;
+		}
+
+		.kn8n-dialog-foot .kn8n-btn {
+			width: 100%;
+		}
+
+		/* Wciecie opisu pod checkboxem zjada na telefonie za duzo szerokosci. */
+		.kn8n-group p {
+			margin-left: 0;
 		}
 	}
 </style>
@@ -308,11 +445,12 @@
 
 	const root = document.getElementById('kn8n-consent');
 	const bar = document.getElementById('kn8n-bar');
+	const backdrop = document.getElementById('kn8n-backdrop');
 	const modal = document.getElementById('kn8n-modal');
 	const analyticsBox = document.getElementById('kn8n-analytics') as HTMLInputElement | null;
 	const marketingBox = document.getElementById('kn8n-marketing') as HTMLInputElement | null;
 
-	if (root && bar && modal && analyticsBox && marketingBox) {
+	if (root && bar && backdrop && modal && analyticsBox && marketingBox) {
 		/** Element, ktory otworzyl modal - focus do niego wraca po zamknieciu. */
 		let opener: HTMLElement | null = null;
 
@@ -326,6 +464,7 @@
 		const showBar = () => {
 			root.hidden = false;
 			bar.hidden = false;
+			backdrop.hidden = false;
 		};
 
 		const openModal = (trigger: HTMLElement | null) => {
@@ -334,6 +473,9 @@
 			analyticsBox.checked = saved?.analytics ?? false;
 			marketingBox.checked = saved?.marketing ?? false;
 			root.hidden = false;
+			// Modal ma wlasne przyciemnienie (.kn8n-overlay), wiec nakladka paska
+			// schodzi - inaczej naklada sie ciemne na ciemne.
+			backdrop.hidden = true;
 			modal.hidden = false;
 			focusableIn(modal)[0]?.focus();
 		};
@@ -348,7 +490,9 @@
 			opener = null;
 			if (readConsent()) {
 				root.hidden = true;
+				backdrop.hidden = true;
 			} else {
+				// Nadal brak decyzji - pasek i przyciemnienie wracaja.
 				showBar();
 			}
 		};
@@ -359,6 +503,7 @@
 			applyConsent(choice);
 			modal.hidden = true;
 			bar.hidden = true;
+			backdrop.hidden = true;
 			root.hidden = true;
 		};
 
@@ -382,6 +527,29 @@
 				case 'close':
 					dismissModal();
 					break;
+			}
+		});
+
+		/*
+		  Pulapka focusa na PASKU. Skoro nakladka odcina tresc od myszy, Tab tez
+		  nie moze z niej uciec - inaczej osoba korzystajaca z klawiatury wpada
+		  w obszar, ktorego nie widzi i nie moze kliknac.
+
+		  Escape celowo NIE zamyka paska: nie ma decyzji do zapisania, a ciche
+		  znikniecie banera byloby trzecim wyjsciem, ktorego nie da sie wykazac.
+		*/
+		bar.addEventListener('keydown', (event) => {
+			if (event.key !== 'Tab') return;
+			const items = focusableIn(bar);
+			if (items.length === 0) return;
+			const first = items[0];
+			const last = items[items.length - 1];
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
 			}
 		});
 
