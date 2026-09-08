@@ -14,6 +14,7 @@ import {
 } from '../lib/structured-data';
 import { ARTICLE_SLUGS } from '../config/modules';
 import { consentBootstrapScript } from '../lib/consent';
+import { newsletterEvent, pageType } from '../lib/page-context';
 
 const route = Astro.locals.starlightRoute;
 const data = route.entry.data;
@@ -80,8 +81,19 @@ if (faq && faq.length > 0) blocks.push(buildFaqPage(faq));
 
   Brak <noscript> z iframe GTM jest celowy: bez JavaScriptu nie ma jak zebrac
   zgody, wiec tag nie ma prawa sie odpalic.
+
+  Kontekst strony (`brand`, `page_type`) wchodzi do warstwy danych w tym samym
+  skrypcie, przed snippetem GTM - inaczej tag konfiguracyjny odpalilby sie bez
+  nich. `brand` jest obowiazkowy, bo wszystkie domeny ekosystemu dziela jedna
+  usluge GA4 i to on je rozdziela w raportach.
 */}
-<script is:inline set:html={consentBootstrapScript()} />
+<script
+	is:inline
+	set:html={consentBootstrapScript({
+		pageType: pageType(pathname),
+		newsletterEvent: newsletterEvent(pathname),
+	})}
+/>
 
 {/* Font Awesome - lokalna kopia, ikony `fas`/`fab` w ConceptCard i FlowNode. */}
 <link rel="stylesheet" href="/assets/fa/css/all.min.css" />

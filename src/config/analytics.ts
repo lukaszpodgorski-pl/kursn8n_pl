@@ -14,8 +14,33 @@
 /** Kontener Google Tag Manager, konto `aitomate Lukasz Podgorski`. */
 export const GTM_ID = 'GTM-WWZKTTGJ';
 
-/** Identyfikator pomiaru GA4, usluga `kursn8n.pl` (553021678). */
-export const GA4_ID = 'G-HXB91H6WT6';
+/**
+ * Identyfikator pomiaru GA4 - WSPOLNA usluga calego ekosystemu (513311833),
+ * nie osobna usluga per domena.
+ *
+ * Powod jest arytmetyczny, nie estetyczny, i pochodzi z decyzji D1 w
+ * `e:\projects_www\analityka-wdrozenie-runbook.md`: lista remarketingowa w
+ * Google Ads potrzebuje 100 uzytkownikow do sieci reklamowej i 1000 do YouTube
+ * i RLSA. Przy kilkunastu aktywnych uzytkownikach na domene tylko wspolna pula
+ * kiedykolwiek przekroczy prog - osobne uslugi per domena to gwarancja, ze
+ * zadna lista nie ruszy.
+ *
+ * Cena tej decyzji: raporty trzeba filtrowac po wymiarze `brand`, a nie
+ * otwierac na czysto. Dlatego BRAND ponizej jest obowiazkowy w kazdym zdarzeniu.
+ *
+ * UWAGA: sam serwis nie uzywa tej stalej w czasie dzialania - identyfikator
+ * siedzi w zmiennej `const - GA4 ID` w kontenerze GTM. Tu jest po to, zeby dalo
+ * sie odczytac z repo, dokad leca dane, bez logowania do panelu. Zmiana tutaj
+ * NIE zmienia pomiaru; trzeba ja powtorzyc w GTM.
+ */
+export const GA4_ID = 'G-VZJFZDE6X0';
+
+/**
+ * Marka w ramach wspolnej uslugi GA4. Trafia do kazdego zdarzenia jako
+ * parametr `brand` i to ona rozdziela kursn8n.pl od pozostalych domen
+ * w raportach.
+ */
+export const BRAND = 'kursn8n';
 
 /** Wersja zakresu przetwarzania. Podbicie = ponowne pytanie wszystkich. */
 export const CONSENT_VERSION = 1;

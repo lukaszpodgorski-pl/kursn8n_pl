@@ -25,7 +25,7 @@ poprosiłeś. Dlatego pierwsza grupa poniżej działa bez pytania.
 | Wybrany motyw jasny lub ciemny | żeby strona wyglądała tak, jak ustawiłeś | nie jest wymagana |
 | Twoja decyzja o cookies | żebym nie pytał przy każdej wizycie i umiał wykazać zgodę | nie jest wymagana |
 | Kopia strony zastępczej offline | żeby coś się otworzyło, gdy stracisz internet | nie jest wymagana |
-| `_ga`, `_ga_HXB91H6WT6` | Google Analytics 4, rozróżnienie przeglądarek i sesji, 2 lata | wymagana |
+| `_ga`, `_ga_VZJFZDE6X0` | Google Analytics 4, rozróżnienie przeglądarek i sesji, 2 lata | wymagana |
 | `_gcl_au` | pomiar skuteczności reklam Google, 90 dni | wymagana |
 
 Trzy pierwsze pozycje to pamięć przeglądarki, nie pliki cookie. Nie opuszczają Twojego
@@ -43,6 +43,12 @@ opisuje to
 [dokumentacja Google](https://support.google.com/analytics/answer/12017362).
 
 Dane w Google Analytics przechowuję przez 14 miesięcy, po czym znikają automatycznie.
+
+Pomiar tej strony trafia do tej samej usługi Google Analytics, co pomiar pozostałych moich
+stron. Administrator jest jeden i ten sam - ja - więc Twoje dane nie trafiają przez to do
+nikogo nowego. Ma to natomiast praktyczny skutek, o którym wolę powiedzieć wprost: jeśli
+odwiedzisz kilka moich stron, mogą one zostać w statystykach powiązane jako ruch tej samej
+osoby.
 
 ### Co dzieje się, zanim klikniesz
 

@@ -1,10 +1,18 @@
 import {
+	BRAND,
 	CONSENT_STORAGE_KEY,
 	CONSENT_VERSION,
 	GTM_ID,
 	type ConsentChoice,
 	type StoredConsent,
 } from '../config/analytics';
+
+/** Kontekst strony wstrzykiwany do warstwy danych przed snippetem GTM. */
+export type PageContext = {
+	pageType: string;
+	/** Zdarzenie lejka newslettera albo `null` - patrz `src/lib/page-context.ts`. */
+	newsletterEvent: string | null;
+};
 
 /**
  * Odczyt zapisanej decyzji.
@@ -106,8 +114,12 @@ export function applyConsent(choice: ConsentChoice): void {
  * Odczyt localStorage jest synchroniczny, wiec powracajacy gosc z udzielona
  * zgoda startuje od razu z `granted` i nie traci pierwszego zdarzenia na cyklu
  * denied -> update.
+ *
+ * Kolejnosc calosci, za runbookiem analityki (C2 i C3): sygnaly zgody ->
+ * kontekst strony w warstwie danych -> snippet GTM. Kontekst musi wyprzedzic
+ * GTM, bo tag konfiguracyjny czyta `brand` i `page_type` juz przy inicjalizacji.
  */
-export function consentBootstrapScript(): string {
+export function consentBootstrapScript(context: PageContext): string {
 	return `
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
@@ -137,6 +149,15 @@ gtag('consent', 'default', {
 gtag('set', 'ads_data_redaction', kn8nMarketing === 'denied');
 gtag('set', 'url_passthrough', true);
 
+window.dataLayer.push({
+  brand: ${JSON.stringify(BRAND)},
+  page_type: ${JSON.stringify(context.pageType)}
+});
+${
+	context.newsletterEvent
+		? `window.dataLayer.push({ event: ${JSON.stringify(context.newsletterEvent)}, brand: ${JSON.stringify(BRAND)} });`
+		: ''
+}
 (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
