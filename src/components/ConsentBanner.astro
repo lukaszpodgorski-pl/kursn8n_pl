@@ -1,0 +1,406 @@
+---
+/**
+ * Baner zgody na cookies i modal ustawien.
+ *
+ * Wymogi ponizej nie sa preferencjami wizualnymi, tylko warunkami waznosci
+ * zgody. Zlamanie ktoregokolwiek sprawia, ze zgoda jest wadliwa, a wiec ze
+ * pomiar dziala bez podstawy prawnej:
+ *
+ * - "Akceptuje wszystkie" i "Tylko niezbedne" musza wygladac tak samo. Nierowna
+ *   waga przyciskow to dark pattern. Dlatego oba dziela klase .kn8n-btn-primary
+ *   i to NIE jest przeoczenie w stylach.
+ * - Zaden przelacznik opcjonalny nie moze byc zaznaczony domyslnie - art. 7
+ *   RODO, motyw 32: pola zaznaczone z gory nie stanowia zgody.
+ * - Odrzucenie musi byc jednym kliknieciem, dokladnie tak jak akceptacja.
+ * - Baner jest paskiem u dolu, nie cookie wallem. Zgoda wymuszona dostepem do
+ *   tresci nie jest dobrowolna, a wiec nie jest zgoda.
+ *
+ * Dostepnosc: modal ma role="dialog" i aria-modal, pulapke focusa, Escape
+ * zamyka, focus wraca na element, ktory modal otworzyl.
+ *
+ * Markup wychodzi z serwera z atrybutem `hidden`, a skrypt tylko go odslania.
+ * Wzorzec z aitomate.pl buduje baner w JS po DOMContentLoaded i przez to
+ * migocze - tego nie powielamy.
+ */
+---
+
+<div id="kn8n-consent" hidden>
+	<div
+		class="kn8n-bar"
+		id="kn8n-bar"
+		role="region"
+		aria-label="Zgoda na pliki cookies"
+		hidden
+	>
+		<div class="kn8n-bar-text">
+			<p class="kn8n-bar-title">Pliki cookies</p>
+			<p>
+				Analityka i marketing ruszają tylko za Twoją zgodą. Bez niej działa wyłącznie to,
+				co jest niezbędne, żeby strona się otworzyła. Szczegóły opisuje
+				<a href="/prywatnosc">Prywatność i cookies</a>.
+			</p>
+		</div>
+		<div class="kn8n-bar-actions">
+			<button type="button" class="kn8n-btn kn8n-btn-primary" data-kn8n="accept-all">
+				Akceptuję wszystkie
+			</button>
+			<button type="button" class="kn8n-btn kn8n-btn-primary" data-kn8n="reject-all">
+				Tylko niezbędne
+			</button>
+			<button type="button" class="kn8n-btn kn8n-btn-ghost" data-kn8n="customize">
+				Ustawienia
+			</button>
+		</div>
+	</div>
+
+	<div class="kn8n-modal" id="kn8n-modal" hidden>
+		<div class="kn8n-overlay" data-kn8n="close"></div>
+		<div
+			class="kn8n-dialog"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="kn8n-modal-title"
+		>
+			<div class="kn8n-dialog-head">
+				<h2 id="kn8n-modal-title">Ustawienia plików cookies</h2>
+				<button type="button" class="kn8n-close" data-kn8n="close" aria-label="Zamknij">
+					&times;
+				</button>
+			</div>
+
+			<div class="kn8n-dialog-body">
+				<div class="kn8n-group">
+					<label class="kn8n-group-head">
+						<input type="checkbox" checked disabled />
+						<span>Niezbędne</span>
+					</label>
+					<p>
+						Zapamiętanie wybranego motywu, Twojej decyzji o cookies oraz strona zastępcza
+						na czas braku sieci. Bez tego strona nie działa poprawnie, więc zgoda nie
+						jest wymagana.
+					</p>
+				</div>
+
+				<div class="kn8n-group">
+					<label class="kn8n-group-head">
+						<input type="checkbox" id="kn8n-analytics" />
+						<span>Analityczne</span>
+					</label>
+					<p>
+						Google Analytics 4: liczba odwiedzin, popularność podstron, źródła wejścia,
+						typ urządzenia.
+					</p>
+				</div>
+
+				<div class="kn8n-group">
+					<label class="kn8n-group-head">
+						<input type="checkbox" id="kn8n-marketing" />
+						<span>Marketingowe</span>
+					</label>
+					<p>
+						Pomiar skuteczności reklam i remarketing w usługach Google. Uruchomi się
+						dopiero, gdy ruszą kampanie - dziś ta zgoda nic nie włącza.
+					</p>
+				</div>
+			</div>
+
+			<div class="kn8n-dialog-foot">
+				<button type="button" class="kn8n-btn kn8n-btn-primary" data-kn8n="save">
+					Zapisz ustawienia
+				</button>
+				<button type="button" class="kn8n-btn kn8n-btn-ghost" data-kn8n="close">
+					Anuluj
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	#kn8n-consent {
+		--kn8n-z: 120;
+	}
+
+	.kn8n-bar {
+		position: fixed;
+		inset-inline: 0;
+		bottom: 0;
+		z-index: var(--kn8n-z);
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem 1.25rem;
+		background: var(--k-surface, #fff);
+		border-top: 1px solid var(--k-border, #e5e7eb);
+		box-shadow: 0 -2px 12px rgb(0 0 0 / 8%);
+		animation: kn8n-slide 0.25s ease-out;
+	}
+
+	.kn8n-bar-text {
+		flex: 1 1 22rem;
+		font-size: var(--sl-text-sm);
+	}
+
+	.kn8n-bar-text p {
+		margin: 0;
+	}
+
+	.kn8n-bar-title {
+		font-weight: 600;
+		margin-bottom: 0.25rem !important;
+	}
+
+	.kn8n-bar-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.kn8n-btn {
+		font: inherit;
+		font-size: var(--sl-text-sm);
+		cursor: pointer;
+		padding: 0.55rem 1.1rem;
+		border-radius: var(--k-radius-sm, 6px);
+		border: 1px solid transparent;
+		white-space: nowrap;
+	}
+
+	/*
+	  Akceptacja i odrzucenie dziela JEDNA klase i maja identyczny wyglad.
+	  To nie jest przeoczenie w stylach - to warunek waznosci zgody.
+	*/
+	.kn8n-btn-primary {
+		background: var(--k-accent, #378ccf);
+		color: #fff;
+	}
+
+	.kn8n-btn-primary:hover {
+		background: var(--k-accent-dark, #2a6fa8);
+	}
+
+	.kn8n-btn-ghost {
+		background: transparent;
+		color: inherit;
+		border-color: var(--k-border-strong, #d1d5db);
+	}
+
+	.kn8n-btn:focus-visible,
+	.kn8n-close:focus-visible {
+		outline: 3px solid var(--k-accent, #378ccf);
+		outline-offset: 2px;
+	}
+
+	.kn8n-modal {
+		position: fixed;
+		inset: 0;
+		z-index: calc(var(--kn8n-z) + 1);
+		display: grid;
+		place-items: center;
+		padding: 1rem;
+	}
+
+	.kn8n-overlay {
+		position: absolute;
+		inset: 0;
+		background: rgb(0 0 0 / 45%);
+	}
+
+	.kn8n-dialog {
+		position: relative;
+		width: min(34rem, 100%);
+		max-height: 85vh;
+		overflow-y: auto;
+		background: var(--k-surface, #fff);
+		border-radius: var(--k-radius, 10px);
+		box-shadow: 0 10px 40px rgb(0 0 0 / 25%);
+		padding: 1.25rem;
+	}
+
+	.kn8n-dialog-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.kn8n-dialog-head h2 {
+		font-size: var(--sl-text-lg);
+		margin: 0;
+	}
+
+	.kn8n-close {
+		font: inherit;
+		font-size: 1.5rem;
+		line-height: 1;
+		cursor: pointer;
+		background: transparent;
+		border: 0;
+		color: inherit;
+		padding: 0.25rem 0.5rem;
+		border-radius: var(--k-radius-sm, 6px);
+	}
+
+	.kn8n-group {
+		padding: 0.9rem 0;
+		border-top: 1px solid var(--k-border, #e5e7eb);
+		font-size: var(--sl-text-sm);
+	}
+
+	.kn8n-group p {
+		margin: 0.35rem 0 0 1.65rem;
+		color: var(--k-text-muted, #6b7280);
+	}
+
+	.kn8n-group-head {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.kn8n-group-head input[disabled] {
+		cursor: not-allowed;
+	}
+
+	.kn8n-dialog-foot {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--k-border, #e5e7eb);
+	}
+
+	@keyframes kn8n-slide {
+		from {
+			transform: translateY(100%);
+		}
+		to {
+			transform: translateY(0);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.kn8n-bar {
+			animation: none;
+		}
+	}
+</style>
+
+<script>
+	import { applyConsent, readConsent, writeConsent } from '../lib/consent';
+
+	const root = document.getElementById('kn8n-consent');
+	const bar = document.getElementById('kn8n-bar');
+	const modal = document.getElementById('kn8n-modal');
+	const analyticsBox = document.getElementById('kn8n-analytics') as HTMLInputElement | null;
+	const marketingBox = document.getElementById('kn8n-marketing') as HTMLInputElement | null;
+
+	if (root && bar && modal && analyticsBox && marketingBox) {
+		/** Element, ktory otworzyl modal - focus do niego wraca po zamknieciu. */
+		let opener: HTMLElement | null = null;
+
+		const focusableIn = (el: HTMLElement) =>
+			Array.from(
+				el.querySelectorAll<HTMLElement>(
+					'button, [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+				),
+			).filter((node) => node.offsetParent !== null);
+
+		const showBar = () => {
+			root.hidden = false;
+			bar.hidden = false;
+		};
+
+		const openModal = (trigger: HTMLElement | null) => {
+			opener = trigger;
+			const saved = readConsent();
+			analyticsBox.checked = saved?.analytics ?? false;
+			marketingBox.checked = saved?.marketing ?? false;
+			root.hidden = false;
+			modal.hidden = false;
+			focusableIn(modal)[0]?.focus();
+		};
+
+		/**
+		 * Zamkniecie modalu bez decyzji. Jesli decyzji nadal nie ma, baner musi
+		 * wrocic - inaczej "Anuluj" bylby cichym sposobem na pozbycie sie pytania.
+		 */
+		const dismissModal = () => {
+			modal.hidden = true;
+			opener?.focus();
+			opener = null;
+			if (readConsent()) {
+				root.hidden = true;
+			} else {
+				showBar();
+			}
+		};
+
+		const decide = (analytics: boolean, marketing: boolean) => {
+			const choice = { analytics, marketing };
+			writeConsent(choice);
+			applyConsent(choice);
+			modal.hidden = true;
+			bar.hidden = true;
+			root.hidden = true;
+		};
+
+		root.addEventListener('click', (event) => {
+			const target = (event.target as HTMLElement).closest<HTMLElement>('[data-kn8n]');
+			if (!target) return;
+			switch (target.dataset.kn8n) {
+				case 'accept-all':
+					decide(true, true);
+					break;
+				case 'reject-all':
+					decide(false, false);
+					break;
+				case 'customize':
+					bar.hidden = true;
+					openModal(target);
+					break;
+				case 'save':
+					decide(analyticsBox.checked, marketingBox.checked);
+					break;
+				case 'close':
+					dismissModal();
+					break;
+			}
+		});
+
+		// Pulapka focusa i Escape - modal musi dac sie obsluzyc sama klawiatura.
+		modal.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				dismissModal();
+				return;
+			}
+			if (event.key !== 'Tab') return;
+			const items = focusableIn(modal);
+			if (items.length === 0) return;
+			const first = items[0];
+			const last = items[items.length - 1];
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
+			}
+		});
+
+		// Link "Ustawienia cookies" w stopce wola to zdarzenie.
+		window.addEventListener('kn8n:open-consent', () => {
+			bar.hidden = true;
+			openModal(document.activeElement as HTMLElement | null);
+		});
+
+		// Bootstrap w <head> ustawil juz `consent default` na podstawie tego
+		// samego zapisu, wiec dla goscia z decyzja nie ma tu nic do zrobienia.
+		if (!readConsent()) showBar();
+	}
+</script>
