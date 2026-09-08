@@ -7,6 +7,24 @@ import Default from '@astrojs/starlight/components/Footer.astro';
 	made with ❤️ by <a href="https://aitomate.pl">aitomate.pl</a> - Łukasz Podgórski
 </p>
 
+{/*
+  Wycofanie zgody musi byc tak samo latwe jak jej udzielenie - art. 7 ust. 3
+  RODO. Ten przycisk otwiera dokladnie ten sam modal, ktory czlowiek widzial
+  przy pierwszej wizycie.
+
+  <button>, a nie <a href="#">: akcja dzieje sie na tej samej stronie, wiec
+  odnosnik zapowiadalby czytnikowi ekranu nawigacje, do ktorej nie dochodzi.
+*/}
+<p class="cookie-settings">
+	<button type="button" id="kn8n-open-consent">Ustawienia cookies</button>
+</p>
+
+<script>
+	document.getElementById('kn8n-open-consent')?.addEventListener('click', () => {
+		window.dispatchEvent(new CustomEvent('kn8n:open-consent'));
+	});
+</script>
+
 <style>
 	.made-with-love {
 		margin: 0.5rem 0 0;
@@ -19,5 +37,27 @@ import Default from '@astrojs/starlight/components/Footer.astro';
 	}
 	.made-with-love a:hover {
 		color: var(--sl-color-white);
+	}
+	.cookie-settings {
+		margin: 0.35rem 0 0;
+		text-align: center;
+	}
+	.cookie-settings button {
+		font: inherit;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-2);
+		background: none;
+		border: 0;
+		padding: 0.15rem 0.35rem;
+		cursor: pointer;
+		text-decoration: underline;
+		border-radius: var(--k-radius-sm, 6px);
+	}
+	.cookie-settings button:hover {
+		color: var(--sl-color-white);
+	}
+	.cookie-settings button:focus-visible {
+		outline: 3px solid var(--k-accent, #378ccf);
+		outline-offset: 2px;
 	}
 </style>
