@@ -40,6 +40,9 @@ export default defineConfig({
 				Footer: './src/components/Footer.astro',
 				Head: './src/components/Head.astro',
 				MarkdownContent: './src/components/MarkdownContent.astro',
+				// Override istnieje wylacznie po to, by osadzic baner zgody na
+				// kazdej stronie, lacznie z 404 - tam Footer sie nie renderuje.
+				PageFrame: './src/components/PageFrame.astro',
 				// Jasny motyw jako domyslny (zamiast podazania za preferencja
 				// systemowa) - patrz komentarze w obu plikach.
 				ThemeProvider: './src/components/ThemeProvider.astro',

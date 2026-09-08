@@ -1,0 +1,20 @@
+---
+/**
+ * Override PageFrame - jedyny powod istnienia tego pliku to osadzenie banera
+ * zgody na KAZDEJ stronie, lacznie z 404. Slot Footer by nie wystarczyl, bo na
+ * stronie bledu sie nie renderuje.
+ *
+ * Reszta zachowania jest w calosci domyslna. PageFrame Starlighta ma trzy
+ * sloty - `header`, `sidebar` i domyslny - i wszystkie trzy przekazujemy dalej
+ * bez zmian. Pominiecie ktoregokolwiek urwaloby nagłowek albo menu boczne.
+ */
+import Default from '@astrojs/starlight/components/PageFrame.astro';
+import ConsentBanner from './ConsentBanner.astro';
+---
+
+<Default>
+	<slot />
+	<slot name="header" slot="header" />
+	<slot name="sidebar" slot="sidebar" />
+</Default>
+<ConsentBanner />
