@@ -1,15 +1,24 @@
-# Naglowki bezpieczenstwa - odtworzone 1:1 ze starego public_html/.htaccess.
+# Naglowki bezpieczenstwa - odtworzone 1:1 ze starego public_html/.htaccess,
+# rozszerzone 2026-09-08 o hosty Google Tag Managera, Analytics i Ads.
 # Cloudflare (Workers static assets) czyta ten plik tak samo jak _redirects.
-# CSP celowo dopuszcza Sendy (form-action lukaszpodgorski.pl) i beacon Cloudflare
-# Web Analytics - to jedyne zewnetrzne zaleznosci strony. Beacon wstrzykuje sam
-# Cloudflare po wlaczeniu w panelu, dlatego wpis zostaje mimo ze dzis nie dziala.
+#
+# CSP dopuszcza trzy grupy zewnetrzne: Sendy (form-action lukaszpodgorski.pl),
+# beacon Cloudflare Web Analytics i warstwe tagow Google.
+#
+# Google jest SWIADOMYM rozluznieniem polityki, nie przeoczeniem. GTM z definicji
+# pozwala doladowac dowolny skrypt z panelu, poza repozytorium i poza review -
+# taka jest cena decyzji o oparciu pomiaru na Tag Managerze. Zaciskanie tej listy
+# ma sens dopiero wtedy, gdy zawartosc kontenera przestanie sie zmieniac.
+#
+# Beacon Cloudflare wstrzykuje sam Cloudflare po wlaczeniu w panelu, dlatego
+# jego wpisy zostaja niezaleznie od tego, co siedzi w repo.
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; form-action 'self' https://lukaszpodgorski.pl; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://stats.g.doubleclick.net https://www.google.com; frame-src https://td.doubleclick.net https://bid.g.doubleclick.net; form-action 'self' https://lukaszpodgorski.pl; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /sw.js
   Cache-Control: no-cache, must-revalidate
