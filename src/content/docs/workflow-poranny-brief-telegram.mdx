@@ -40,7 +40,11 @@ faq:
   - q: "Czy Open-Meteo jest naprawdę darmowe i nie wymaga klucza API?"
     a: "Tak, do użytku niekomercyjnego (m.in. osobistych automatyzacji) Open-Meteo nie wymaga rejestracji ani klucza API - wystarczy zwykłe zapytanie GET ze współrzędnymi. Klucz i osobny adres API są potrzebne dopiero przy zastosowaniach komercyjnych."
   - q: "Jak zmienić godzinę, o której przychodzi brief?"
-    a: "W node Schedule Trigger zmień pola Trigger at Hour i Trigger at Minute na dowolną porę. Godzina liczy się względem strefy czasowej instancji n8n (zmienna GENERIC_TIMEZONE) albo strefy ustawionej w Settings workflow - nie względem Twojej przeglądarki."
+    a: "W node Schedule Trigger zmień pola Trigger at Hour i Trigger at Minute na dowolną porę. Godzina liczy się względem strefy czasowej ustawionej w Settings workflow, a gdy jej nie ma - względem strefy instancji n8n (GENERIC_TIMEZONE), nie względem Twojej przeglądarki."
+  - q: "Dlaczego brief przychodzi o innej godzinie, niż ustawiłem w Schedule Trigger?"
+    a: "Bo workflow nie ma własnej strefy czasowej. Schedule Trigger liczy godzinę według strefy ustawionej w Settings workflow, a przy jej braku według strefy instancji - domyślnie America/New_York. Otwórz menu trzech kropek, wybierz Settings i w polu Timezone ustaw Europe/Warsaw, zanim aktywujesz workflow."
+  - q: "Współrzędne mam wpisane, a pogoda przychodzi z innego miejsca - dlaczego?"
+    a: "Najpewniej szerokość i długość są zapisane z przecinkiem dziesiętnym zamiast kropki. Open-Meteo traktuje przecinek jako separator listy lokalizacji, więc z latitude=52,23 robi dwa osobne punkty i zwraca prognozy dla przypadkowych miejsc, bez żadnego błędu. Poprawny zapis to latitude=52.2297."
   - q: "Czy mogę wysyłać brief na czat grupowy zamiast prywatnego?"
     a: "Tak - dodaj bota do grupy i użyj ujemnego Chat ID grupy zamiast swojego prywatnego numeru. Reszta workflow zostaje bez zmian, bo node Telegram wysyła wiadomość na dowolny poprawny Chat ID, niezależnie czy to osoba, grupa czy kanał."
   - q: "Co się stanie, jeśli zapomnę aktywować workflow?"
@@ -95,7 +99,9 @@ bez rejestracji, a jedyne poświadczenia w całym workflow to token bota Telegra
 ## Pobierz gotowy workflow
 
 Cały workflow w formacie JSON, gotowy do zaimportowania:
-[poranny-brief-telegram.json](/workflows/poranny-brief-telegram.json).
+<a href="/workflows/poranny-brief-telegram.json" target="_blank" rel="noopener">poranny-brief-telegram.json</a>.
+Link otwiera się w nowej karcie, więc nie tracisz tej strony z oczu. Jeśli plik wyświetli się
+w przeglądarce jako tekst zamiast się pobrać, zapisz go skrótem Ctrl+S (Cmd+S na macOS).
 
 <Steps>
 
@@ -105,6 +111,9 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
    znajdziesz w
    [dokumentacji eksportu i importu](https://docs.n8n.io/build/manage-workflows/export-and-import).
 3. Uzupełnij trzy placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
+4. Ustaw strefę czasową workflow: **...** → **Settings** → **Timezone** → `Europe/Warsaw`.
+   Bez tego Schedule Trigger odlicza godziny według strefy instancji, a nie Twojej - szczegóły
+   w kroku 1 niżej.
 
 </Steps>
 
@@ -114,8 +123,18 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 | `TWOJA_DLUGOSC` | node Pobierz pogodę (HTTP Request, pole URL) | długość geograficzna Twojej miejscowości |
 | `TWOJ_CHAT_ID` | node Wyślij na Telegram (Telegram, pole Chat ID) | ID czatu, na który ma trafić brief |
 
+:::caution[Współrzędne z kropką, nie z przecinkiem]
+Szerokość i długość wpisz z **kropką** dziesiętną - `52.2297`, nie `52,2297`. To najczęstszy
+błąd przy tym workflow, bo po polsku ułamki piszemy z przecinkiem, a API oczekuje kropki.
+Open-Meteo nie zgłosi wtedy błędu: przecinek traktuje jak separator listy lokalizacji, więc
+z `latitude=52,23&longitude=21,06` zrobi dwa punkty (52.0/21.0 oraz 23.0/6.0) i odeśle dwie
+prognozy dla przypadkowych miejsc. Zamiast czerwonego node'a dostajesz po prostu pogodę nie
+stąd - dlatego ten błąd tak trudno wychwycić.
+:::
+
 Na koniec podepnij pod node'em Telegram swoje credentials (bota założonego przez BotFather,
-patrz krok 4 niżej) - bez tego node zgłosi błąd uwierzytelniania przy pierwszym uruchomieniu.
+patrz krok 4 w sekcji "Budowa krok po kroku") - bez tego node zgłosi błąd uwierzytelniania
+przy pierwszym uruchomieniu.
 
 :::note[Wersja n8n]
 Opis i typy node'ów bazują na n8n w gałęzi 2.x (stan na lipiec 2026, zgodnie z
@@ -134,6 +153,22 @@ Dodaj node **Schedule Trigger** (tak samo jak w [Moduł 2: Interfejs i 1. workfl
 Ustaw `Trigger Interval` na _Days_, `Trigger at Hour` na 7, a `Trigger at Minute` na 0. Ten
 node wystartuje cały przepływ raz dziennie, o Twojej porannej porze.
 
+:::danger[Najpierw strefa czasowa, dopiero potem godzina]
+Samo wpisanie 7 w `Trigger at Hour` nie znaczy jeszcze, że brief przyjdzie o 7:00 u Ciebie.
+Schedule Trigger liczy godzinę według strefy czasowej **workflow**, a gdy jej nie ustawisz -
+według strefy instancji. Kiedy żadna z nich nie jest ustawiona,
+[n8n używa domyślnie strefy nowojorskiej](https://docs.n8n.io/build/manage-workflows/configure-workflow-settings),
+czyli Twoja "siódma rano" wypada po południu. To jeden z najczęstszych powodów, dla których
+początkującym workflow "nie działa" albo wysyła wiadomości o dziwnych porach.
+
+Ustaw strefę raz, na starcie: otwórz workflow, kliknij **...** w prawym górnym rogu, wybierz
+**Settings**, a w polu **Timezone** wskaż `Europe/Warsaw`. Strefa zapisuje się razem
+z workflow, więc po przeniesieniu go na inną instancję sprawdź ją ponownie. Za domyślną strefę
+całej instancji self-hosted odpowiada zmienna `GENERIC_TIMEZONE`
+([domyślnie `America/New_York`](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/set-the-timezone)),
+a na n8n Cloud - [ustawienie strefy w panelu](https://docs.n8n.io/deploy/use-n8n-cloud/configure-cloud/set-your-timezone).
+:::
+
 ### 2. HTTP Request - prognoza z Open-Meteo
 
 Dodaj node **HTTP Request**, metoda `GET`, a w polu `URL` wklej:
@@ -143,7 +178,8 @@ https://api.open-meteo.com/v1/forecast?latitude=TWOJA_SZEROKOSC&longitude=TWOJA_
 ```
 
 Podmień `TWOJA_SZEROKOSC` i `TWOJA_DLUGOSC` na współrzędne swojej miejscowości - znajdziesz
-je np. w Google Maps (kliknij prawym przyciskiem na swoją lokalizację). Parametr `daily`
+je np. w Google Maps (kliknij prawym przyciskiem na swoją lokalizację). Obie liczby wpisz
+z kropką dziesiętną (`52.2297`), nigdy z przecinkiem - patrz ostrzeżenie wyżej. Parametr `daily`
 mówi Open-Meteo, jakich wartości oczekujesz (maksymalna i minimalna temperatura dnia oraz
 suma opadów), a `timezone=auto` każe dopasować dobę do strefy czasowej wynikającej ze
 współrzędnych, a nie do UTC. Zero kluczy, zero rejestracji - tak działa
@@ -241,11 +277,12 @@ klikniesz **Execute workflow** ręcznie.
 
 - **Objaw:** wiadomość przychodzi np. o 13:00 zamiast o 7:00, mimo poprawnych ustawień w
   Schedule Trigger.
-- **Przyczyna:** strefa czasowa instancji n8n (zmienna `GENERIC_TIMEZONE`) różni się od Twojej
-  lokalnej strefy.
-- **Naprawa:** ustaw `GENERIC_TIMEZONE` na poziomie instancji albo zmień strefę w Settings
-  workflow (menu trzech kropek na kanwie) - patrz
-  [dokumentacja strefy czasowej](https://docs.n8n.io/hosting/configuration/configuration-examples/time-zone/).
+- **Przyczyna:** workflow nie ma własnej strefy czasowej, więc Schedule Trigger liczy godzinę
+  według strefy instancji (`GENERIC_TIMEZONE`), a ta domyślnie wskazuje Nowy Jork.
+- **Naprawa:** otwórz **...** → **Settings** → **Timezone** i wybierz `Europe/Warsaw`
+  ([dokumentacja ustawień workflow](https://docs.n8n.io/build/manage-workflows/configure-workflow-settings)).
+  Dla wszystkich workflow naraz ustaw `GENERIC_TIMEZONE` na poziomie instancji
+  ([dokumentacja strefy czasowej](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/set-the-timezone)).
 
 ### HTTP Request zwraca błąd albo puste dane
 
@@ -254,6 +291,15 @@ klikniesz **Execute workflow** ręcznie.
 - **Przyczyna:** w URL zostały niepodmienione placeholdery `TWOJA_SZEROKOSC` / `TWOJA_DLUGOSC`.
 - **Naprawa:** wpisz rzeczywiste współrzędne swojej miejscowości w polu `URL` node'a HTTP
   Request (nazwanego **Pobierz pogodę** - patrz krok 2 wyżej).
+
+### Prognoza przychodzi, ale z zupełnie innego miejsca
+
+- **Objaw:** node kończy się na zielono, tylko temperatura nie ma nic wspólnego z Twoją okolicą,
+  a czasem przychodzą dwie wiadomości zamiast jednej.
+- **Przyczyna:** współrzędne wpisane z przecinkiem zamiast kropki - Open-Meteo czyta przecinek
+  jako separator listy lokalizacji i zwraca prognozy dla kilku przypadkowych punktów.
+- **Naprawa:** w polu `URL` zamień przecinki dziesiętne na kropki: `latitude=52.2297`, nie
+  `latitude=52,2297`.
 
 ## Jak to rozbudować
 
@@ -274,7 +320,8 @@ w kursie:
   - Open-Meteo dostarcza prognozę bez klucza API i bez rejestracji przy użytku niekomercyjnym.
   - Bot Telegram nie może napisać pierwszy - zanim uruchomisz workflow, wyślij mu `/start`.
   - Chat ID znajdziesz przez metodę `getUpdates` Telegram Bot API, po wcześniejszej wiadomości do bota.
-  - Godzina wysyłki zależy od strefy czasowej instancji (`GENERIC_TIMEZONE`) albo strefy ustawionej w Settings workflow.
+  - Strefę czasową ustaw w Settings workflow (**...** → **Settings** → **Timezone**) - bez tego n8n liczy godzinę według strefy instancji, domyślnie nowojorskiej.
+  - Współrzędne zapisuj z kropką dziesiętną - przecinek Open-Meteo czyta jako listę lokalizacji i po cichu zwraca pogodę nie stąd.
   - Workflow trzeba aktywować (Active) - inaczej Schedule Trigger nigdy nie uruchomi się sam.
 </Takeaways>
 
