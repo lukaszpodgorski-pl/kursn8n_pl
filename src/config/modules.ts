@@ -1,5 +1,5 @@
 /**
- * Dziewięć modułów kursu w kolejności nauki.
+ * Dziesięć modułów kursu w kolejności nauki.
  * Źródło prawdy dla menu bocznego (astro.config.mjs), kanału RSS
  * i danych strukturalnych Course. Odpowiednik $MENU_MODULES
  * ze starego public_html/config.php.
@@ -65,6 +65,12 @@ export const MODULES: ReadonlyArray<CourseModule> = [
 		number: '8',
 		label: 'Wzorce i wdrożenia',
 		description: 'Biblioteka workflow, wzorce projektowe, case studies i antywzorce.',
+	},
+	{
+		slug: 'modul-9-n8n-assistant',
+		number: '9',
+		label: 'n8n Assistant',
+		description: 'Asystent, który buduje workflow za Ciebie: sandbox, włączenie, uprawnienia i pułapki.',
 	},
 ];
 

@@ -26,6 +26,7 @@ teaches:
   - Wymagania systemowe oraz wybór między SQLite a PostgreSQL
   - Jak wystawić n8n po HTTPS - reverse proxy, Let's Encrypt i Cloudflare Tunnel
   - Rolę klucza N8N_ENCRYPTION_KEY i bezpieczne aktualizowanie instancji
+  - Jak dołożyć do Compose sandbox wymagany przez n8n Assistant, bez przepisywania działającego pliku
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -53,6 +54,8 @@ faq:
     a: "Do nauki lokalnej nie. Ale gdy chcesz używać webhooków albo logowania OAuth do zewnętrznych usług, potrzebujesz publicznego adresu po HTTPS. Na VPS-ie zrobisz to przez reverse proxy z Let's Encrypt, a w domu najwygodniej przez Cloudflare Tunnel."
   - q: "Co się stanie, jeśli zgubię N8N_ENCRYPTION_KEY?"
     a: "Nie odszyfrujesz istniejących poświadczeń zapisanych w bazie - trzeba będzie wprowadzić je ponownie. Dlatego klucz traktuj jak hasło: przechowuj go bezpiecznie i backupuj razem z bazą danych. Na produkcji najlepiej ustawić własny klucz zmienną środowiskową, zanim uruchomisz instancję po raz pierwszy."
+  - q: "Czy muszę dokładać sandbox, żeby korzystać z n8n Assistant?"
+    a: "Tak, jeśli hostujesz n8n samodzielnie. Assistant pisze kod i musi go gdzieś uruchomić, a n8n nie pozwala robić tego we własnym kontenerze - bez sandboxa funkcja się nie włączy. Instalator jednolinijkowy `curl -fsSL https://get.n8n.io | sh` stawia sandbox automatycznie. Przy własnym pliku `docker-compose.yml` dokładasz trzy usługi przez `docker-compose.override.yml`, bez ruszania pliku bazowego. Doliczyć trzeba około 4 GB RAM i 2 rdzenie, bo sandbox uruchamia Dockera wewnątrz Dockera."
   - q: "Jak bezpiecznie aktualizować n8n?"
     a: "Najpierw backup (wolumen/baza + klucz), potem przeczytaj release notes pod kątem zmian łamiących zgodność, a następnie w Compose: `docker compose pull` i `docker compose up -d`. Na ważnych instancjach nie przeskakuj wielu wersji naraz i testuj po aktualizacji."
 ---
@@ -270,6 +273,192 @@ Oficjalne przewodniki "server setups" w docs n8n pokazują gotowe konfiguracje C
 (np. z Traefikiem jako reverse proxy, automatycznym SSL od Let's Encrypt oraz wolumenami
 `n8n_data` i `traefik_data`). To dobry szablon na pełne wdrożenie z własną domeną -
 wrócę do tego w sekcji o HTTPS.
+
+### Sandbox dla AI Assistant - najlepszy moment jest teraz
+
+W n8n siedzi **Assistant**: wbudowany asystent, który buduje i poprawia workflow za Ciebie.
+Żeby cokolwiek zrobił, musi mieć gdzie uruchomić kod, który pisze - a n8n nie pozwala robić
+tego we własnym kontenerze. Tym "gdzieś" jest **sandbox**, czyli osobne, odcięte środowisko
+wykonawcze. Bez niego Assistant się nie włączy. To nie jest opcja do rozważenia, tylko
+warunek wstępny.
+
+Czym Assistant jest i jak go używać, opisuję w
+[Module 9](/modul-9-n8n-assistant). Tutaj liczy
+się jedno zdanie: **skoro i tak piszesz plik Compose, dołóż sandbox od razu.** Doklejanie go
+później to grzebanie w działającym stacku, a to kosztuje więcej nerwów niż napisanie o trzy
+usługi więcej za pierwszym razem.
+
+| Jak stawiasz n8n | Co z sandboxem |
+| --- | --- |
+| [Instalator jednolinijkowy](#najszybszy-start-instalator-jednolinijkowy) albo Compose wprost z docs n8n | masz go automatycznie, nic nie robisz |
+| Własny `docker-compose.yml` (ten scenariusz) | dokładasz trzy usługi nakładką, niżej |
+| Produkcja, nie chcesz trzymać sandboxa u siebie | provider `daytona`, czyli sandbox w chmurze |
+
+#### Nakładka zamiast przepisywania Compose
+
+Docker Compose sam wczytuje plik `docker-compose.override.yml`, jeśli leży obok
+`docker-compose.yml`. Sekcje `environment` i `depends_on` z obu plików się **scalają**, więc
+nie ruszasz pliku, który działa, a wyłączenie sandboxa sprowadza się do zmiany nazwy jednego
+pliku, nie do cofania edycji.
+
+Zapamiętaj tę technikę niezależnie od sandboxa. Przydaje się za każdym razem, gdy dokładasz
+coś do stacku, którego nie chcesz przepisywać.
+
+Najpierw trzy sekrety w pliku `.env` obok Compose. Każdy zabezpiecza inną parę rozmówców:
+n8n z API sandboxa oraz runner z tym samym API.
+
+```bash
+cd /sciezka/do/n8n
+gen() { openssl rand -base64 32 | tr -d '=+/' | cut -c1-40; }
+printf 'SANDBOX_API_KEY=%s\nSANDBOX_RUNNER_REGISTRATION_TOKEN=%s\nSANDBOX_RUNNER_API_KEY=%s\n' \
+  "$(gen)" "$(gen)" "$(gen)" > .env
+chmod 600 .env
+```
+
+Potem sama nakładka. To jeden plik do skopiowania i nie musisz go czytać linijka po linijce,
+ale trzy rzeczy warto w nim zobaczyć, bo właśnie na nich wykłada się większość osób:
+
+1. **Nigdzie nie ma `ports:`.** Usługi sandboxa rozmawiają z n8n po nazwach wewnątrz sieci
+   Compose (`http://sandbox-api:8080`). Publikowanie portu na hoście niczego nie naprawia,
+   a otwiera drogę do kontenera z uprawnieniami roota.
+2. **Nazwy usług są wpisane w certyfikaty.** Usługa `sandbox-certs` wystawia je na
+   `sandbox-api` i `sandbox-runner-1`, więc przemianowanie usługi rozwala szyfrowaną
+   komunikację między nimi. To najczęstszy powód "na filmiku działało, u mnie nie".
+3. **Wersja obrazu n8n jest przypięta.** Jeśli Twój Compose używa `:latest`, to `docker
+   compose up -d` po dołożeniu nakładki byłoby przy okazji aktualizacją n8n. Wpisz tag,
+   który faktycznie u Ciebie chodzi, i zrób te dwie rzeczy osobno.
+
+<details>
+<summary>Pełna nakładka docker-compose.override.yml do skopiowania</summary>
+
+```yaml
+volumes:
+  sandbox-tls:
+
+services:
+  # Wystawia certyfikaty dla pozostałych dwóch usług. Uruchamia się raz i kończy.
+  sandbox-certs:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-api:1.2.0
+    user: '0:0'
+    entrypoint: ['sh', '-c']
+    command:
+      - >
+        bootstrap-mtls.sh --out-dir /tls --api-san sandbox-api
+        --control-san-prefix sandbox-runner --world-readable &&
+        chown -R sandbox-api:sandbox-api /tls/api && chmod -R a+rX /tls
+    environment:
+      NUM_RUNNERS: '1'
+    volumes:
+      - sandbox-tls:/tls
+
+  # Punkt, z którym rozmawia n8n.
+  sandbox-api:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-api:1.2.0
+    restart: unless-stopped
+    depends_on:
+      sandbox-certs:
+        condition: service_completed_successfully
+    environment:
+      SANDBOX_API_KEYS: ${SANDBOX_API_KEY:?brak SANDBOX_API_KEY w .env}
+      SANDBOX_API_RUNNER_REGISTRATION_TOKEN: ${SANDBOX_RUNNER_REGISTRATION_TOKEN:?brak tokenu}
+      SANDBOX_API_RUNNER_API_KEY: ${SANDBOX_RUNNER_API_KEY:?brak klucza runnera}
+      SANDBOX_API_GRPC_TLS_CERT_FILE: /tls/api/grpc-server.crt
+      SANDBOX_API_GRPC_TLS_KEY_FILE: /tls/api/grpc-server.key
+      SANDBOX_API_GRPC_TLS_CLIENT_CA_FILE: /tls/api/ca.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_CA_FILE: /tls/api/ca.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_CERT_FILE: /tls/api/control-grpc-api-client.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_KEY_FILE: /tls/api/control-grpc-api-client.key
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_SERVER_NAME: sandbox-runner-1
+    volumes:
+      - sandbox-tls:/tls:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/healthz']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # Tu naprawdę uruchamia się kod Assistanta. Docker wewnątrz Dockera.
+  sandbox-runner-1:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-runner-dind:1.2.0
+    privileged: true
+    restart: unless-stopped
+    depends_on:
+      sandbox-api:
+        condition: service_healthy
+    environment:
+      SANDBOX_RUNNER_REGISTRATION_TOKEN: ${SANDBOX_RUNNER_REGISTRATION_TOKEN:?brak tokenu}
+      SANDBOX_RUNNER_API_KEYS: ${SANDBOX_RUNNER_API_KEY:?brak klucza runnera}
+      SANDBOX_RUNNER_API_GRPC_ADDR: sandbox-api:9090
+      SANDBOX_RUNNER_HTTP_BASE_URL: http://sandbox-runner-1:8080
+      SANDBOX_RUNNER_CONTROL_GRPC_LISTEN_ADDR: ':9091'
+      SANDBOX_RUNNER_CONTROL_GRPC_ADVERTISE_ADDR: sandbox-runner-1:9091
+      SANDBOX_RUNNER_ID: runner-1
+      SANDBOX_RUNNER_DOCKER_SANDBOX_IMAGE: ghcr.io/n8n-io/n8n-sandbox-service-sandbox:latest
+      SANDBOX_RUNNER_REGISTRATION_GRPC_CA_FILE: /tls/runner/ca.crt
+      SANDBOX_RUNNER_REGISTRATION_GRPC_CERT_FILE: /tls/runner/grpc-client.crt
+      SANDBOX_RUNNER_REGISTRATION_GRPC_KEY_FILE: /tls/runner/grpc-client.key
+      SANDBOX_RUNNER_REGISTRATION_GRPC_SERVER_NAME: sandbox-api
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_CERT_FILE: /tls/runner/control-grpc-server.crt
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_KEY_FILE: /tls/runner/control-grpc-server.key
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_CLIENT_CA_FILE: /tls/runner/ca.crt
+    volumes:
+      - sandbox-tls:/tls:ro
+
+  # Twoja istniejąca usługa n8n - te wpisy dokleją się do tego, co już masz.
+  n8n:
+    image: n8nio/n8n:2.35.7 # wpisz wersję, która u Ciebie chodzi
+    environment:
+      N8N_ENABLED_MODULES: instance-ai
+      N8N_INSTANCE_AI_SANDBOX_ENABLED: 'true'
+      N8N_INSTANCE_AI_SANDBOX_PROVIDER: n8n-sandbox
+      N8N_INSTANCE_AI_SANDBOX_IMAGE: ghcr.io/n8n-io/n8n-sandbox-service-sandbox:latest
+      N8N_SANDBOX_SERVICE_URL: http://sandbox-api:8080
+      N8N_INSTANCE_AI_SANDBOX_API_URL: http://sandbox-api:8080
+      N8N_SANDBOX_SERVICE_API_KEY: ${SANDBOX_API_KEY:?brak SANDBOX_API_KEY w .env}
+    depends_on:
+      sandbox-api:
+        condition: service_healthy
+```
+
+Na działającej instancji nie włączaj nakładki od razu. Wgraj ją najpierw pod nazwą
+`docker-compose.override.yml.new`, czyli nieaktywną, i zwaliduj bez dotykania stacku.
+Strażniki `${ZMIENNA:?komunikat}` zgłoszą brakujący sekret po nazwie, zamiast pozwolić
+usłudze wstać z pustym kluczem:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml.new config -q
+```
+
+Dopiero gdy komenda przejdzie bez słowa, zmień nazwę pliku na docelową.
+
+</details>
+
+Start i jedno sprawdzenie, które mówi najwięcej:
+
+```bash
+docker compose up -d
+docker compose exec n8n wget -qO- http://sandbox-api:8080/healthz
+# -> {"status":"ok"}
+```
+
+Kolejność wymuszają zależności: `sandbox-certs` kończy pracę, dopiero potem wstaje
+`sandbox-api`, a runner i n8n czekają, aż zgłosi się jako zdrowy. Odpowiedź `{"status":"ok"}`
+uzyskana **z wnętrza kontenera n8n** oznacza, że n8n widzi sandbox i infrastruktura jest
+gotowa. Reszta, czyli włączenie Assistanta i wybór modelu, dzieje się już w interfejsie -
+[opisuję to w Module 9](/modul-9-n8n-assistant).
+
+:::caution[Zanim odpalisz to na serwerze wystawionym do internetu]
+Usługa `sandbox-runner-1` chodzi jako `privileged` i prowadzi Dockera wewnątrz Dockera. To
+w praktyce **odpowiednik roota na hoście** - dlatego w nakładce nie ma dla niej żadnego
+`ports:` i nie dodawaj go "tylko na czas debugowania".
+
+Dwie rzeczy do doliczenia. Zasoby: około **4 GB RAM i 2 rdzenie ponad to**, co maszyna już
+robi ([docs](https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-n8n-assistant)).
+Oraz backup: typowy skrypt kopiuje `docker-compose.yml` i nic więcej, więc po dołożeniu
+nakładki i `.env` przestaje być kompletny. Popraw go w tej samej turze, w której dodajesz
+sandbox.
+:::
 
 ## Uwaga na poradniki z npm
 
@@ -674,4 +863,5 @@ Potrzebujesz Dockera i kilkunastu minut.
   - Za reverse proxy ustaw `WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
   - `N8N_ENCRYPTION_KEY` szyfruje poświadczenia - utrata klucza = utrata poświadczeń. Backupuj go razem z bazą.
   - Aktualizuj świadomie: backup, release notes, `docker compose pull && up -d`.
+  - Chcesz używać n8n Assistant? Sandbox jest wymagany - dołóż go nakładką `docker-compose.override.yml` od razu przy stawianiu instancji.
 </Takeaways>

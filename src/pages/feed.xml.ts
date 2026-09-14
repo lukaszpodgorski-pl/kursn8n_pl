@@ -13,7 +13,7 @@ import {
  * Kanal RSS 2.0 - odpowiednik dawnego public_html/partials/feed.php.
  * Pozycje (najnowsze na gorze): gotowe workflow (rosna z rejestru QUICK_WINS)
  * + troubleshooting + slownik pojec + hub gotowcow, potem flagowy poradnik
- * hostingowy + 9 modulow kursu - zasilane z jednego rejestru
+ * hostingowy + moduly kursu - zasilane z jednego rejestru
  * src/config/modules.ts (to samo zrodlo co sidebar i dane strukturalne Course).
  *
  * Adresy pozycji BEZ koncowego ukosnika - zgodnie z trailingSlash: 'never'

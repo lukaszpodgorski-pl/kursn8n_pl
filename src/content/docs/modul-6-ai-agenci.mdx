@@ -380,6 +380,14 @@ listę akcji do akceptacji. Gdy zaufasz jego decyzjom na danych produkcyjnych, s
 ręczne potwierdzenia. Autonomię nadawaj _etapami_, nie od razu.
 :::
 
+:::note[A co z n8n Assistant?]
+n8n ma też własnego asystenta, który buduje workflow **za Ciebie** - i to coś zupełnie
+innego niż AI Agent z tego modułu. Agent jest węzłem w Twoim workflow i pracuje dla Twoich
+użytkowników; Assistant siedzi w edytorze i pracuje dla Ciebie, w czasie gdy budujesz.
+Ma własny moduł, bo ma własny warunek wstępny i własne pułapki:
+[Moduł 9: n8n Assistant](/modul-9-n8n-assistant).
+:::
+
 ## Sprawdź się
 
 Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
@@ -420,4 +428,5 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
   - RAG = embeddings + vector store + retrieval; przepływ: ingest → embed → store → retrieve → answer.
   - Chatbota startujesz od Chat Trigger + AI Agent + model + pamięć; narzędzia i RAG dokładasz wedle potrzeb.
   - Agenci 24/7: pilnuj kosztów, pętli (max iterations), halucynacji i kontroli nad akcjami - autonomię nadawaj etapami.
+  - Assistant z [Modułu 9](/modul-9-n8n-assistant) to co innego niż agent: on buduje workflow, agent w nim pracuje.
 </Takeaways>
