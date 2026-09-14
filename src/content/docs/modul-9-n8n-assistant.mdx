@@ -42,7 +42,7 @@ faq:
   - q: "Dlaczego nie mogę wybrać modelu w oknie Connect a model?"
     a: "Bo model jest ustawiony zmienną środowiskową. Jeżeli w konfiguracji siedzi `N8N_INSTANCE_AI_MODEL` albo `N8N_INSTANCE_AI_MODEL_API_KEY`, n8n blokuje wybór w interfejsie i wyświetla komunikat o ustawieniach zarządzanych przez zmienne środowiskowe. Usuń te dwie zmienne, zrestartuj n8n i wybieraj model z poświadczenia zapisanego w n8n - zmienne środowiskowe ustawiaj tylko dla sandboxa."
   - q: "Kto płaci za tokeny zużywane przez Assistanta?"
-    a: "Ty - przez klucz API dostawcy modelu, który podpinasz przy konfiguracji. Assistant nie ma własnego, wliczonego w licencję budżetu na tokeny w wariancie self-hosted: każda rozmowa idzie do Twojego dostawcy (OpenAI, Anthropic, OpenRouter) i obciąża Twój rachunek. Dlatego ma sens ten sam nawyk, co przy agentach z Modułu 6: limity i alerty zużycia po stronie dostawcy."
+    a: "Ty - przez klucz API dostawcy modelu, który podpinasz przy konfiguracji. Assistant nie ma własnego, wliczonego w licencję budżetu na tokeny w wariancie self-hosted: każda rozmowa idzie do Twojego dostawcy (OpenAI, Anthropic, OpenRouter) i obciąża Twój rachunek. Uważaj przy tym na model: kreator podpowiada Opusa od Anthropic, czyli najdroższą opcję, a do budowania workflow Sonnet i mniejsze modele radzą sobie spokojnie. Dla skali: prosty workflow na trzy węzły (webhook, przetworzenie, wysyłka na Telegram) kosztował mnie prawie 50 centów. Dlatego ma sens ten sam nawyk, co przy agentach z Modułu 6: świadomy wybór modelu oraz limity i alerty zużycia po stronie dostawcy."
 ---
 
 import { CardGrid } from '@astrojs/starlight/components';
@@ -64,8 +64,28 @@ a Assistant układa węzły na kanwie, wypełnia je i potrafi rozebrać na czę�
 właśnie zobaczyłeś.
 
 To najkrótszy moduł w kursie i taki ma być. Assistant nie jest tematem do nauczenia się -
-jest funkcją do włączenia. Cała trudność siedzi w jednym warunku wstępnym i w dwóch
-pułapkach, na których ludzie tracą godziny.
+jest funkcją do włączenia. Cała trudność siedzi w jednym warunku wstępnym, w dwóch
+pułapkach, na których ludzie tracą godziny, i w rachunku za tokeny.
+
+:::danger[Zanim włączysz: płacisz za to własnym kluczem API]
+Assistant działa na modelu, który podpinasz **swoim kluczem API**. Każda jego odpowiedź
+obciąża Twój rachunek u dostawcy, nie n8n - to nie jest funkcja "w cenie". Jeśli podpinasz
+własne API, masz tego pewnie świadomość. Gorzej z drugą częścią.
+
+**Kreator podpowiada Opusa od Anthropic**, czyli najmocniejszy, a zarazem najdroższy model
+w tej rodzinie ([cennik](https://www.anthropic.com/pricing)). Do budowania workflow to
+przerost formy nad treścią: **Sonnet i mniejsze modele radzą sobie z tym spokojnie**,
+a kosztują ułamek tego.
+
+Konkret z mojej sesji: prosty workflow na **trzy węzły** - webhook, przetworzenie danych
+i wysyłka na Telegram - spalił **prawie 50 centów**. Można na to patrzeć dwojako. Z jednej
+strony za jakieś dwa złote dostajesz działający workflow zbudowany wyłącznie z tego, co
+opisałeś językiem naturalnym. Z drugiej - to trzy węzły, z którymi **Sonnet poradziłby sobie
+równie dobrze**, za ułamek tej kwoty.
+
+Wniosek na cały ten moduł: wybieraj model świadomie, a klucz API trzymaj pod limitem
+wydatków ustawionym u dostawcy.
+:::
 
 ## Assistant to nie jest AI Agent
 
@@ -130,7 +150,7 @@ dokładnie trzy wiersze i tylko pierwszy wymaga Twojej decyzji:
 
 | Wiersz | Co ma tam być | Skąd |
 | --- | --- | --- |
-| Model | np. `openrouter/anthropic/claude-opus-5` | poświadczenie zapisane w n8n |
+| Model | np. `openrouter/anthropic/claude-sonnet-5` | poświadczenie zapisane w n8n |
 | Code sandbox | `Found in server configuration` | infrastruktura z poprzedniego kroku |
 | Web search | `Not set` albo SearXNG / Brave | opcjonalne, można pominąć |
 
@@ -302,4 +322,5 @@ przypadkach na dziesięć odpowiedź jest w logu, nie w interfejsie.
   - Zmienne `N8N_INSTANCE_AI_MODEL` i `N8N_INSTANCE_AI_MODEL_API_KEY` blokują wybór modelu w UI - nie ustawiaj ich.
   - Interfejs pokazuje objaw, log kontenera pokazuje przyczynę. Zaczynaj od `docker compose logs n8n`.
   - Zatwierdzanie akcji zostaw włączone, a klucz API trzymaj pod limitem wydatków u dostawcy.
+  - Za tokeny płacisz Ty. Kreator podpowiada najdroższego Opusa, a Sonnet i mniejsze modele budują workflow równie dobrze - trzy węzły potrafią kosztować 50 centów.
 </Takeaways>
