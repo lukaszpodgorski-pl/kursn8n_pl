@@ -161,7 +161,7 @@ export function buildArticle(input: ArticleInput) {
 }
 
 /**
- * Course dla strony glownej - lista 9 modulow z rejestru.
+ * Course dla strony glownej - lista modulow z rejestru.
  * Odpowiednik bloku Course z dawnego content/home.head.php.
  */
 export function buildCourse() {

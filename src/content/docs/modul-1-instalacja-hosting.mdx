@@ -283,7 +283,7 @@ wykonawcze. Bez niego Assistant się nie włączy. To nie jest opcja do rozważe
 warunek wstępny.
 
 Czym Assistant jest i jak go używać, opisuję w
-[Module 6](/modul-6-ai-agenci#n8n-assistant---asystent-który-buduje-workflow). Tutaj liczy
+[Module 9](/modul-9-n8n-assistant). Tutaj liczy
 się jedno zdanie: **skoro i tak piszesz plik Compose, dołóż sandbox od razu.** Doklejanie go
 później to grzebanie w działającym stacku, a to kosztuje więcej nerwów niż napisanie o trzy
 usługi więcej za pierwszym razem.
@@ -446,7 +446,7 @@ Kolejność wymuszają zależności: `sandbox-certs` kończy pracę, dopiero pot
 `sandbox-api`, a runner i n8n czekają, aż zgłosi się jako zdrowy. Odpowiedź `{"status":"ok"}`
 uzyskana **z wnętrza kontenera n8n** oznacza, że n8n widzi sandbox i infrastruktura jest
 gotowa. Reszta, czyli włączenie Assistanta i wybór modelu, dzieje się już w interfejsie -
-[opisuję to w Module 6](/modul-6-ai-agenci#n8n-assistant---asystent-który-buduje-workflow).
+[opisuję to w Module 9](/modul-9-n8n-assistant).
 
 :::caution[Zanim odpalisz to na serwerze wystawionym do internetu]
 Usługa `sandbox-runner-1` chodzi jako `privileged` i prowadzi Dockera wewnątrz Dockera. To
