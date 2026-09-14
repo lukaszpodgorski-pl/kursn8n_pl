@@ -19,6 +19,7 @@ teaches:
   - Różnicę między AI Agent (Tools Agent) a zwykłym Chainem
   - Jak podłączyć modele OpenAI, Anthropic i Ollama do workflow
   - "Budowę RAG: embeddingi, bazy wektorowe i chatbota na własnych danych"
+  - Czym jest n8n Assistant, dlaczego wymaga sandboxa i jak go włączyć na własnej instancji
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -42,6 +43,10 @@ faq:
     a: "Model nie zna Twoich danych - regulaminów, dokumentacji, bazy wiedzy firmy - i bywa, że je zmyśla. RAG przed odpowiedzią wyszukuje pasujące fragmenty Twoich dokumentów i dokłada je do promptu, dzięki czemu odpowiedzi są oparte na faktach z Twoich źródeł, a aktualizacja sprowadza się do dodania dokumentu do bazy."
   - q: "Jaką pamięć wybrać dla chatbota?"
     a: "Na naukę i prototyp wystarczy Simple Memory (window buffer) - trzyma ostatnie wiadomości, ale znika po restarcie. Do produkcji z wieloma użytkownikami użyj pamięci trwałej (Postgres/Redis/MongoDB Chat Memory) z kluczem sesji per użytkownik, by historie rozmów się nie mieszały i przetrwały restart."
+  - q: "Dlaczego n8n Assistant nie działa bez sandboxa?"
+    a: "Assistant pisze kod i musi go gdzieś uruchomić, a n8n nie pozwala robić tego we własnym kontenerze - dlatego potrzebuje sandboxa, czyli osobnego, odciętego środowiska wykonawczego. Bez niego funkcja się nie włączy. Na n8n Cloud oraz po instalacji instalatorem jednolinijkowym sandbox jest już gotowy; przy własnym pliku docker-compose.yml dokładasz trzy usługi nakładką (opisane w Module 1), a na produkcji możesz zamiast tego wskazać provider `daytona`."
+  - q: "Włączyłem sandbox w zmiennych środowiskowych, a n8n i tak go nie widzi - dlaczego?"
+    a: "Prawie zawsze dlatego, że ktoś otworzył wcześniej ustawienia AI w interfejsie i n8n zapisał je w bazie, a ten zapis ma pierwszeństwo przed zmiennymi środowiskowymi. Poznasz to po linii w logu n8n przy starcie: `Sandbox: enabled=false ... (DB override; env was enabled=true ...)`. Naprawa idzie przez interfejs, nie przez kolejne poprawki w pliku Compose - po poprawnej konfiguracji ta sama linia kończy się słowami `(from env)`."
   - q: "Jak nie przepalić budżetu na agentach 24/7?"
     a: "Ustaw limity i alerty zużycia, ogranicz liczbę iteracji agenta (max iterations) oraz timeouty, używaj tańszego modelu do prostych kroków, a droższego tylko tam, gdzie konieczny. Najwięcej oszczędza dobry dobór narzędzia: jeśli zadanie jest jednokrokowe, użyj Chaina zamiast agenta."
 ---
@@ -380,6 +385,136 @@ listę akcji do akceptacji. Gdy zaufasz jego decyzjom na danych produkcyjnych, s
 ręczne potwierdzenia. Autonomię nadawaj _etapami_, nie od razu.
 :::
 
+## n8n Assistant - asystent, który buduje workflow
+
+Cały ten moduł jest o AI, którą **Ty budujesz**. Na koniec odwróćmy role: n8n ma własnego
+asystenta, który buduje workflow **za Ciebie**. Opisujesz zadanie w czacie w edytorze,
+a Assistant układa węzły na kanwie, wypełnia je i potrafi rozebrać na części błąd, który
+właśnie zobaczyłeś ([docs](https://docs.n8n.io/build/ways-of-building-workflows/ai-assistant)).
+
+:::note[Assistant to nie jest AI Agent]
+
+- **AI Agent** to węzeł _wewnątrz_ Twojego workflow. Pracuje dla Twoich użytkowników,
+  a Ty go budujesz i płacisz za jego tokeny.
+- **Assistant** siedzi _w edytorze n8n_ i pracuje dla Ciebie. Nie stawiasz go z klocków -
+  włączasz go raz i używasz jak każdej innej funkcji interfejsu.
+
+:::
+
+### Jeden warunek: sandbox
+
+Assistant pisze kod i musi go gdzieś uruchomić, a n8n nie pozwala robić tego we własnym
+kontenerze. Dlatego potrzebuje **sandboxa**: osobnego, odciętego środowiska wykonawczego.
+To nie jest opcja do rozważenia - bez sandboxa Assistant albo się nie pokaże, albo pokaże
+się i odmówi pracy.
+
+| Skąd masz n8n | Co musisz zrobić |
+| --- | --- |
+| n8n Cloud | nic, sandbox jest po stronie n8n |
+| Instalator jednolinijkowy albo Compose z docs n8n | nic, sandbox wstał razem z n8n |
+| Własny `docker-compose.yml` | dokładasz trzy usługi - [Moduł 1](/modul-1-instalacja-hosting#sandbox-dla-ai-assistant---najlepszy-moment-jest-teraz) |
+| Produkcja, bez sandboxa u siebie | provider `daytona`, czyli sandbox w chmurze |
+
+### Włączenie: trzy wiersze kreatora
+
+W n8n wejdź w `Settings → AI Assistant` (albo prosto pod adres `/assistant`). Kreator ma
+dokładnie trzy wiersze i tylko pierwszy wymaga Twojej decyzji:
+
+| Wiersz | Co ma tam być | Skąd |
+| --- | --- | --- |
+| Model | np. `openrouter/anthropic/claude-opus-5` | poświadczenie zapisane w n8n |
+| Code sandbox | `Found in server configuration` | infrastruktura z poprzedniego kroku |
+| Web search | `Not set` albo SearXNG / Brave | opcjonalne, można pominąć |
+
+Providera nie wybierasz osobno - wynika on z **typu poświadczenia**, które podepniesz.
+Poświadczenie `openRouterApi` daje providera `openrouter`, `anthropicApi` daje `anthropic`,
+`openAiApi` daje `openai`. Wyszukiwarka WWW jest niezależna od sandboxa: bez niej Assistant
+nadal działa, po prostu nie doczyta dokumentacji w sieci.
+
+Po `Finish setup` uprawnienia Assistanta stoją domyślnie na **require_approval** dla każdej
+operacji, łącznie z tworzeniem i publikowaniem workflow. To dokładnie ta zasada, o której
+pisałem akapit wyżej przy agentach: najpierw proponuje, dopiero potem wykonuje.
+
+### Dwie pułapki, które kosztują najwięcej czasu
+
+**Pierwsza: baza wygrywa ze zmiennymi środowiskowymi.** Jeżeli ktokolwiek otworzył wcześniej
+ustawienia AI w interfejsie, n8n zapisał je w bazie - i **ten zapis ma pierwszeństwo przed
+zmiennymi środowiskowymi**. Możesz mieć w Compose sandbox włączony i nadal go nie mieć.
+Rozpoznasz to po jednej linii w logu n8n przy starcie:
+
+```text
+Sandbox: enabled=false provider=n8n-sandbox (DB override; env was enabled=true provider=n8n-sandbox)
+```
+
+Fraza `DB override` znaczy: "przeczytałem zmienne, ale i tak słucham bazy". Naprawa idzie
+przez interfejs, nie przez kolejne poprawki w Compose. Gdy jest dobrze, ta sama linia kończy
+się słowem `(from env)` - i to jest jedyne potwierdzenie, jakiego potrzebujesz.
+
+**Druga: model wpisany w zmienne to model zablokowany w interfejsie.** Ustawienie
+`N8N_INSTANCE_AI_MODEL` albo `N8N_INSTANCE_AI_MODEL_API_KEY` odbiera Ci wybór w oknie
+"Connect a model", które odpowiada wtedy komunikatem:
+
+> These settings are managed by environment variables. To edit them here, remove the
+> environment variables and restart n8n.
+
+Pola są wtedy zamaskowane, a zapisane w n8n poświadczenie jest ignorowane, choćby było
+poprawne. Zasada do zapamiętania jest krótka: **zmienne środowiskowe ustawiaj tylko dla
+sandboxa, nigdy dla modelu.**
+
+### Gdy Assistant milczy albo zwraca dziwny błąd
+
+Interfejs pokazuje objaw, log kontenera pokazuje przyczynę - i te dwie rzeczy potrafią nie
+mieć ze sobą nic wspólnego. Komunikat `Error: User not found.` w czacie brzmi jak problem
+z kontem w n8n, a w logu okazuje się odpowiedzią dostawcy modelu na martwy klucz API:
+
+```text
+url: 'https://openrouter.ai/api/v1/chat/completions'
+statusCode: 401
+responseBody: '{"error":{"message":"User not found.","code":401}}'
+```
+
+Zanim zaczniesz przestawiać cokolwiek w konfiguracji, zajrzyj do `docker compose logs n8n`.
+
+<details>
+<summary>Diagnostyka: cztery sprawdzenia i tabela objawów</summary>
+
+Sprawdzenia uruchamiaj po kolei - pierwsze, które nie zwróci oczekiwanej odpowiedzi,
+wskazuje warstwę do naprawy:
+
+```bash
+# 1. API sandboxa odpowiada i jest widoczne z kontenera n8n
+docker compose exec n8n wget -qO- http://sandbox-api:8080/healthz
+# -> {"status":"ok"}
+
+# 2. runner zarejestrował się w API
+docker compose logs sandbox-api | grep -i "runner registered"
+# -> {"msg":"runner registered","runner_id":"runner-1",...}
+
+# 3. wewnętrzny Docker w runnerze żyje
+docker compose exec sandbox-runner-1 docker info --format "{{.ServerVersion}}"
+
+# 4. klucz działa (pusta lista sandboxów to poprawna odpowiedź)
+docker compose exec n8n wget -qO- \
+  --header="X-Api-Key: <SANDBOX_API_KEY>" http://sandbox-api:8080/sandboxes
+# -> []
+```
+
+| Objaw | Przyczyna | Naprawa |
+| --- | --- | --- |
+| `Sandbox: enabled=false ... (DB override...)` | ustawienia zapisane w bazie | włącz sandbox w interfejsie |
+| `401 Unauthorized` z `/sandboxes` | zły nagłówek albo klucz | nagłówek to `X-Api-Key`, nie `Authorization: Bearer` |
+| `sandbox-api` nie staje się `healthy` | `sandbox-certs` nie skończył pracy | `docker compose logs sandbox-certs` |
+| Runner w pętli restartów, w logu `... must be set` | brakuje zmiennej | zwykle pusty `.env` albo literówka w nazwie sekretu |
+| Błąd TLS między API a runnerem | zmienione nazwy usług | nazwy muszą zgadzać się z tymi w certyfikatach |
+| `Error: User not found.` w czacie | odpowiedź dostawcy modelu, nie n8n | sprawdź klucz API u dostawcy |
+
+Dwie rzeczy warto wiedzieć zawczasu, zanim zaskoczą Cię po miesiącu: certyfikaty z
+`sandbox-certs` nie odnawiają się same (odtwarza się je, kasując wolumen `sandbox-tls`
+i podnosząc stack od nowa), a runner pobiera obraz sandboxa dopiero przy pierwszym użyciu,
+do swojego wewnętrznego Dockera - przy instalacji offline trzeba go tam wgrać wcześniej.
+
+</details>
+
 ## Sprawdź się
 
 Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
@@ -396,6 +531,9 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 4. Które kroki przepływu RAG wykonujesz tylko raz (albo cyklicznie), a które przy każdym pytaniu
    użytkownika? Jeśli nie masz pewności - [Przepływ RAG - od dokumentu do
    odpowiedzi](#przepływ-rag---od-dokumentu-do-odpowiedzi).
+5. Dlaczego n8n Assistant nie zadziała bez sandboxa - i czym różni się od AI Agenta, którego
+   sam budujesz na kanwie? Jeśli nie masz pewności - [Jeden warunek:
+   sandbox](#jeden-warunek-sandbox).
 
 <details>
 <summary>Mini-zadanie: sprawdź, czy pamięć agenta naprawdę pamięta</summary>
@@ -420,4 +558,6 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
   - RAG = embeddings + vector store + retrieval; przepływ: ingest → embed → store → retrieve → answer.
   - Chatbota startujesz od Chat Trigger + AI Agent + model + pamięć; narzędzia i RAG dokładasz wedle potrzeb.
   - Agenci 24/7: pilnuj kosztów, pętli (max iterations), halucynacji i kontroli nad akcjami - autonomię nadawaj etapami.
+  - n8n Assistant buduje workflow za Ciebie, ale wymaga sandboxa - bez niego nie da się go włączyć.
+  - Ustawienia AI zapisane w bazie wygrywają ze zmiennymi środowiskowymi; model wpisany w zmienne blokuje wybór w interfejsie.
 </Takeaways>
