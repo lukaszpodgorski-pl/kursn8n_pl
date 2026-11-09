@@ -1,6 +1,6 @@
 ---
 title: n8n w produkcji - bezpiecznie i niezawodnie
-description: "n8n produkcyjnie i bezpiecznie: zabezpieczenie instancji (2FA, reverse proxy, SSL), RODO, backupy 3-2-1 i testowane odtwarzanie, monitoring i logi (N8N_LOG_LEVEL), tryb kolejkowy z workerami oraz środowiska dev/prod z wersjonowaniem i pipeline'em CI/CD (n8n CLI, Public API, GitHub Actions)."
+description: "n8n produkcyjnie i bezpiecznie: zabezpieczenie instancji (2FA, reverse proxy, SSL), RODO, backupy 3-2-1 i testowane odtwarzanie, monitoring i logi (N8N_LOG_LEVEL), tryb kolejkowy z workerami środowiska dev/prod z pipeline'em CI/CD (n8n CLI, Public API, GitHub Actions) oraz testowanie workflow przed publikacją (pinning, mock API, Evaluations)."
 head:
   - tag: title
     content: "Moduł 7: Produkcja n8n - bezpieczeństwo, RODO, backupy, monitoring, queue mode | KursN8N.pl"
@@ -26,6 +26,8 @@ teaches:
   - Jak zbudować pipeline GitHub Actions, który promuje workflow z dev na prod przez pull request
   - Na co uważać przy promocji dev → staging → prod - ID workflow, credentials, zmienne i publikacja
   - Które plany n8n obejmują Source Control i Environments
+  - Jak testować workflow przed publikacją - szkic a wersja opublikowana, pinning, mock API i przypadki brzegowe
+  - Jak sprawdzać workflow AI w Evaluations i na jakich planach są dostępne
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -57,6 +59,10 @@ faq:
     a: "Najprościej pipeline'em CI: eksport z dev przez Public API albo n8n CLI, pull request z plikami JSON do przeglądu, a po merge import na prod. Przez API nowy workflow dostaje na prod nowe ID, więc dopasowujesz go po nazwie i podmieniasz ID credentials na te z prod (ta sama nazwa, inne wartości). Nowe workflow publikujesz na prod świadomie, ręcznie."
   - q: "Czy mogę trzymać wyeksportowane credentials w repozytorium Git?"
     a: "Tylko w postaci zaszyfrowanej, a i to rzadko ma sens - odczyta je wyłącznie instancja z tym samym N8N_ENCRYPTION_KEY. Eksport z flagą --decrypted zapisuje wszystkie klucze i tokeny otwartym tekstem i nigdy nie powinien trafić do Gita ani artefaktu CI. Na każdym środowisku zakładasz credentials osobno, pod tą samą nazwą."
+  - q: "Jak przetestować zmianę w działającym workflow, nie psując produkcji?"
+    a: "Od n8n 2.0 każda zmiana w edytorze zapisuje się jako szkic, a wykonania produkcyjne używają wersji opublikowanej, dopóki nie klikniesz Publish. Możesz więc testować szkic ręcznie, a produkcja działa dalej na poprzedniej wersji. Pamiętaj tylko, że ręczny test używa tych samych credentials co produkcja - zewnętrzne wywołania zastąp przypiętymi danymi albo mockiem API."
+  - q: "Czy Evaluations w n8n są dostępne za darmo?"
+    a: "Light evaluations (wyniki obok oczekiwanych odpowiedzi) działają na wszystkich planach n8n Cloud i w darmowej edycji Registered Community. Metric-based evaluations z liczbowymi ocenami to plany Cloud Pro i Enterprise oraz self-hosted Enterprise, a Registered Community i Starter mogą ich użyć dla jednego workflow (stan na listopad 2026)."
   - q: "Czy webhooki też muszą być schowane za logowaniem?"
     a: "Nie - to dwie różne ścieżki. Panel n8n warto ograniczyć (IP / VPN / SSO + 2FA), ale endpointy webhooków zwykle muszą być publiczne, by usługi zewnętrzne mogły je wywołać. Zabezpiecz je inaczej: trudny do odgadnięcia URL, weryfikacja podpisu/sekretu w workflow i HTTPS."
 ---
@@ -69,7 +75,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Moduł 7 · Poziom: zaawansowany"
-  readingTime="~32 min"
+  readingTime="~39 min"
   note="Produkcja i bezpieczeństwo"
 />
 
@@ -649,7 +655,7 @@ konkretną instancję:
 - **ID workflow.** Server CLI zachowuje ID z eksportu, Public API nadaje nowe. Przy API dopasowujesz po nazwie (jak w pipelinie), więc nazwy workflow muszą być unikalne i stabilne. Uważaj na odwołania po ID wewnątrz workflow: node Execute Sub-workflow wskazujący sub-workflow po ID i ustawienie **Error Workflow** w `settings` - na prod te ID są inne, chyba że importujesz przez CLI.
 - **Credentials: ta sama nazwa, inne wartości.** Na każdej instancji zakładasz credentials o identycznej nazwie (np. `Slack - powiadomienia`), ale z danymi właściwymi dla środowiska: na dev testowy kanał i klucz sandbox, na prod prawdziwe. Workflow wskazuje nazwę, sekrety nigdy nie przechodzą przez Git.
 - **Zmienne.** Wartości, które różnią się między środowiskami (adres API, ID arkusza, kanał), wyciągnij poza node'y. Na planach Business i Enterprise (Cloud: Pro i Enterprise) masz [Custom variables](https://docs.n8n.io/build/code-in-n8n/define-custom-variables) dostępne jako `$vars.NAZWA`. W edycji Community zostają zmienne środowiskowe kontenera (`$env.NAZWA`) - ale zmienna `N8N_BLOCK_ENV_ACCESS_IN_NODE` potrafi zablokować `$env` w wyrażeniach i Code node, a według [listy zmian łamiących n8n 2.0](https://docs.n8n.io/changelog/v20-breaking-changes) blokada jest domyślnie włączona. Sekrety i tak trzymaj w credentials, nie w zmiennych.
-- **Aktywacja po imporcie.** CLI importuje wszystko jako nieopublikowane, API publikuje automatycznie tylko aktualizację już opublikowanego workflow. Po każdej promocji sprawdź listę opublikowanych workflow na prod i adresy webhooków - ścieżka zostaje ta sama, ale host jest inny.
+- **Publikacja po imporcie.** CLI importuje wszystko jako nieopublikowane, API publikuje automatycznie tylko aktualizację już opublikowanego workflow. Po każdej promocji sprawdź listę opublikowanych workflow na prod i adresy webhooków - ścieżka zostaje ta sama, ale host jest inny.
 - **Staging.** Trzecie środowisko to ten sam pipeline uruchomiony dwa razy: najpierw na staging, potem na prod. W GitHub Actions robisz to osobnymi [environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) (`staging`, `production`) z własnymi sekretami i wymaganą akceptacją przed prod.
 
 ### Source Control i Environments w n8n - stan licencji
@@ -686,6 +692,197 @@ zostaje Ci CLI albo Public API z poprzednich podsekcji. Dokumentacja:
 
 :::
 
+## Testowanie przed publikacją
+
+Workflow sprawdzasz na szkicu, zanim klikniesz **Publish**: na stałych danych testowych,
+z udawanym API zamiast prawdziwego, na przypadkach brzegowych (pusta lista, brak pola, 429,
+timeout), a workflow AI dodatkowo na zestawie testowym w Evaluations. Dopiero gdy przejdzie
+checklistę z końca tej sekcji, publikujesz. Narzędzia do pojedynczych testów już znasz -
+pinning z [Modułu 2](/modul-2-interfejs-pierwszy-workflow#podgląd-danych-między-nodeami) i
+obsługę błędów z [Modułu 5](/modul-5-kod-sub-workflow#obsługa-błędów---automaty-muszą-być-przewidywalne).
+Tu składam je w jedną procedurę.
+
+### Szkic i wersja opublikowana: testujesz, produkcja działa dalej
+
+Od n8n 2.0 nie ma przełącznika _Active_. Każda zmiana w edytorze zapisuje się sama (zwykle
+w 1-5 sekund) jako **szkic** (_draft_), a wykonania produkcyjne - te odpalane przez trigger,
+harmonogram albo produkcyjny URL webhooka - zawsze używają **wersji opublikowanej**. Nowy
+szkic trafia na produkcję dopiero wtedy, gdy klikniesz **Publish** (skrót `Shift + P`) i
+nadasz wersji nazwę. Źródła: [Save and publish workflows](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows)
+i [lista zmian łamiących n8n 2.0](https://docs.n8n.io/changelog/v20-breaking-changes#saving-and-publishing-workflows)
+(zweryfikowane 9 listopada 2026).
+
+Praktyczny skutek: możesz przebudowywać działający workflow i testować go ręcznie
+(**Execute workflow**), a produkcja w tym czasie spokojnie jedzie na poprzedniej wersji.
+Ten rozdział ma jednak granice:
+
+- **Ręczny test to prawdziwe wywołania.** Szkic używa tych samych credentials co produkcja,
+  więc test wyśle prawdziwego maila i zapisze prawdziwy wiersz w CRM. Dlatego niżej są pinning,
+  mock API i instancja testowa.
+- **Ustawienia workflow nie czekają na Publish.** Jeśli zmienisz tylko ustawienia (np. Error
+  Workflow czy strefę czasową), n8n opublikuje je sam, bez Twojego kliknięcia.
+- **Credentials, zmienne i Data Tables są wspólne** dla szkicu i wersji opublikowanej. Zmiana
+  credentials działa od razu również na produkcji.
+- **Odwrót jest szybki.** Gdy nowa wersja sprawia kłopot, cofasz publikację (strzałka obok
+  Publish, skrót `Ctrl/Cmd + U`) albo przywracasz poprzednią wersję z historii wersji.
+
+### Dane testowe i pinning
+
+Najtańszy test to ten, który nie dotyka API. Uruchom node raz, przypnij wynik (**Pin data**,
+klawisz `P`) i dalej pracuj na tych samych danych - opisuję to w
+[Module 2](/modul-2-interfejs-pierwszy-workflow#podgląd-danych-między-nodeami). Do testów
+przed publikacją ważniejsza jest druga połowa tej funkcji: **edycja przypiętych danych**.
+W widoku JSON wyniku klikasz **Edit**, zmieniasz dane i zapisujesz - zapis od razu je
+przypina. Tak w minutę robisz przypadek brzegowy: usuwasz pole, wstawiasz pustą tablicę,
+wpisujesz polskie znaki albo bardzo długi tekst. Dane możesz też skopiować z dawnego wykonania
+z zakładki Executions, czyli przetestować workflow na tym, co naprawdę przyszło z produkcji.
+
+Trzy ograniczenia według [dokumentacji pinningu](https://docs.n8n.io/build/work-with-data/pin-and-mock-data)
+(zweryfikowane 9 listopada 2026): nie przypniesz danych z plikami binarnymi, przypinasz tylko
+node z jednym wyjściem głównym, a **wykonania produkcyjne ignorują przypięte dane**. Ostatnie
+to zaleta - zapomniany pin nie zepsuje produkcji - ale też pułapka: test na pinie nie
+sprawdza, czy prawdziwe API wciąż zwraca to samo.
+
+### Mockowanie API: workflow udający usługę
+
+Gdy chcesz przetestować całą ścieżkę z prawdziwym żądaniem HTTP, ale bez prawdziwej usługi,
+zbuduj **mock** (_mock_ to atrapa udająca prawdziwy system): osobny workflow z node'em
+**Webhook** i **Respond to Webhook**, który odsyła taki JSON i taki kod statusu, jakiego
+potrzebujesz. Testowany workflow woła adres mocka zamiast prawdziwego API.
+
+<Flow
+  title="mock-api"
+  alt="Schemat mockowania API: testowany workflow wysyła żądanie HTTP Request na adres mocka, czyli osobny workflow z Webhookiem, który przez Respond to Webhook odsyła przygotowaną odpowiedź, np. kod 429"
+  caption="Mock API: testowany workflow woła zamiast prawdziwej usługi Twój własny workflow, który odpowiada dokładnie tym, co chcesz sprawdzić - poprawnymi danymi, pustą listą, kodem 429 albo opóźnieniem."
+  spec={`
+    Testowany workflow (szkic):flask @blue -> HTTP Request (adres mocka):globe @slate
+    HTTP Request -> Webhook (workflow mock):bolt @violet
+    Webhook -> Respond to Webhook (JSON i kod statusu):reply @amber
+  `}
+/>
+
+Jak to poukładać:
+
+1. **Adres API trzymaj w jednym miejscu** - w zmiennej (`$vars` albo `$env`, patrz
+   [Promocja dev → staging → prod](#promocja-dev--staging--prod-id-credentials-zmienne))
+   albo w node'zie Edit Fields na początku workflow. Wtedy przełączenie na mock to jedna
+   zmiana, a nie szukanie adresu w dziesięciu node'ach.
+2. **Jeden mock, kilka scenariuszy.** Dodaj w mocku node Switch, który po parametrze z URL
+   (np. `?scenariusz=429`) wybiera odpowiedź: poprawne dane, pusta lista, brak pola, błąd.
+   Kod statusu ustawiasz w opcjach Respond to Webhook (_Response Code_).
+3. **Podgląd tego, co wysyłasz.** Żeby zobaczyć, jakie dokładnie żądanie składa Twój
+   workflow (nagłówki, body, podpis), wyślij je na jednorazowy adres w serwisie typu
+   [webhook.site](https://webhook.site/) albo na Test URL własnego Webhooka.
+
+:::caution[Atrapa nie dostaje prawdziwych danych]
+Serwisy typu webhook.site to cudzy serwer. Wysyłasz tam wyłącznie dane zmyślone - żadnych
+danych osobowych klientów, tokenów ani kluczy API. Inaczej test staje się incydentem RODO
+(patrz [RODO / GDPR w automatyzacjach](#rodo--gdpr-w-automatyzacjach)).
+:::
+
+### Instancja testowa
+
+Pinning i mock wystarczą przy pojedynczym workflow. Przy większych zmianach - nowa wersja
+n8n, przebudowa kilku powiązanych workflow, nowe credentials - testuj na **osobnej
+instancji** z sekcji [Środowiska dev/prod i wersjonowanie](#środowiska-devprod-i-wersjonowanie).
+Edycja Community jest darmowa, więc druga instancja kosztuje Cię tylko trochę zasobów
+serwera. Zasada jest jedna: credentials na instancji testowej wskazują testowe konta
+(sandbox płatności, testowy kanał Slacka, kopia arkusza), nigdy produkcyjne. Aktualizację n8n
+też najpierw robisz tam (patrz [Aktualizacje](#aktualizacje)).
+
+### Przypadki brzegowe, które warto przejść
+
+Większość awarii produkcyjnych to nie egzotyka, tylko te same cztery sytuacje. Każdą
+zasymulujesz pinningiem albo mockiem:
+
+| Przypadek | Jak zasymulować | Co powinno się stać |
+| --- | --- | --- |
+| Pusta lista | Edytujesz przypięte dane na `[]` albo mock zwraca pustą tablicę | Node bez itemów nie uruchamia kolejnych - workflow kończy się po cichu. Jeśli dalsza część musi ruszyć (np. raport "brak nowych zamówień"), włącz w ustawieniach node'a **Always Output Data** i obsłuż pusty item w IF. |
+| Brak pola | Usuwasz pole z przypiętego JSON-a | Wyrażenie `{{ $json.email }}` daje pustą wartość, a nie błąd. Sprawdź ją w IF przed wysłaniem albo zatrzymaj workflow node'em Stop And Error. |
+| 429 (za dużo zapytań) | Mock odpowiada kodem 429 | Node HTTP Request ponawia próbę z odstępem (**Retry On Fail** i **Wait Between Tries**), a po wyczerpaniu prób błąd trafia do Twojej ścieżki błędów, nie do pustki. |
+| Timeout | W mocku node Wait przed Respond to Webhook, dłuższy niż opcja **Timeout** w HTTP Request | Żądanie kończy się błędem po zadanym czasie zamiast wisieć - i znowu: retry albo error workflow. |
+
+Ustawienia z kolumny po prawej (Retry On Fail, On Error, error workflow) opisuję w
+[Module 5](/modul-5-kod-sub-workflow#ustawienia-na-poziomie-nodea). Po każdym scenariuszu
+otwórz wykonanie w zakładce Executions i sprawdź, czy workflow zachował się tak, jak
+zakładasz - a nie tylko, czy "nie wybuchł".
+
+### Evaluations: testy workflow AI
+
+Workflow z modelem językowym nie da się przetestować jednym uruchomieniem - ten sam prompt
+raz odpowiada dobrze, raz źle. Do tego n8n ma **Evaluations**: uruchamiasz workflow na
+zestawie przypadków testowych (_dataset_) i porównujesz wyniki z oczekiwanymi. Zestaw trzymasz
+w Data Table albo arkuszu Google: kolumna z wejściem, opcjonalnie z oczekiwaną odpowiedzią
+i pusta kolumna na wynik.
+
+Budujesz to z dwóch node'ów:
+
+- **Evaluation Trigger** - podaje workflow po jednym wierszu zestawu. Do pierwszych prób ustaw
+  _Max rows to process_ na 1.
+- **Evaluation** - trzy operacje: **Set Outputs** zapisuje wynik do zestawu, **Set Metrics**
+  liczy ocenę, a **Check If Evaluating** rozgałęzia workflow, żeby kosztowne metryki i kroki
+  testowe działały tylko podczas ewaluacji.
+
+n8n rozróżnia dwa poziomy (stan na listopad 2026):
+
+| | Light evaluations | Metric-based evaluations |
+| --- | --- | --- |
+| Co dostajesz | wyniki obok oczekiwanych odpowiedzi w zestawie, oceniasz wzrokiem | liczbowe oceny każdego przypadku i średnie dla całego zestawu, porównanie przebiegów w czasie |
+| Metryki | brak | wbudowane: Correctness i Helpfulness (ocenia model, 1-5), String Similarity, Categorization, Tools Used, plus własne |
+| n8n Cloud | wszystkie plany | Pro i Enterprise; Starter dla jednego workflow |
+| Self-hosted | Registered Community, Business, Enterprise | Enterprise; Registered Community dla jednego workflow |
+
+_Registered Community_ to darmowa edycja Community z kluczem licencyjnym, który dostajesz po
+podaniu adresu e-mail w ustawieniach instancji. Pamiętaj, że metryki oceniane przez model
+(Correctness, Helpfulness) to dodatkowe wywołania API, czyli dodatkowy koszt. Dokumentacja:
+[Test and improve AI workflows](https://docs.n8n.io/build/integrate-ai/test-and-improve-ai-workflows),
+[light evaluations](https://docs.n8n.io/build/integrate-ai/test-and-improve-ai-workflows/run-quick-evaluations),
+[metric-based evaluations](https://docs.n8n.io/build/integrate-ai/test-and-improve-ai-workflows/use-metrics-to-measure-quality)
+i [node Evaluation](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.evaluation)
+(zweryfikowane 9 listopada 2026). Samych agentów AI budujesz w [Module 6](/modul-6-ai-agenci).
+
+### Przegląd przed publikacją (Workflow reviews)
+
+Na planie Enterprise możesz wymusić drugą parę oczu: zamiast **Publish** wybierasz w menu
+publikacji **Submit for review**, wskazujesz recenzenta, a on porównuje zmiany na wizualnym
+diffie i zatwierdza albo prosi o poprawki. Zatwierdzenie od razu publikuje tę konkretną
+wersję. Stan na listopad 2026 według [dokumentacji Workflow reviews](https://docs.n8n.io/build/manage-workflows/workflow-reviews)
+(zweryfikowane 9 listopada 2026):
+
+- **Dostępność:** tylko Enterprise (Cloud i self-hosted), od n8n 2.37.0, włącza admin
+  instancji w **Settings → Policies**.
+- **Status Preview** - funkcja może się zmienić, n8n odradza opieranie na niej procesów
+  produkcyjnych.
+- **Zakres:** przegląd obejmuje tylko node'y i połączenia. Ustawienia, credentials, zmienne,
+  Data Tables i sub-workflow nie przechodzą przez akceptację.
+- Otwartego przeglądu nie da się na razie wycofać, a dopóki jest otwarty, workflow nie da się
+  opublikować.
+
+Bez Enterprise ten sam efekt daje pull request z eksportem JSON - pipeline z sekcji
+[Pipeline GitHub Actions](#pipeline-github-actions-dev--pull-request--prod).
+
+### Checklista przed publikacją
+
+Zanim klikniesz **Publish** na produkcji, przejdź tę listę:
+
+1. Workflow przeszedł ręczny test end-to-end na danych przypominających prawdziwe (pinning
+   albo kopia danych z dawnego wykonania).
+2. Przetestowałeś pustą listę, brak pola, 429 i timeout - i wiesz, co workflow robi w każdym
+   z tych przypadków.
+3. Zawodne node'y mają ustawione **Retry On Fail** i świadomie wybrane **On Error**.
+4. W ustawieniach workflow jest wskazany **Error Workflow**, a alert faktycznie dochodzi
+   (sprawdzone node'em Stop And Error).
+5. Nigdzie nie został adres mocka, webhook.site ani testowy kanał - adresy API i ID arkuszy
+   idą ze zmiennych.
+6. Credentials wskazują konta produkcyjne, a nie sandbox.
+7. Webhooki: znasz **Production URL** i wpisałeś go w systemie zewnętrznym zamiast Test URL.
+8. Workflow AI przeszedł Evaluations na zestawie testowym albo przynajmniej na kilku
+   ręcznie sprawdzonych przypadkach.
+9. Wersja ma czytelną nazwę i opis w oknie publikacji - za miesiąc będziesz wiedzieć, co
+   zmieniłeś i do czego wrócić.
+10. Po publikacji obserwujesz pierwsze wykonania produkcyjne w zakładce Executions i wiesz,
+    jak szybko cofnąć publikację.
+
 ## Sprawdź się
 
 Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
@@ -707,6 +904,10 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
    Execute Sub-workflow nie znajduje sub-workflow - co poszło nie tak i jak temu zapobiec? I czemu
    ten workflow w ogóle się nie uruchomił sam po imporcie? Jeśli nie masz pewności -
    [Promocja dev → staging → prod](#promocja-dev--staging--prod-id-credentials-zmienne).
+6. Przebudowujesz workflow, który od miesięcy działa na produkcji. Czemu Twoje zmiany nie
+   zatrzymają go w trakcie pracy, a mimo to ręczny test w edytorze może narobić szkód u
+   klienta? Jakie dwa narzędzia ograniczą to ryzyko? Jeśli nie masz pewności -
+   [Testowanie przed publikacją](#testowanie-przed-publikacją).
 
 <details>
 <summary>Mini-zadanie: przetestuj dead man's switch na swojej instancji</summary>
@@ -716,7 +917,7 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 2. W dowolnym cyklicznym workflow (albo nowym, testowym ze Schedule Triggerem) dodaj na końcu
    **HTTP Request**, który pinguje wygenerowany URL checku po udanym wykonaniu.
 3. Uruchom workflow raz ręcznie i sprawdź w panelu healthchecks.io, że status zmienił się na "Up".
-4. Wyłącz workflow (albo poczekaj dłużej niż ustawiony interwał) i sprawdź, czy przychodzi alert
+4. Cofnij publikację workflow (**Unpublish**, albo poczekaj dłużej niż ustawiony interwał) i sprawdź, czy przychodzi alert
    o braku pingu - to właśnie różnica między "proces żyje" a "workflow robi to, co ma", opisana w
    sekcji [Healthcheck i monitoring czasu działania](#healthcheck-i-monitoring-czasu-działania).
 
@@ -732,6 +933,8 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
   - Rozdziel dev od prod i wersjonuj workflow (Git / eksport JSON) - koniec z edycją na żywca.
   - Promocję dev → prod automatyzujesz przez n8n CLI (`export:workflow`, `import:workflow`, `publish:workflow`) albo Public API z kluczem w `X-N8N-API-KEY` - z pull requestem jako bramką.
   - Credentials mają na każdym środowisku tę samą nazwę i inne wartości; `--decrypted` nigdy nie trafia do Gita.
+  - Testujesz szkic, produkcja jedzie na wersji opublikowanej - ale ręczny test używa prawdziwych credentials, więc API zastępujesz pinningiem albo mockiem.
+  - Przed `Publish` przejdź pustą listę, brak pola, 429 i timeout; workflow AI sprawdzaj w Evaluations na zestawie testowym.
 </Takeaways>
 
 :::note[Twoje n8n już działa na produkcji?]
