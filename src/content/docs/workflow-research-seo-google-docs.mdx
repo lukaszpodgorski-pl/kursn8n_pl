@@ -1,0 +1,414 @@
+---
+title: "Gotowy workflow: research SEO → szkice artykułów w Google Docs"
+description: "Gotowy workflow n8n do researchu SEO: formularz z branżą, frazy kluczowe od AI, pytania z wyników Google (SerpApi), research w Tavily i szkice artykułów zapisane w Google Docs."
+head:
+  - tag: title
+    content: "Gotowy workflow: research SEO do Google Docs (n8n) | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Gotowy workflow: research SEO → szkice artykułów w Google Docs"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Wpisujesz branżę, a n8n dobiera frazy kluczowe, sprawdza, o co ludzie pytają w Google, robi research i zapisuje szkice artykułów w Google Docs - gotowy workflow do pobrania."
+datePublished: 2026-11-09
+educationalLevel: Intermediate
+teaches:
+  - Jak zebrać parametry researchu formularzem n8n i odpowiedzieć użytkownikowi od razu, zanim workflow skończy pracę
+  - Jak poprosić model AI o odpowiedź w formacie JSON i zamienić listę fraz na osobne itemy node'em Split Out
+  - Jak pobrać pytania "Podobne pytania" (People Also Ask) i powiązane wyszukiwania z Google przez SerpApi
+  - Jak zrobić research źródeł przez API Tavily i przekazać wyniki do promptu piszącego artykuł
+  - Jak sięgać po dane z wcześniejszych node'ów wyrażeniem $('Nazwa').item, gdy każdy item idzie własną ścieżką
+  - Jak utworzyć dokument Google Docs i wstawić do niego tekst dwoma node'ami Google Docs
+  - Ile kosztuje jedno uruchomienie i gdzie kończą się darmowe limity SerpApi i Tavily
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+  - name: Search engine optimization
+    sameAs: https://en.wikipedia.org/wiki/Search_engine_optimization
+mentions:
+  - name: Google Docs
+    sameAs: https://en.wikipedia.org/wiki/Google_Docs
+  - name: OpenAI
+    sameAs: https://en.wikipedia.org/wiki/OpenAI
+  - name: Keyword research
+    sameAs: https://en.wikipedia.org/wiki/Keyword_research
+  - name: Search engine results page
+    sameAs: https://en.wikipedia.org/wiki/Search_engine_results_page
+faq:
+  - q: "Ile kosztuje jedno uruchomienie tego workflow?"
+    a: "Przy trzech artykułach i modelu gpt-5-mini około 0,04 USD za tokeny AI, dopóki mieścisz się w darmowych limitach SerpApi (250 wyszukiwań miesięcznie) i Tavily (1 000 kredytów miesięcznie). Ponad limitami: SerpApi to plan Starter za 25 USD miesięcznie (1 000 wyszukiwań), a Tavily 0,008 USD za kredyt. Ceny sprawdziłem w listopadzie 2026 - pełne wyliczenie jest w sekcji o koszcie uruchomienia."
+  - q: "Dlaczego SerpApi, a nie DataForSEO?"
+    a: "SerpApi ma darmowy plan na 250 wyszukiwań miesięcznie bez karty, więc przetestujesz gotowca za darmo. DataForSEO jest tańsze przy dużej skali (od 0,0006 USD za stronę wyników), ale wymaga doładowania konta minimum 50 USD. Przy kilku-kilkunastu artykułach miesięcznie darmowy SerpApi wystarcza z zapasem."
+  - q: "Czy ten workflow pokazuje miesięczną liczbę wyszukiwań fraz?"
+    a: "Nie. SerpApi zwraca to, co widać w Google: wyniki, pytania z sekcji Podobne pytania i powiązane wyszukiwania - to dobry sygnał, że temat istnieje, ale nie liczba wyszukiwań. Wolumeny dają dopiero API danych o słowach kluczowych, np. Keywords Data w DataForSEO albo Google Keyword Planner - opisuję to w sekcji o rozbudowie."
+  - q: "Czy mogę opublikować artykuły od razu, bez czytania?"
+    a: "Nie rób tego. Workflow zapisuje szkice - model ma zakaz wymyślania faktów i dostaje źródła z researchu, ale nadal potrafi się pomylić albo napisać coś ogólnikowo. Traktuj dokument jak pierwszą wersję od asystenta: sprawdź fakty w źródłach z sekcji Źródła, dopisz własne doświadczenie i dopiero wtedy publikuj."
+  - q: "Czy zamiast OpenAI mogę użyć Anthropic albo innego dostawcy?"
+    a: "Tak. Podmień w obu node'ach AI adres endpointu, nagłówki autoryzacji i kształt treści żądania na format swojego dostawcy - dla Anthropic to Messages API z nagłówkiem x-api-key. Zmień też ścieżkę do odpowiedzi w node'ach Odczytaj frazy i Przygotuj artykuł, bo każdy dostawca zwraca tekst w innym polu."
+  - q: "Dlaczego formularz odpowiada od razu, a dokumenty pojawiają się później?"
+    a: "Research jednej frazy z wywołaniem modelu trwa od kilkunastu sekund do minuty, więc przy pięciu artykułach przeglądarka czekałaby kilka minut. Form Trigger w trybie Form Is Submitted potwierdza przyjęcie od razu, a workflow pracuje dalej w tle. Wynik sprawdzisz na Dysku Google albo w liście executions."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Flow from '../../components/Flow.astro';
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Gotowy workflow · po Module 6"
+  readingTime="~16 min"
+  note="Wdrożenie: ~45-60 min"
+/>
+
+Masz bloga firmowego albo prowadzisz go klientowi i za każdym razem zaczynasz od tego samego:
+jakie frazy wpisują ludzie, o co pytają w Google, co już na ten temat napisano? Ten gotowiec robi
+pierwszą godzinę tej pracy za Ciebie. Wpisujesz w formularz branżę (np. "elektryk, Wrocław") i
+liczbę artykułów, a n8n dobiera frazy kluczowe, sprawdza wyniki Google, robi research źródeł i
+zapisuje szkic każdego artykułu jako osobny dokument w Google Docs.
+
+To rozwinięcie workflow, którego używam u siebie. Oryginał ma osobne gałęzie na trzy źródła fraz
+i Azure OpenAI - tutaj zostawiłem jedną prostą ścieżkę, którą zbudujesz po
+[Module 6: AI i agenci](/modul-6-ai-agenci) i która mieści się w darmowych limitach usług
+zewnętrznych.
+
+:::caution[To są szkice, nie gotowe artykuły]
+Model dostaje źródła z researchu i ma zakaz wymyślania liczb, ale nadal potrafi się pomylić.
+Każdy dokument przeczytaj, sprawdź fakty w linkach z sekcji "Źródła" i dopisz własne
+doświadczenie, zanim cokolwiek opublikujesz. Tekst wygenerowany bez redakcji rzadko wnosi coś,
+czego nie ma już w pierwszej dziesiątce wyników.
+:::
+
+## Czego potrzebujesz
+
+- **Moduł 6 ukończony** - wiesz, czym jest prompt, token i model językowy, i rozumiesz, kiedy
+  wystarczy jedno wywołanie modelu zamiast agenta. Jeśli czegoś brakuje, wróć do
+  [Modułu 6: AI i agenci](/modul-6-ai-agenci).
+- **Moduł 3 ukończony** - wyrażenia `{{ }}`, node Edit Fields (Set) i to, że n8n sam przetwarza
+  każdy item osobno. Patrz [Moduł 3: Praca z danymi](/modul-3-praca-z-danymi).
+- **Moduł 4 ukończony** - HTTP Request z kluczem API i podstawy OAuth2 do podpięcia Google Docs.
+  Patrz [Moduł 4: Integracje i API](/modul-4-integracje-api).
+- **Działająca instancja n8n** - Cloud, Docker albo dowolny hosting z
+  [Modułu 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+- **Trzy klucze API:** [OpenAI](https://platform.openai.com/api-keys) (model AI),
+  [SerpApi](https://serpapi.com/users/sign_up) (wyniki Google) i
+  [Tavily](https://app.tavily.com) (research źródeł). SerpApi i Tavily mają darmowe plany bez
+  karty płatniczej.
+- **Konto Google** z dostępem do Google Docs i Dysku - tam lądują szkice.
+
+## Jak to działa
+
+<Flow
+  title="research-seo-google-docs"
+  alt="Diagram: formularz przyjmuje branżę, opis oferty i liczbę artykułów. Edit Fields porządkuje
+  parametry. Model AI proponuje frazy kluczowe w formacie JSON, node Edit Fields je odczytuje, a
+  Split Out zamienia listę fraz na osobne itemy. Dla każdej frazy SerpApi pobiera wyniki Google z
+  pytaniami użytkowników, Tavily zbiera źródła, drugi model AI pisze szkic artykułu, a dwa node'y
+  Google Docs tworzą dokument i wstawiają do niego tekst."
+  caption="Pierwsze pięć node'ów przygotowuje listę fraz. Od Split Out każda fraza to osobny item,
+  więc reszta łańcucha wykonuje się raz na frazę - bez node'a Loop."
+  spec={`
+    Formularz (branża, liczba artykułów):clipboard-list @slate -> Parametry (Edit Fields):pen-to-square @blue
+    Parametry -> Pomysły na frazy (HTTP Request do AI):robot @pink
+    Pomysły na frazy -> Odczytaj frazy (Edit Fields):pen-to-square @blue
+    Odczytaj frazy -> Rozbij frazy (Split Out):list @sky
+    Rozbij frazy -> Wyniki Google (SerpApi):magnifying-glass @amber
+    Wyniki Google -> Research (Tavily):globe @amber
+    Research -> Artykuł AI (HTTP Request do AI):robot @pink
+    Artykuł AI -> Przygotuj artykuł (Edit Fields):pen-to-square @blue
+    Przygotuj artykuł -> Utwórz dokument (Google Docs):file-lines @green
+    Utwórz dokument -> Wstaw treść (Google Docs):file-signature @green
+  `}
+/>
+
+### Koszt uruchomienia
+
+Stan na listopad 2026, przykład: **trzy artykuły**, model `gpt-5-mini`. Ceny sprawdziłem w
+[cenniku API OpenAI](https://developers.openai.com/api/docs/pricing),
+[cenniku SerpApi](https://serpapi.com/pricing) i
+[opisie kredytów Tavily](https://docs.tavily.com/documentation/api-credits). Liczby tokenów to
+moje założenia dla typowego przebiegu, nie pomiar - u Ciebie będą inne, zależnie od branży i
+długości tekstów.
+
+| Element | Ile razy | Stawka | Koszt |
+| --- | --- | --- | --- |
+| Pomysły na frazy (ok. 400 tokenów wejścia, ok. 2 000 wyjścia z rozumowaniem) | 1 | 0,25 USD / 1 mln wejścia, 2,00 USD / 1 mln wyjścia | ok. 0,004 USD |
+| Artykuł AI (ok. 5 000 tokenów wejścia, ok. 6 000 wyjścia z rozumowaniem) | 3 | jw. | 3 × ok. 0,013 = ok. 0,04 USD |
+| Wyniki Google (SerpApi) | 3 wyszukiwania | darmowy plan: 250 wyszukiwań / mies. | 0 USD |
+| Research (Tavily, `basic`) | 3 kredyty | darmowy plan: 1 000 kredytów / mies. | 0 USD |
+| Google Docs | 6 wywołań | bezpłatne w ramach konta Google | 0 USD |
+| **Razem** | | | **ok. 0,04-0,05 USD** |
+
+Darmowy SerpApi wystarcza na 250 artykułów miesięcznie, darmowy Tavily na 1 000. Gdy wyjdziesz
+ponad limit, SerpApi przestaje działać do końca miesiąca albo przechodzisz na plan Starter
+(25 USD miesięcznie za 1 000 wyszukiwań, czyli 0,025 USD za wyszukiwanie), a Tavily nalicza
+0,008 USD za kredyt. Wtedy trzy artykuły kosztują ok. 0,04 USD za AI + 3 × 0,025 USD + 3 × 0,008
+USD = **ok. 0,14 USD**. Tokeny to jednostki, w których dostawcy liczą koszt - więcej w
+[Module 6](/modul-6-ai-agenci#n8n-jako-orkiestrator-ai).
+
+:::note[Dlaczego SerpApi, a nie DataForSEO]
+Mój oryginalny workflow korzysta z DataForSEO i SerpApi naraz. Do gotowca wybrałem jedno źródło:
+SerpApi ma darmowy plan na 250 wyszukiwań miesięcznie bez karty, a jedno zapytanie zwraca od razu
+wyniki organiczne, pytania z sekcji "Podobne pytania" i powiązane wyszukiwania. DataForSEO jest
+tańsze w dużej skali (od 0,0006 USD za stronę wyników według
+[cennika DataForSEO](https://dataforseo.com/pricing), stan na listopad 2026), ale wymaga
+doładowania konta minimum 50 USD - za dużo jak na pierwszy test.
+:::
+
+## Pobierz gotowy workflow
+
+Cały workflow w formacie JSON, gotowy do zaimportowania:
+[research-seo-google-docs.json](/workflows/research-seo-google-docs.json).
+
+<Steps>
+
+1. Pobierz plik `research-seo-google-docs.json` (link wyżej).
+2. W n8n otwórz listę workflow i wybierz **Import from File** (albo przeciągnij plik na kanwę
+   nowego, pustego workflow).
+3. Uzupełnij placeholdery z tabeli niżej - na kanwie masz też notatkę "Instrukcja" z tą samą
+   listą.
+4. W node'ach **Utwórz dokument** i **Wstaw treść** wybierz credentials Google Docs (OAuth2).
+
+</Steps>
+
+| Placeholder | Gdzie | Co wpisać |
+| --- | --- | --- |
+| `TWOJ_KLUCZ_API_OPENAI` | node'y Pomysły na frazy i Artykuł AI (nagłówek Authorization) | Twój klucz API OpenAI - w obu node'ach |
+| `NAZWA_MODELU_AI` | node'y Pomysły na frazy i Artykuł AI (treść żądania) | identyfikator modelu, np. `gpt-5-mini` - sprawdź aktualną listę w dokumentacji dostawcy |
+| `TWOJ_KLUCZ_API_SERPAPI` | node Wyniki Google (SerpApi), parametr `api_key` | klucz z panelu SerpApi |
+| `TWOJ_KLUCZ_API_TAVILY` | node Research (Tavily), nagłówek Authorization | klucz z panelu Tavily (zaczyna się od `tvly-`) |
+
+Credentials Google Docs zakładasz tak samo jak każde inne połączenie Google przez OAuth2 -
+instrukcja krok po kroku jest w
+[dokumentacji n8n o Google OAuth2](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/),
+a tło w [Module 4: Integracje i API](/modul-4-integracje-api). W Google Cloud Console włącz
+**Google Docs API** i **Google Drive API** - node tworzy plik przez Dysk, a tekst wstawia przez
+Docs.
+
+:::caution[Klucze API w polach node'a]
+Tak jak w gotowcu [RSS → podsumowanie AI](/workflow-rss-podsumowanie-ai), klucze wpisujesz
+wprost w nagłówek albo parametr żądania - to najprostsza droga do pierwszego uruchomienia. Wadą
+jest to, że eksportując workflow do JSON albo pokazując go komuś, eksportujesz też klucze. Gdy
+workflow działa, przenieś klucze do credentials typu **Header Auth** (OpenAI, Tavily) i
+**Query Auth** (SerpApi) i wybierz je w polu **Authentication** node'ów HTTP Request.
+:::
+
+## Budowa krok po kroku
+
+### 1. Formularz research SEO - n8n Form Trigger
+
+Node **n8n Form Trigger** wystawia prosty formularz z trzema polami: **Branża lub zawód**
+(wymagane), **Opis oferty** (opcjonalne, pomaga modelowi trafić w Twoją niszę) i **Liczba
+artykułów (1-5)**. Ścieżka formularza to `research-seo`. W ustawieniu **Respond When** wybrany
+jest tryb **Form Is Submitted** - użytkownik od razu widzi komunikat "Research ruszył", a workflow
+pracuje dalej w tle. Przy pięciu artykułach całość trwa kilka minut i przeglądarka nie musi na
+nic czekać. Szczegóły w
+[dokumentacji n8n Form Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger/),
+a formularze od podstaw pokazuję w gotowcu
+[Formularz → arkusz + powiadomienie](/workflow-formularz-arkusz-powiadomienie).
+
+Formularz ma dwa adresy: **Test URL** działa, gdy klikniesz "Execute workflow" w edytorze, a
+**Production URL** dopiero po **opublikowaniu** workflow przyciskiem **Publish**.
+
+### 2. Parametry - Edit Fields (Set)
+
+Node **Edit Fields** przepisuje pola formularza na krótkie nazwy bez polskich znaków (`branza`,
+`opis`, `liczba_artykulow`), na których opierają się wszystkie dalsze wyrażenia. Przy okazji
+pilnuje liczby artykułów:
+
+```javascript
+{{ Math.min(Math.max(parseInt($json['Liczba artykułów (1-5)']) || 1, 1), 5) }}
+```
+
+Cokolwiek ktoś wpisze, dostajesz liczbę od 1 do 5. To zabezpieczenie kosztowe - bez niego jedna
+literówka ("50" zamiast "5") to 50 wywołań modelu i 50 wyszukiwań z darmowego limitu.
+
+### 3. Pomysły na frazy - HTTP Request do API OpenAI
+
+Pierwsze wywołanie modelu. Node **HTTP Request** wysyła `POST` na
+`https://api.openai.com/v1/chat/completions` z nagłówkiem `Authorization: Bearer
+TWOJ_KLUCZ_API_OPENAI` - dokładnie tak, jak w gotowcu
+[RSS → podsumowanie AI](/workflow-rss-podsumowanie-ai), gdzie tłumaczę, dlaczego w gotowcach
+wybieram HTTP Request zamiast cluster node'ów z Modułu 6. Prompt prosi o kilka fraz z długiego
+ogona (3-6 słów, pytania i problemy klientów zamiast samych nazw usług) - o dwie więcej, niż
+zamówiłeś, żeby model miał z czego wybrać.
+
+Najważniejszy element treści żądania to:
+
+```javascript
+response_format: { type: 'json_object' }
+```
+
+To tryb JSON w [API OpenAI](https://platform.openai.com/docs/api-reference/chat): model musi
+zwrócić poprawny obiekt JSON, a nie tekst z JSON-em w środku i komentarzem na końcu. W prompcie
+podajesz oczekiwany kształt: `{"frazy": [{"fraza": "...", "intencja": "..."}]}`.
+
+### 4. Odczytaj frazy - Edit Fields (Set)
+
+Model zwraca JSON jako tekst w polu `choices[0].message.content`. Node **Edit Fields** zamienia
+go na prawdziwą tablicę i od razu przycina do zamówionej liczby:
+
+```javascript
+{{ JSON.parse($json.choices[0].message.content).frazy.slice(0, $('Parametry').first().json.liczba_artykulow) }}
+```
+
+`$('Parametry').first()` sięga po dane z node'a Parametry - wyrażenia mogą czytać wynik dowolnego
+wcześniejszego node'a, nie tylko bezpośredniego poprzednika (więcej w
+[Module 3](/modul-3-praca-z-danymi#najważniejsze-zmienne-wbudowane)).
+
+### 5. Rozbij frazy - Split Out
+
+Node **Split Out** bierze tablicę z pola `frazy` i robi z każdego jej elementu osobny item. Z
+jednego itemu z trzema frazami robią się trzy itemy, każdy z polami `fraza` i `intencja`. Od tej
+chwili n8n sam wykona każdy kolejny node raz dla każdej frazy - bez node'a Loop Over Items, bo
+domyślnie przetwarza wszystkie itemy po kolei (patrz
+[Moduł 3: pętle](/modul-3-praca-z-danymi#pętle---kiedy-n8n-iteruje-sam-a-kiedy-potrzebujesz-jawnej-pętli)).
+Opis node'a:
+[dokumentacja Split Out](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitout/).
+
+### 6. Wyniki Google - HTTP Request do SerpApi
+
+Node **HTTP Request** wysyła `GET` na `https://serpapi.com/search.json` z parametrami zapytania:
+`engine=google`, `q={{ $json.fraza }}`, `google_domain=google.pl`, `gl=pl`, `hl=pl` i `api_key`.
+Trzy ostatnie parametry przed kluczem ustawiają polską wersję Google i polskie wyniki - bez nich
+dostaniesz wyniki z perspektywy USA. Z odpowiedzi workflow korzysta z trzech pól:
+
+- `related_questions` - pytania z sekcji "Podobne pytania" (People Also Ask), czyli to, o co
+  ludzie dopytują przy tej frazie
+  ([opis pola w dokumentacji SerpApi](https://serpapi.com/related-questions)),
+- `related_searches` - powiązane wyszukiwania z dołu strony wyników,
+- `organic_results` - tytuły z pierwszej strony, żeby model wiedział, z czym konkuruje.
+
+Każde wywołanie to jedno wyszukiwanie z miesięcznego limitu SerpApi.
+
+### 7. Research - HTTP Request do Tavily
+
+[Tavily](https://docs.tavily.com/documentation/api-reference/endpoint/search) to wyszukiwarka
+zrobiona pod modele AI: zamiast listy linków zwraca od razu fragmenty treści ze stron. Node
+**HTTP Request** wysyła `POST` na `https://api.tavily.com/search` z nagłówkiem `Authorization:
+Bearer TWOJ_KLUCZ_API_TAVILY` i treścią:
+
+```javascript
+{{ JSON.stringify({ query: $('Rozbij frazy').item.json.fraza, search_depth: 'basic', max_results: 5 }) }}
+```
+
+Zwróć uwagę na `$('Rozbij frazy').item`, a nie `$json`. Bieżący item to już odpowiedź SerpApi, a
+fraza została dwa node'y wcześniej. `.item` (w odróżnieniu od `.first()`) wskazuje item
+**sparowany** z bieżącym - dla drugiej frazy dostajesz drugą frazę, nie pierwszą. Tryb `basic`
+kosztuje 1 kredyt, `advanced` 2 kredyty i zwraca dokładniejsze fragmenty.
+
+### 8. Artykuł AI - HTTP Request do API OpenAI
+
+Drugie wywołanie modelu składa wszystko w jeden prompt: frazę i intencję, branżę z formularza,
+pytania z Google, powiązane wyszukiwania, tytuły konkurencji i fragmenty źródeł z Tavily (tytuł,
+URL, treść). Instrukcje dla modelu:
+
+- 900-1200 słów, odpowiedź na intencję wyszukiwania w pierwszym akapicie,
+- śródtytuły jako pytania, z wykorzystaniem pytań z Google,
+- fakty, liczby i ceny wyłącznie z dostarczonych materiałów - czego nie ma w źródłach, tego nie
+  wymyśla,
+- na końcu sekcja "Źródła" z adresami URL,
+- odpowiedź w JSON: `{"tytul": "...", "meta_opis": "...", "tresc": "..."}`.
+
+W opcjach node'a timeout jest podniesiony do 180 sekund. Modele z rozumowaniem, jak `gpt-5-mini`,
+potrafią pisać dłuższy tekst przez ponad minutę, a domyślny limit czasu mógłby uciąć odpowiedź.
+
+### 9. Przygotuj artykuł - Edit Fields (Set)
+
+Ten sam trik co w kroku 4: `JSON.parse($json.choices[0].message.content)` i rozpakowanie pól
+`tytul`, `meta_opis` i `tresc`, plus frazę z `$('Rozbij frazy').item`. Dzięki temu dwa ostatnie
+node'y mają czyste, nazwane pola zamiast długich wyrażeń.
+
+### 10. Utwórz dokument i Wstaw treść - Google Docs
+
+Google Docs w n8n tworzy dokument i wpisuje treść w dwóch osobnych operacjach, dlatego są dwa
+node'y:
+
+- **Utwórz dokument** - operacja **Create**, tytuł `SEO - {{ $json.tytul }}`, folder `/`
+  (główny katalog Twojego Dysku). Node zwraca pole `id` nowego dokumentu.
+- **Wstaw treść** - operacja **Update**, w polu **Doc ID or URL** wyrażenie `{{ $json.id }}`,
+  akcja **Text → Insert** na końcu dokumentu. Wstawiany tekst zaczyna się od frazy głównej i
+  meta description, potem tytuł i treść artykułu.
+
+Pełny opis operacji:
+[dokumentacja node'a Google Docs](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledocs/).
+
+## Co może pójść nie tak
+
+### Odczytaj frazy albo Przygotuj artykuł: "Unexpected token" w JSON.parse
+
+- **Objaw:** node Edit Fields zatrzymuje się z błędem parsowania JSON.
+- **Przyczyna:** odpowiedź modelu nie jest czystym JSON-em - najczęściej dlatego, że w treści
+  żądania zabrakło `response_format: { type: 'json_object' }` albo zmieniłeś dostawcę i jego API
+  włącza tryb JSON inaczej.
+- **Naprawa:** sprawdź w panelu danych node'a AI, co dokładnie jest w
+  `choices[0].message.content`. Przywróć `response_format` albo użyj odpowiednika u swojego
+  dostawcy.
+
+### Pytań z Google jest zero
+
+- **Objaw:** w szkicu brakuje śródtytułów z pytaniami, a w danych SerpApi nie ma pola
+  `related_questions`.
+- **Przyczyna:** Google nie pokazuje sekcji "Podobne pytania" dla każdej frazy - zwłaszcza dla
+  bardzo wąskich, lokalnych zapytań.
+- **Naprawa:** to normalne, workflow działa dalej (wyrażenie ma zabezpieczenie `|| []`). Jeśli
+  dzieje się tak przy większości fraz, poproś w kroku 3 o frazy bardziej ogólne albo w formie
+  pytań.
+
+### Google Docs: 403 albo "API has not been used in project"
+
+- **Objaw:** node Utwórz dokument albo Wstaw treść kończy się błędem 403.
+- **Przyczyna:** w projekcie Google Cloud, z którego pochodzą credentials, nie włączono Google
+  Docs API albo Google Drive API.
+- **Naprawa:** włącz oba API w Google Cloud Console (APIs & Services → Library), odczekaj kilka
+  minut i uruchom workflow ponownie.
+
+### SerpApi albo Tavily zwraca 401 lub 429
+
+- **Objaw:** node Wyniki Google albo Research kończy się błędem `401` (zły klucz) albo `429`
+  (limit).
+- **Przyczyna:** niepodmieniony placeholder klucza albo wyczerpany miesięczny limit darmowego
+  planu.
+- **Naprawa:** sprawdź klucz w polu node'a i licznik zużycia w panelu usługi. Limity odnawiają się
+  co miesiąc.
+
+### Artykuł AI kończy się timeoutem
+
+- **Objaw:** node Artykuł AI zatrzymuje się po upływie limitu czasu, bez odpowiedzi.
+- **Przyczyna:** model z rozumowaniem pisał dłużej niż ustawiony timeout, albo dostawca jest
+  akurat przeciążony.
+- **Naprawa:** podnieś **Timeout** w opcjach node'a albo włącz **Retry On Fail** w jego
+  ustawieniach (Settings), np. 2 próby co 5 sekund.
+
+## Jak to rozbudować
+
+- **Wolumeny wyszukiwań** - dodaj przed SerpApi wywołanie API danych o słowach kluczowych (np.
+  [Keywords Data w DataForSEO](https://dataforseo.com/apis/keywords-data-api)) i odfiltruj node'em
+  **Filter** frazy z liczbą wyszukiwań poniżej progu. Tak działa gałąź "Keywords for Keywords" w
+  moim oryginalnym workflow.
+- **Kontekst z Twojej strony** - dodaj do formularza pole z adresem strony i wywołaj
+  [Tavily Extract](https://docs.tavily.com/documentation/api-reference/endpoint/extract), żeby
+  model znał Twoją ofertę z pierwszej ręki, a nie tylko z krótkiego opisu.
+- **Rejestr artykułów w arkuszu** - po node'zie Wstaw treść dopisz node **Google Sheets** z
+  operacją Append: fraza, tytuł, link do dokumentu (`https://docs.google.com/document/d/` + `id`).
+  Arkusz staje się Twoim planem publikacji.
+- **Folder zamiast głównego katalogu** - w node'zie Utwórz dokument wybierz z listy konkretny
+  folder na Dysku, np. osobny dla każdego klienta.
+- **Powiadomienie na koniec** - node Telegram albo Gmail po ostatnim kroku, jak w gotowcu
+  [Poranny brief na Telegram](/workflow-poranny-brief-telegram).
+
+<Takeaways title="Co warto zapamiętać">
+  - Tryb JSON (`response_format`) zamienia model AI w przewidywalne źródło danych - wynik
+    rozpakujesz `JSON.parse` w zwykłym Edit Fields.
+  - Split Out zamienia tablicę w osobne itemy, a n8n wykonuje każdy kolejny node raz na item - bez
+    jawnej pętli.
+  - `$('Node').item` sięga po sparowany item z wcześniejszego node'a, `$('Node').first()` po
+    pierwszy - przy wielu itemach to różnica między poprawnym a pomieszanym wynikiem.
+  - Ogranicz liczbę iteracji już w formularzu - przy płatnych API każda pętla ma cenę, a
+    literówka w liczbie potrafi zjeść miesięczny limit.
+  - Model z researchem pisze lepsze szkice niż model bez źródeł, ale to nadal szkice - redakcję i
+    sprawdzenie faktów robisz Ty.
+</Takeaways>
+
+Szukasz kolejnego gotowca do wdrożenia od razu? Zobacz [wszystkie gotowe workflow](/gotowe-workflow).
