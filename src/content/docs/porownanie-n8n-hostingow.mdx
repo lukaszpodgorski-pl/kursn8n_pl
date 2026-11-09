@@ -1403,6 +1403,13 @@ każde środowisko. Moich wyników tu nie ma - to zestaw do powtórzenia u siebi
 - **Punkty pomiarowe:** czas instalacji od zera, czas wykonania workflow, zużycie
   RAM/CPU, czas odtworzenia z backupu, koszt netto po miesiącu
 
+Do pomiaru czasu wykonania workflow przygotowałem gotowy benchmark:
+[benchmark-100-requestow.json](/tests/benchmark-100-requestow.json). To workflow, który
+wysyła 100 zapytań HTTP w pętli (Loop Over Items) i na końcu podaje łączny czas
+w sekundach. Zaimportuj go na każdym porównywanym środowisku (menu workflow → Import
+from File), uruchom ręcznie 3-5 razy i porównaj mediany. Instrukcja jest w notatce
+w samym workflow.
+
 ### Katalog testów - propozycja zestawu pomiarowego
 
 Poniżej kompletny zestaw **25 testów** podzielonych na 9 kategorii. Każdy test ma kroki,
@@ -1586,6 +1593,37 @@ ab -n 100 -c 50 -m POST \
   -p payload.json -T application/json \
   https://twoj-n8n.pl/webhook/test
 ```
+
+Alternatywa (Locust): `ab` daje jeden strzał o stałej równoległości. Jeśli chcesz
+zobaczyć, przy jakim obciążeniu instancja zaczyna się dławić, użyj
+[Locust](https://locust.io/) (narzędzie do testów obciążeniowych w Pythonie). Stopniowo
+dokłada wirtualnych użytkowników, pokazuje wyniki na żywo w panelu przeglądarki i podaje
+percentyle czasu odpowiedzi (P50, P95, P99) z każdego przebiegu.
+Gotowe pliki:
+
+- [locustfile.py](/tests/locustfile.py) - scenariusz: POST z małym JSON-em na
+  `/webhook/test`, statusy 429 i 5xx liczone jako błędy
+- [requirements.txt](/tests/requirements.txt) - przypięta wersja Locust 2.47.0
+  (wymaga Pythona 3.11+, stan na listopad 2026,
+  [PyPI](https://pypi.org/project/locust/))
+
+```bash
+python3 -m venv venv && . venv/bin/activate
+pip install -r requirements.txt
+# 50 użytkowników, dokładanych po 25 na sekundę, przez 60 sekund:
+locust -f locustfile.py --host https://twoj-n8n.pl \
+  --headless -u 50 -r 25 --run-time 60s --csv wyniki
+```
+
+Bez `--headless` Locust uruchamia panel pod `http://localhost:8089`. Z `--csv` zapisuje
+statystyki do plików, a `wyniki_stats.csv` ma kolumny `95%` i `99%` - porównujesz je
+między hostingami. Znaczenie flag opisuje
+[dokumentacja Locust](https://docs.locust.io/en/stable/configuration.html).
+
+:::caution
+Uruchamiaj Locust wyłącznie na własnej instancji. Ten sam skrypt skierowany na cudzy
+serwer to atak DoS, a nie benchmark.
+:::
 
 **Oczekiwany wynik:** ≥ 90% żądań obsłużonych bez błędów; brak 5xx
 
@@ -2206,6 +2244,8 @@ od programu partnerskiego.
 - **Nowe sekcje:** n8n Cloud jako punkt odniesienia w tabelach zbiorczych
   ([A może po prostu n8n Cloud?](#a-może-po-prostu-n8n-cloud)), skrót o Render, Fly.io
   i DigitalOcean oraz wyniki oficjalnego benchmarku skalowalności n8n.
+- **Gotowe pliki do testów:** scenariusz Locust do testu T-02 (P95/P99 przy rosnącym
+  obciążeniu) i workflow benchmarkowy ze 100 zapytaniami HTTP w pętli.
 
 ---
 
