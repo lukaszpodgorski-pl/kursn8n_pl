@@ -21,6 +21,8 @@ teaches:
   - Wbudowane zmienne i metody n8n ($input, $json, $now, $jmespath)
   - Dane statyczne workflow (getWorkflowStaticData)
   - Modularność przez sub-workflow (Execute Workflow)
+  - Community nodes - zweryfikowane i niezweryfikowane, instalacja, ryzyko i zmiany w n8n 3.0
+  - Kiedy pisać własny node, a kiedy wystarczy HTTP Request i sub-workflow
   - Obsługa błędów - Error Trigger, retry, Stop And Error
 about:
   - name: n8n
@@ -30,6 +32,8 @@ mentions:
     sameAs: https://en.wikipedia.org/wiki/JavaScript
   - name: Python
     sameAs: https://en.wikipedia.org/wiki/Python_(programming_language)
+  - name: npm
+    sameAs: https://en.wikipedia.org/wiki/Npm
 faq:
   - q: "Który tryb Code Node wybrać - \"All Items\" czy \"Each Item\"?"
     a: "Jeśli przekształcasz każdy rekord niezależnie (zmiana pól, formatowanie) - wybierz Run Once for Each Item: kod jest krótszy, a bieżący item masz w $json. Jeśli musisz widzieć cały zbiór naraz (suma, sortowanie, łączenie, deduplikacja) albo zmieniasz liczbę itemów - wybierz Run Once for All Items i pracuj na $input.all()."
@@ -41,6 +45,10 @@ faq:
     a: "Gdy ten sam fragment powtarza się w kilku workflow, gdy kanwa robi się za duża do ogarnięcia, albo gdy chcesz mieć jeden testowalny \"klocek\" (np. \"wyślij powiadomienie\"). Dla małej logiki używanej raz sub-workflow zwykle nie warto - dodaje tylko warstwę pośrednią."
   - q: "Jaka jest różnica między \"Continue On Fail\" a Stop And Error?"
     a: "\"Continue\" (dawniej \"Continue On Fail\") sprawia, że workflow leci dalej mimo błędu node'a - używasz go, gdy pojedyncza porażka nie powinna zatrzymać całości. Stop And Error robi odwrotnie: celowo rzuca błąd i przerywa wykonanie, gdy dane nie spełniają warunku - to świadome, kontrolowane zatrzymanie zamiast cichego przepuszczenia złych danych."
+  - q: "Czy community nodes działają na n8n Cloud?"
+    a: "Częściowo. Zweryfikowane community nodes (sprawdzone przez n8n) instalujesz z panelu node'ów także na n8n Cloud. Niezweryfikowane paczki z npm działają wyłącznie na instancji self-hosted - na Cloud ich nie zainstalujesz."
+  - q: "Jak włączyć niezweryfikowane community nodes w n8n 3.0?"
+    a: "Od n8n 3.0 zmienna N8N_UNVERIFIED_PACKAGES_ENABLED ma domyślnie wartość false, więc niezweryfikowane paczki nie instalują się i nie ładują. Żeby je świadomie włączyć, ustaw N8N_UNVERIFIED_PACKAGES_ENABLED=true w konfiguracji instancji. Lepszą drogą jest przejście na zweryfikowany odpowiednik, jeśli istnieje."
 ---
 
 import { CardGrid } from '@astrojs/starlight/components';
@@ -53,7 +61,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 5 · Poziom: średnio zaawansowany"
-  readingTime="~22 min"
+  readingTime="~28 min"
   note="Wymaga: Moduły 0-4"
 />
 
@@ -372,6 +380,166 @@ konkretnego zadania (np. "wyślij powiadomienie"). Nie wydzielaj na siłę - je�
 i użyta raz, sub-workflow tylko doda warstwę pośrednią.
 :::
 
+## Community nodes i własne node'y
+
+Wbudowanych node'ów jest kilkaset, ale prędzej czy później trafisz na usługę, której n8n nie
+obsługuje. Zanim sięgniesz po Code Node albo zaczniesz pisać własny node, sprawdź, czy ktoś nie
+zrobił tego za Ciebie. **Community nodes** (node'y społeczności) to paczki npm z dodatkowymi
+node'ami, pisane przez ludzi spoza zespołu n8n i instalowane na Twojej instancji jak wtyczki.
+Po instalacji wyglądają i działają jak każdy inny node na kanwie.
+
+### Zweryfikowane i niezweryfikowane
+
+To najważniejsze rozróżnienie w tym temacie:
+
+<TwoCol>
+  <Panel variant="pros" title="Zweryfikowane (verified)">
+    Przeszły przegląd n8n: standardy techniczne i UX, automatyczne skany, **zero zależności
+    uruchomieniowych**, publikacja z GitHub Actions z poświadczeniem pochodzenia (provenance).
+    Instalujesz je z panelu node'ów na kanwie, w sekcji **More from the community**. Są też
+    dostępne na n8n Cloud.
+  </Panel>
+  <Panel variant="cons" title="Niezweryfikowane (unverified)">
+    Dowolna paczka z rejestru npm. Nikt poza autorem jej nie sprawdzał. Instalujesz ją po
+    nazwie paczki, tylko na instancji self-hosted - **na n8n Cloud ich nie ma**. Od n8n 3.0
+    domyślnie wyłączone.
+  </Panel>
+</TwoCol>
+
+Instalować i zarządzać community nodes mogą tylko konta **Owner** i **Admin**. Raz zainstalowany
+node jest dostępny dla wszystkich użytkowników instancji. Źródła:
+[Install verified community nodes](https://docs.n8n.io/integrations/community-nodes/installation-and-management/install-verified-community-nodes),
+[Building community nodes](https://docs.n8n.io/integrations/community-nodes/building-community-nodes),
+[Installation and management](https://docs.n8n.io/integrations/community-nodes/installation-and-management).
+
+### Instalacja - trzy drogi na self-hostingu
+
+1. **Z interfejsu.** **Settings → Community Nodes → Install**, wpisujesz nazwę paczki npm
+   (opcjonalnie z wersją, np. `n8n-nodes-przyklad@1.2.0`) i zaznaczasz "I understand the risks
+   of installing unverified code from a public source". Aktualizacja to przycisk **Update** przy
+   paczce, odinstalowanie - menu trzech kropek.
+2. **Ręcznie w kontenerze.** Wymagane, gdy działasz w trybie kolejkowym albo instalujesz paczkę
+   prywatną: `docker exec -it n8n sh`, potem w katalogu `~/.n8n/nodes` polecenie
+   `npm i n8n-nodes-przyklad` i restart n8n. Katalog `~/.n8n/nodes` musi leżeć na wolumenie,
+   inaczej po odtworzeniu kontenera paczki znikną (n8n zgłosi wtedy błąd o brakujących paczkach).
+3. **Zmiennymi środowiskowymi** (od n8n 2.21.0). Lista paczek w konfiguracji, a n8n przy każdym
+   starcie doprowadza instalację do zgodności z nią. To moja ulubiona droga - lista paczek żyje
+   w repo razem z resztą konfiguracji:
+
+```yaml
+# docker-compose.yml - fragment sekcji environment
+environment:
+  - N8N_COMMUNITY_PACKAGES_MANAGED_BY_ENV=true
+  - 'N8N_COMMUNITY_PACKAGES=[{"name":"n8n-nodes-przyklad","version":"1.2.0"}]'
+```
+
+:::caution[Lista zmiennych jest nadrzędna]
+Po włączeniu `N8N_COMMUNITY_PACKAGES_MANAGED_BY_ENV` n8n **odinstaluje każdą paczkę, której nie ma
+na liście**, a ekran Settings → Community Nodes staje się tylko do odczytu. Zanim włączysz
+zmienną, wpisz na listę wszystko, co chcesz zachować. Szczegóły:
+[Environment variable installation](https://docs.n8n.io/integrations/community-nodes/installation-and-management/environment-variable-installation).
+:::
+
+Całość wyłączasz jedną zmienną `N8N_COMMUNITY_PACKAGES_ENABLED=false` - wtedy nie działają ani
+zweryfikowane, ani niezweryfikowane paczki. Na n8n Cloud właściciel instancji może wyłączyć
+zweryfikowane community nodes w **Instance settings** w panelu Cloud
+([Risks](https://docs.n8n.io/integrations/community-nodes/risks),
+[Nodes environment variables](https://docs.n8n.io/hosting/configuration/environment-variables/nodes)).
+
+### n8n 3.0: niezweryfikowane paczki domyślnie wyłączone
+
+W n8n 3.0 (stan na 9 listopada 2026: beta, wydanie stabilne zapowiedziane na początek grudnia
+2026) domyślna wartość `N8N_UNVERIFIED_PACKAGES_ENABLED` zmienia się z `true` na `false`. Po
+aktualizacji nie zainstalujesz niezweryfikowanej paczki z npm, a **te już zainstalowane przestaną
+się ładować** - workflow, który z nich korzysta, zacznie padać. Masz dwie drogi:
+
+- **Przejść na zweryfikowany odpowiednik** - sprawdź w panelu node'ów, czy taki istnieje.
+- **Świadomie włączyć niezweryfikowane** - ustaw `N8N_UNVERIFIED_PACKAGES_ENABLED=true`. Jeśli
+  zarządzasz paczkami zmiennymi środowiskowymi, alternatywą jest przypięcie sumy kontrolnej
+  (`checksum`) konkretnej wersji paczki na liście `N8N_COMMUNITY_PACKAGES`.
+
+Moim zdaniem nowe zachowanie jest dobre. Niezweryfikowana paczka to obcy kod z pełnym dostępem
+do serwera, a do tej pory wystarczyło jedno kliknięcie admina, żeby go wpuścić. Teraz to
+decyzja zapisana w konfiguracji - widać ją w repo i w przeglądzie zmian. Zanim zaktualizujesz,
+sprawdź w Settings → Community Nodes, co masz zainstalowane. Źródło:
+[v3.0 Breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes), cały proces
+aktualizacji: [Aktualizacja do n8n 3.0](/modul-1-instalacja-hosting#aktualizacja-do-n8n-30).
+
+### Jak wybrać paczkę
+
+n8n wprost ostrzega: community node ma **pełny dostęp do maszyny**, na której działa n8n, i do
+danych w Twoich workflow, a nowa wersja może zmienić zachowanie i zepsuć workflow
+([Risks](https://docs.n8n.io/integrations/community-nodes/risks)). Zanim zainstalujesz
+niezweryfikowaną paczkę, przejdź tę listę na stronie paczki w npm i w jej repozytorium:
+
+| Sprawdź | Dobry sygnał | Czerwona flaga |
+| --- | --- | --- |
+| Liczba pobrań tygodniowo (npm) | Setki i więcej, stabilnie | Kilka pobrań, nagły skok u nowej paczki |
+| Data ostatniego wydania | Ostatnie miesiące, działa z Twoją wersją n8n | Brak wydań od ponad roku |
+| Repozytorium | Publiczne, z historią commitów i odpowiedziami na issues | Brak linku do repo albo puste repo |
+| Licencja | MIT lub inna jasna licencja open source | Brak licencji |
+| Zależności | Mało albo wcale | Długie drzewo zależności, kod zaciemniony |
+
+Instaluj z przypiętą wersją i aktualizuj świadomie, nie "na najnowszą". Najpierw na instancji
+testowej, potem na produkcji.
+
+### Pułapka trybu kolejkowego
+
+W trybie kolejkowym (queue mode, opisany w [Module 7](/modul-7-produkcja#tryb-kolejkowy-queue-mode-workery-i-skalowanie))
+workflow wykonują workery, czyli osobne procesy, często na osobnych kontenerach. Paczka
+zainstalowana z interfejsu ląduje na dysku głównej instancji, a worker jej nie widzi - wykonanie
+pada, choć w edytorze wszystko wygląda poprawnie. Dlatego dokumentacja n8n wymaga w queue mode
+instalacji ręcznej
+([Manual installation](https://docs.n8n.io/integrations/community-nodes/installation-and-management/manual-installation)).
+Zasada praktyczna: **ten sam zestaw paczek w tych samych wersjach na głównej instancji i na
+każdym workerze** - najprościej przez identyczne zmienne `N8N_COMMUNITY_PACKAGES*` w konfiguracji
+wszystkich kontenerów.
+
+### Własny node - kiedy warto
+
+Zanim zaczniesz pisać node, zadaj sobie pytanie, czy naprawdę go potrzebujesz. W większości
+przypadków **HTTP Request + sub-workflow** wystarczą: node HTTP Request obsłuży prawie każde API
+REST, a sub-workflow zamknie wywołanie w wielokrotnego użytku "klocek" z własnym wejściem i
+wyjściem. Bez kompilacji, bez npm, bez wydań.
+
+<TwoCol>
+  <Panel variant="cons" title="Wystarczy HTTP Request + sub-workflow, gdy…">
+    - Integrację wykorzystujesz Ty albo Twój zespół, na jednej instancji
+    - API to zwykłe REST z kluczem API albo OAuth2
+    - Potrzebujesz kilku endpointów, nie całego SDK
+    - Chcesz zmienić logikę w 5 minut, bez wydawania nowej wersji paczki
+  </Panel>
+  <Panel variant="pros" title="Napisz własny node, gdy…">
+    - Integrację mają używać inni - klienci, społeczność, kilka instancji
+    - Potrzebujesz własnego triggera albo nietypowego uwierzytelniania
+    - Chcesz wygodnego UI: listy rozwijane, walidacja pól, ukryte szczegóły API
+    - Ten sam sub-workflow kopiujesz między instancjami i zaczyna się rozjeżdżać
+  </Panel>
+</TwoCol>
+
+Oficjalny start to narzędzie `n8n-node`:
+
+```bash
+npm create @n8n/node@latest
+```
+
+Komenda tworzy szkielet projektu w TypeScript. W nim masz polecenia `dev` (n8n z Twoim node'em,
+przebudowa przy każdej zmianie - od n8n 3.0 wymaga Dockera albo Podmana), `lint`, `build`
+i `release` (publikacja w npm). Pełna ścieżka, łącznie ze zgłoszeniem node'a do weryfikacji przez
+[Creator Portal](https://creators.n8n.io/nodes): [Using the n8n-node tool](https://docs.n8n.io/integrations/creating-nodes/build/n8n-node)
+i [Verification guidelines](https://docs.n8n.io/integrations/creating-nodes/build/reference/verification-guidelines)
+(m.in. licencja MIT, zero zależności uruchomieniowych, interfejs i dokumentacja po angielsku).
+Node na własny użytek nie musi przechodzić weryfikacji - instalujesz go ręcznie jako paczkę
+prywatną.
+
+:::caution[Community nodes na produkcji]
+Każda paczka, którą instalujesz, to cudzy kod uruchamiany z tymi samymi uprawnieniami co n8n:
+widzi dane w workflow, zmienne środowiskowe i system plików kontenera. Na produkcji trzymaj się
+paczek zweryfikowanych, niezweryfikowane włączaj tylko świadomie i z przypiętą wersją, a każdą
+nową paczkę najpierw testuj na instancji testowej. Resztę zabezpieczeń instancji opisuje
+[Zabezpieczenie instancji](/modul-7-produkcja#zabezpieczenie-instancji) w Module 7.
+:::
+
 ## Obsługa błędów - automaty muszą być przewidywalne
 
 W produkcji nie pytasz, "czy coś się wysypie", tylko "kiedy". API zwróci 500, sieć mrugnie, dane
@@ -440,6 +608,11 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 4. Jaka jest różnica między ustawieniem node'a **On Error → Continue** a **Continue (using error
    output)** - i kiedy przyda Ci się to drugie? Jeśli nie masz pewności - [Ustawienia na poziomie
    node'a](#ustawienia-na-poziomie-nodea).
+5. Po aktualizacji do n8n 3.0 workflow z niezweryfikowanym community node'em przestał działać.
+   Dlaczego, jakie masz dwie drogi naprawy i co dodatkowo musisz sprawdzić, jeśli instancja
+   działa w trybie kolejkowym? Jeśli nie masz pewności -
+   [n8n 3.0: niezweryfikowane paczki domyślnie wyłączone](#n8n-30-niezweryfikowane-paczki-domyślnie-wyłączone)
+   i [Pułapka trybu kolejkowego](#pułapka-trybu-kolejkowego).
 
 <details>
 <summary>Mini-zadanie: zbuduj sub-workflow liczący sumę zamówień</summary>
@@ -464,5 +637,7 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
   - Zmienne wbudowane (`$input`, `$json`, `$now`/`$today` jako Luxon, `$jmespath`) skracają kod o połowę.
   - Static data (`$getWorkflowStaticData`) daje pamięć między uruchomieniami - zapis utrwala się tylko po udanym wykonaniu produkcyjnym.
   - Sub-workflow (Execute Sub-workflow + jego trigger) to "funkcje" n8n - wydzielaj powtarzalną logikę.
+  - Community nodes: zweryfikowane z panelu node'ów (też na Cloud), niezweryfikowane tylko na self-hostingu i od n8n 3.0 domyślnie wyłączone (`N8N_UNVERIFIED_PACKAGES_ENABLED`). W queue mode paczka musi być na każdym workerze.
+  - Własny node (`npm create @n8n/node@latest`) pisz dopiero, gdy HTTP Request + sub-workflow przestają wystarczać.
   - Obsługa błędów na trzech poziomach: error workflow (Error Trigger), ustawienia node'a (On Error, retry) i Stop And Error.
 </Takeaways>
