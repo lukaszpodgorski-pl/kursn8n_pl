@@ -411,7 +411,7 @@ services:
 
   # Twoja istniejąca usługa n8n - te wpisy dokleją się do tego, co już masz.
   n8n:
-    image: n8nio/n8n:2.46.6 # wpisz wersję, która u Ciebie chodzi
+    image: n8nio/n8n:2.46.7 # wpisz wersję, która u Ciebie chodzi
     environment:
       N8N_ENABLED_MODULES: instance-ai
       N8N_INSTANCE_AI_SANDBOX_ENABLED: 'true'
@@ -715,13 +715,13 @@ docker run -d --name n8n \
  -p 5678:5678 \
  -e N8N_ENCRYPTION_KEY=<TWÓJ_WYGENEROWANY_KLUCZ> \
  -v n8n_data:/home/node/.n8n \
- docker.n8n.io/n8nio/n8n:2.46.6
+ docker.n8n.io/n8nio/n8n:2.46.7
 ```
 
 ```yaml
 services:
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.46.6
+    image: docker.n8n.io/n8nio/n8n:2.46.7
     environment:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 ```
@@ -783,13 +783,13 @@ docker rm n8n
 ```
 
 Możesz też przypiąć konkretną wersję zamiast najnowszej, podając tag, np.
-`docker.n8n.io/n8nio/n8n:2.46.6` (wersja stabilna z 4 listopada 2026) - przydatne, gdy
+`docker.n8n.io/n8nio/n8n:2.46.7` (wersja stabilna z 9 listopada 2026) - przydatne, gdy
 chcesz kontrolować, na co dokładnie aktualizujesz.
 
 | Tag | Co dostajesz |
 | --- | --- |
 | `:stable` | najnowsze wydanie stabilne - to chcesz na produkcji |
-| `:2.46.6` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
+| `:2.46.7` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
 | `:beta` | najświeższe wydanie eksperymentalne - do testów, nie na produkcję |
 
 Numery wersji podane wyżej to stan na listopad 2026 - aktualny stabilny tag sprawdzisz w
