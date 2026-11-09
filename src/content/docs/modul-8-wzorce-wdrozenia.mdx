@@ -24,6 +24,7 @@ teaches:
   - "Wzorce projektowe: idempotentność, deduplikacja, kolejkowanie, sub-workflow, obsługa błędów"
   - "Wzorce odporności na błędy w n8n: Dead Letter Queue, Circuit Breaker i graceful degradation"
   - Optymalizacja wydajności i kosztów workflow (API, batchowanie, paginacja, tokeny AI, queue mode)
+  - "n8n dla wielu klientów: licencja, instancja per klient vs projekty, credentials, rozliczanie wykonań i przekazanie instancji"
   - Najczęstsze antywzorce wdrożeniowe i jak ich unikać
 about:
   - name: n8n
@@ -35,6 +36,10 @@ mentions:
     sameAs: https://en.wikipedia.org/wiki/Dead_letter_queue
   - name: Circuit Breaker
     sameAs: https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern
+  - name: Multitenancy
+    sameAs: https://en.wikipedia.org/wiki/Multitenancy
+  - name: Role-based access control
+    sameAs: https://en.wikipedia.org/wiki/Role-based_access_control
 faq:
   - q: "Czy gotowe szablony z n8n.io/workflows są bezpieczne?"
     a: "Większość tworzy społeczność, więc jakość bywa różna. Szablon sam w sobie nie zawiera Twoich kluczy, ale po imporcie podpinasz własne credentials - i wtedy działa na Twoich danych. Zanim go uruchomisz, przeczytaj cały przepływ, sprawdź, dokąd wysyła dane i jakich uprawnień wymaga. Traktuj szablon jak kod do przeglądu, nie jak gotowy produkt."
@@ -48,6 +53,10 @@ faq:
     a: "Trzymasz stan bezpiecznika - licznik porażek i datę, do której jest otwarty - w Data Table albo w danych statycznych workflow. Przed wywołaniem API node If sprawdza, czy bezpiecznik jest otwarty; jeśli tak, nie wołasz API, tylko odkładasz element na później. Sukces zeruje licznik, a błąd go podbija i po przekroczeniu progu otwiera bezpiecznik na kilka minut. Data Table jest pewniejsza, bo działa w testach i jest wspólna dla wielu workflow."
   - q: "Jak ograniczyć koszty tokenów AI w workflow?"
     a: "Skracaj prompty i przekazywany kontekst do niezbędnego minimum, dobieraj tańszy model do prostych zadań, cache'uj powtarzalne odpowiedzi i nie wywołuj modelu tam, gdzie wystarczy zwykła logika. Przy RAG ogranicz liczbę i wielkość pobieranych fragmentów. Szczegóły omawiam w Module 6: AI i agenci."
+  - q: "Czy jako agencja mogę budować workflow dla klientów na jednej instancji n8n?"
+    a: "Według FAQ licencji n8n (stan na listopad 2026) tak - budowanie i utrzymywanie workflow dla wielu klientów na własnej instancji jest dozwolone, także za opłatą, o ile klienci dostają tylko efekty i nie mają dostępu do n8n ani logiki workflow. Liczba klientów nie jest ograniczona. Niedozwolone jest hostowanie n8n jako usługi, w której klienci sami budują workflow, oraz white-label. W przypadkach granicznych n8n odsyła na license@n8n.io."
+  - q: "Instancja n8n per klient czy projekty w jednej instancji?"
+    a: "Instancja per klient daje pełną izolację (osobna baza i klucz szyfrowania credentiali) i proste przekazanie, ale mnoży koszty i aktualizacje. Jedna instancja z projektem per klient jest tańsza w utrzymaniu, ale projekty wymagają płatnego planu, a awaria lub wyciek dotyczy wszystkich klientów naraz. Klientom z danymi wrażliwymi albo takim, którzy mogą przejąć automatyzacje, daj osobną instancję."
   - q: "Kiedy potrzebuję queue mode?"
     a: "Gdy jeden proces przestaje nadążać z ruchem - dużo równoległych wykonań, szczyty zdarzeń, długo działające workflow. W queue mode główny proces kolejkuje zadania (Redis), a workery wykonują je równolegle, dzięki czemu skalujesz poziomo. Przy kilku workflow dziennie to przerost formy - wystarczy tryb domyślny."
 ---
@@ -61,7 +70,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Moduł 8 · Poziom: zaawansowany"
-  readingTime="~28 min"
+  readingTime="~35 min"
   note="Synteza i dobre praktyki"
 />
 
@@ -440,6 +449,171 @@ Optymalizuj realne wąskie gardło, a nie to, które "wydaje się" wolne. Najta�
 to takie, którego w ogóle nie robisz.
 :::
 
+## n8n dla wielu klientów: instancje, projekty, przekazanie
+
+Prędzej czy później budujesz automatyzacje nie tylko dla siebie. Pierwszy klient to zwykle
+jeden workflow na Twojej instancji, piąty to już pytania: gdzie trzymać jego klucze API, jak
+rozliczyć wykonania, co oddać, gdy współpraca się skończy. I jedno pytanie, które zadajesz
+na samym początku, a nie na końcu: **czy licencja w ogóle na to pozwala**.
+
+### Licencja: klient dostaje wyniki, nie edytor
+
+Self-hosted n8n działa na licencji **Sustainable Use License** (n8n nazywa ją też licencją
+Community). Jej sedno to jedno zdanie z sekcji _Limitations_
+[pełnego tekstu licencji](https://github.com/n8n-io/n8n/blob/master/LICENSE.md):
+
+> "You may use or modify the software only for your own internal business purposes or for
+> non-commercial or personal use. You may distribute the software or provide it to others only
+> if you do so free of charge for non-commercial purposes."
+
+Czyli: używasz n8n tylko do wewnętrznych celów swojej firmy albo niekomercyjnie, a innym
+udostępniasz go wyłącznie bezpłatnie i niekomercyjnie. Co to znaczy dla freelancera i agencji,
+n8n rozpisuje w [FAQ licencji](https://docs.n8n.io/n8n-community-license/community-license/license-faq),
+w części _Consulting and agency use_ (stan na listopad 2026). Streszczam przykłady z FAQ,
+bez własnej interpretacji prawnej:
+
+| Scenariusz | Co mówi FAQ n8n |
+| --- | --- |
+| Budujesz i utrzymujesz workflow dla wielu klientów na swojej instancji, klienci dostają tylko efekty (wiadomości, zsynchronizowane dane, odpowiedzi chatbota) | Dozwolone, także za opłatą za consulting i wdrożenie. Liczba klientów na jednej instancji nie jest ograniczona - decyduje dostęp klienta, nie liczba klientów ani obroty |
+| Klient sam podpina swoje konta (OAuth, klucze API) do workflow, które zbudowałeś | Dozwolone, o ile klient nie może budować ani zmieniać workflow |
+| Klient loguje się do Twojej instancji i sam buduje albo edytuje workflow | Niedozwolone: "Host n8n as a service and allow your clients to build workflows" |
+| Instalujesz i utrzymujesz n8n na serwerze klienta, a on płaci Ci za usługę | Dozwolone, o ile nie hostujesz mu n8n równolegle - FAQ wprost zaznacza, że hosting konkurowałby z n8n Cloud |
+| White-label: usuwasz branding n8n i oferujesz go jako własne narzędzie | Niedozwolone |
+| Zarządzasz n8n w wielu środowiskach klientów naraz | FAQ odsyła do license@n8n.io i zapowiada program partnerski dla zarządzania wieloma instancjami (w przygotowaniu) |
+
+FAQ streszcza to jednym zdaniem: n8n ma pozostać Twoim wewnętrznym narzędziem, a klienci
+dostają wyniki, nie dostęp (_"clients receive outputs, not access"_). Ogólną tabelę "wolno -
+nie wolno" znajdziesz też w poradniku
+[Ile kosztuje n8n](/ile-kosztuje-n8n#czy-n8n-na-własnym-serwerze-jest-naprawdę-za-darmo).
+
+:::caution[Licencję sprawdzasz przed ofertą, nie po]
+Powyższa tabela to streszczenie oficjalnych przykładów, nie porada prawna. Licencja i FAQ
+mogą się zmienić, więc przed podpisaniem umowy z klientem przeczytaj aktualny
+[tekst licencji](https://github.com/n8n-io/n8n/blob/master/LICENSE.md) i
+[FAQ licencji](https://docs.n8n.io/n8n-community-license/community-license/license-faq).
+Jeśli Twój model nie pasuje wprost do żadnego przykładu - zwłaszcza gdy chcesz klientowi
+hostować n8n, dać mu dostęp do edytora albo wbudować n8n we własny produkt - napisz do
+n8n na license@n8n.io, zanim zbudujesz na tym ofertę. Do tego dochodzi jeszcze jedno: funkcji
+Enterprise, które proszą o klucz licencyjny, nie wolno używać bez licencji Enterprise.
+:::
+
+### Instancja per klient czy projekty w jednej instancji
+
+Masz dwie architektury. Żadna nie jest "lepsza" - wybierasz między izolacją a kosztem utrzymania.
+
+| | Instancja per klient | Jedna instancja, projekt per klient |
+| --- | --- | --- |
+| Izolacja | Pełna: osobna baza, osobny klucz szyfrowania credentiali, awaria jednego klienta nie dotyka innych | Wspólna baza i wspólny klucz szyfrowania - jeden wyciek albo jedna awaria dotyczy wszystkich |
+| Koszt | Serwer (albo abonament Cloud) i aktualizacje razy liczba klientów | Jeden serwer, jedna aktualizacja |
+| Limity planu | Każda instancja ma własne | Wykonania wszystkich klientów liczą się do jednego limitu (na Cloud) |
+| Przekazanie klientowi | Proste: oddajesz całą instancję | Trzeba wyciąć klienta z większej całości (eksport) |
+| Licencja | Na Community projekty są niedostępne, ale też nie są potrzebne | Projekty wymagają płatnego planu |
+
+**Projekty** (_projects_) to mechanizm RBAC (role-based access control, czyli uprawnień
+opartych na rolach): grupują workflow i credentials, a ludziom nadajesz role osobno w każdym
+projekcie ([dokumentacja projektów](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects)).
+Według [porównania edycji](https://docs.n8n.io/deploy/host-n8n/community-edition-features)
+darmowa edycja Community ich nie ma. Na [stronie cennika](https://n8n.io/pricing/) (stan na
+listopad 2026) liczba projektów współdzielonych rośnie z planem: Starter - 1, Pro - 3,
+Business - 6, Enterprise - bez limitu. Rola **Project Editor** jest dostępna od Cloud Pro
+i w self-hosted Enterprise, a **Project Viewer** tylko w Enterprise
+([lista ról](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/see-available-roles)).
+
+:::note[Projekty są dla Twojego zespołu, nie dla klienta]
+W agencji projekt per klient porządkuje pracę: freelancer od klienta A nie widzi credentiali
+klienta B. Nie traktuj go jednak jako sposobu na wpuszczenie klienta do edytora. Z punktu
+widzenia FAQ licencji liczy się to, czy klient ma dostęp do n8n i logiki workflow - a tego
+projekt nie zmienia.
+:::
+
+Moja praktyczna reguła: przy kilku małych klientach i własnym zespole jedna instancja wystarcza.
+Gdy klient ma dane wrażliwe (osobowe, finansowe), własne wymagania bezpieczeństwa albo
+spodziewasz się, że kiedyś przejmie automatyzacje - dostaje osobną instancję od pierwszego dnia.
+
+### Rozdział credentiali i konfiguracji
+
+Credentials (zapisane dane logowania do usług) to najdroższa rzecz, jaką trzymasz w imieniu
+klienta. Kilka zasad, które oszczędzą Ci nerwów:
+
+- **Konta i klucze zakłada klient.** Klucz API do jego CRM-a czy konto Google generuje on, na
+  siebie - Ty je tylko podpinasz. FAQ licencji opisuje dokładnie taki układ (klient sam
+  uwierzytelnia się przez OAuth) jako dozwolony. Przy rozstaniu klient unieważnia klucze
+  jednym kliknięciem, bez proszenia Cię o cokolwiek.
+- **Jeden klucz = jeden klient.** Nigdy nie używaj tego samego tokenu dla dwóch klientów
+  i nazywaj credentials z prefiksem (`[Klient A] Gmail`), żeby nie podpiąć cudzego konta
+  w pośpiechu.
+- **Klucz szyfrowania to sejf.** n8n szyfruje credentials kluczem `N8N_ENCRYPTION_KEY`
+  ([dokumentacja](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/set-a-custom-encryption-key)).
+  Przy instancji per klient każdy klient ma własny klucz - trzymaj go w menedżerze haseł, bo bez
+  niego backup credentiali jest bezużyteczny. Szczegóły w
+  [Module 1](/modul-1-instalacja-hosting#klucz-n8n_encryption_key-i-zmienne-środowiskowe).
+
+Wartości konfiguracyjne (adres API klienta, ID arkusza, e-mail do alertów) nie powinny być
+wpisane na sztywno w node'y. Masz trzy miejsca:
+
+| Gdzie | Dostępność (stan na listopad 2026) | Kiedy |
+| --- | --- | --- |
+| **Custom variables** (`$vars`) | Cloud Pro i Enterprise, self-hosted Business i Enterprise. Zmienne mogą być globalne albo przypisane do projektu (od n8n 1.118.0) | Jedna instancja z projektami - zmienna projektu klienta |
+| **Zmienne środowiskowe** (`$env`) | Każda edycja self-hosted, o ile administrator nie zablokował dostępu zmienną `N8N_BLOCK_ENV_ACCESS_IN_NODE` | Instancja per klient - konfiguracja w pliku `.env` tej instancji |
+| **Data Table z konfiguracją** | Każda edycja | Gdy nie masz custom variables, a chcesz zmieniać wartości bez restartu |
+
+Źródła: [custom variables](https://docs.n8n.io/build/code-in-n8n/define-custom-variables),
+[zmienne bezpieczeństwa](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/security).
+
+### Rozliczanie: ile wykonań zjada klient
+
+Klient płaci Ci za efekt, ale Ty płacisz za serwer albo abonament - a na n8n Cloud limit wykonań
+miesięcznie jest wspólny dla całej instancji. Musisz więc wiedzieć, który klient ile zużywa.
+
+n8n ma do tego **Insights**
+([dokumentacja](https://docs.n8n.io/administer/observe-and-log/track-usage-with-insights)).
+Pasek podsumowania na stronie **Overview** jest dostępny w każdej edycji i pokazuje dane z ostatnich
+7 dni: liczbę wykonań produkcyjnych (bez wykonań ręcznych i sub-workflow), liczbę i odsetek
+nieudanych, średni czas działania oraz zaoszczędzony czas. Pełny dashboard z tabelą per workflow
+i dłuższymi okresami wymaga Cloud Pro lub Enterprise albo self-hosted Business lub Enterprise
+(stan na listopad 2026).
+
+- **Nazwy workflow z prefiksem klienta** (`[Klient A] Lead do CRM`) - wtedy tabelę Insights
+  sumujesz per klient bez zgadywania.
+- **Zaoszczędzony czas** (_Estimated time saved_ w ustawieniach workflow) to gotowy argument do
+  miesięcznego raportu: "w październiku automatyzacja oszczędziła Wam 31 godzin".
+- **Na Community bez dashboardu** dopisz na końcu każdego workflow klienta zapis do Data Table
+  (klient, workflow, data). Miesięczny raport robisz wtedy jednym zapytaniem.
+
+Aktualne limity wykonań i ceny planów zbieram w poradniku [Ile kosztuje n8n](/ile-kosztuje-n8n).
+
+### Przekazanie instancji klientowi
+
+Każda współpraca kiedyś się kończy - i to, jak łatwo klient przejmie automatyzacje, zależy od
+decyzji podjętych pierwszego dnia, nie ostatniego.
+
+1. **Własność kont od początku.** Serwer, konto Cloud, domena i klucze API są na klienta, a Ty masz
+   do nich dostęp. Wtedy przekazanie to odebranie Ci uprawnień, a nie przenoszenie kont.
+2. **Cała instancja: zmień właściciela.** Na n8n Cloud zmiana adresu e-mail właściciela w **Settings**
+   → **Profile & preferences** zmienia właściciela instancji, łącznie z adresem faktur
+   ([dokumentacja](https://docs.n8n.io/deploy/use-n8n-cloud/configure-cloud/change-instance-ownership-or-username)).
+   Na self-hostingu to samo pole aktualizuje istniejące konto właściciela, ale nie przenosi
+   własności na innego użytkownika ([dokumentacja](https://docs.n8n.io/deploy/host-n8n/configure-n8n/change-instance-owner-email)).
+   Adres e-mail musi być wolny - nie może należeć do innego konta na tej instancji.
+3. **Część instancji: eksport.** Workflow, foldery albo cały projekt wyeksportujesz do pakietu
+   `.n8np` przez n8n CLI ([n8n packages](https://docs.n8n.io/build/manage-workflows/n8n-packages/export-a-package),
+   funkcja w wersji Preview). W pakiecie nie ma danych credentiali - na instancji klienta trzeba je
+   podpiąć od nowa albo zaimportować jako puste miejsca do uzupełnienia
+   ([jak działa import](https://docs.n8n.io/build/manage-workflows/n8n-packages/how-import-works)).
+4. **Credentials.** Najczyściej, gdy klient podpina je sam na swojej instancji. Jeśli musisz je
+   przenieść, eksport `n8n export:credentials --decrypted` zapisuje je jawnym tekstem
+   ([komendy CLI](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line)) - taki
+   plik przekazujesz jak hasło i kasujesz zaraz po imporcie.
+5. **Sprzątanie.** Usuń swoje konto z instancji klienta, poproś o unieważnienie kluczy API, które
+   widziałeś, przekaż `N8N_ENCRYPTION_KEY`, ostatni backup
+   ([Moduł 7: backupy](/modul-7-produkcja#backupy-3-2-1-i-testowane-odtwarzanie)) i krótką
+   dokumentację: co który workflow robi i kogo alarmuje.
+
+:::tip[Spisz to w umowie]
+Kto jest właścicielem kont, w jakim formacie oddajesz workflow i ile trwa przekazanie - te trzy
+zdania w umowie oszczędzą Ci najtrudniejszej rozmowy na koniec współpracy.
+:::
+
 ## Antywzorce - czego unikać
 
 Tyle samo wartości co znajomość dobrych wzorców ma świadomość złych. Poniżej najczęstsze
@@ -491,6 +665,9 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 5. API, z którego korzystasz, leży od godziny. Co w tej sytuacji robi Dead Letter Queue,
    a co Circuit Breaker - i dlaczego samo **Retry On Fail** tu nie wystarczy? Jeśli nie masz
    pewności - [Wzorce odporności na błędy](#wzorce-odporności-na-błędy).
+6. Klient prosi o login do Twojej instancji n8n, żeby "samemu poprawiać" workflow. Co mówi na to
+   FAQ licencji - i jak inaczej możesz rozwiązać jego potrzebę? Jeśli nie masz pewności -
+   [Licencja: klient dostaje wyniki, nie edytor](#licencja-klient-dostaje-wyniki-nie-edytor).
 
 <details>
 <summary>Mini-zadanie: zrób przegląd jednego ze swoich workflow pod kątem wzorców</summary>
@@ -522,6 +699,10 @@ nawyku takiego przeglądu.
     składasz z tych samych klocków.
   - Koszty i wydajność optymalizujesz przez mniej wywołań API, batchowanie, paginację,
     kontrolę binariów i tokenów AI oraz queue mode dla skali.
+  - Pracując dla klientów, trzymaj się zasady z FAQ licencji: klient dostaje wyniki, nie dostęp
+    do edytora. Instancja per klient daje izolację i łatwe przekazanie, projekty w jednej
+    instancji - niższy koszt (na płatnym planie). Konta i klucze zakłada klient, a wykonania
+    rozliczasz z Insights.
   - Antywzorce (ślepe kopiowanie, brak obsługi błędów i backupu, hardkodowane sekrety,
     monolityczne workflow) biorą się z kopiowania bez zrozumienia.
 </Takeaways>
