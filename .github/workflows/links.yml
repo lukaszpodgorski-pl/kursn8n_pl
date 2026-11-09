@@ -39,11 +39,29 @@ jobs:
           # kilkadziesiąt sekund odpowiadać 502/504. Domyślne 3 ponowienia co 1 s tego
           # nie przeczekają - 2026-11-09 o 06:03 UTC trzy PR-y padły na 504 z github.com,
           # a ponowione bez żadnej zmiany przeszły. Odstęp rośnie wykładniczo od 5 s.
+          #
+          # --remap, czyli sprawdzamy to samo, ale tam, gdzie odpowiedź jest wiarygodna:
+          # 1-2. github.com dla anonimowego ruchu potrafi godzinami zwracać 504 w 0,15 s
+          #      (incydent GitHuba "surge in anonymous users", 2026-11-08 i 2026-11-09),
+          #      niezależnie od User-Agenta. Ponawianie tu nie pomaga. Widok pliku
+          #      `blob/` sprawdzamy na raw.githubusercontent.com (200 gdy plik jest,
+          #      404 gdy zniknął - kontrola zostaje), a stronę `/releases` na stronie
+          #      głównej repo (releases istnieje dla każdego repo, które istnieje).
+          # 3-4. Własne adresy bezwzględne (canonical, og:url, JSON-LD) sprawdzamy
+          #      w zbudowanym `dist/`, nie na produkcji. Inaczej każda nowa strona
+          #      dostaje 404, dopóki nie zostanie wdrożona, a wdrożenie wymaga merge'a.
+          #      Przy okazji wyłapuje to canonical wskazujący na stronę, której build
+          #      nie wygenerował. Strona błędu to plik `404.html`, nie katalog -
+          #      stąd osobna reguła przed ogólną.
           args: >-
             --no-progress
             --max-retries 4
             --retry-wait-time 5
             --accept 200,206,403,429,999
+            --remap '^https://github\.com/([^/]+)/([^/]+)/blob/(.+)$ https://raw.githubusercontent.com/$1/$2/$3'
+            --remap '^https://github\.com/([^/]+)/([^/]+)/releases/?$ https://github.com/$1/$2'
+            --remap '^https://kursn8n\.pl/404$ file://${{ github.workspace }}/dist/404.html'
+            --remap '^https://kursn8n\.pl/(.*)$ file://${{ github.workspace }}/dist/$1'
             --root-dir "${{ github.workspace }}/dist"
             'dist/**/*.html'
           fail: true
