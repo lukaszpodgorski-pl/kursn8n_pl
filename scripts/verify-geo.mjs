@@ -32,6 +32,7 @@ const EXTRA_ARTICLE_SLUGS = new Set([
 	'gotowe-workflow',
 	'cos-nie-dziala',
 	'slownik-pojec',
+	'ile-kosztuje-n8n',
 ]);
 
 function isArticleSlug(slug) {

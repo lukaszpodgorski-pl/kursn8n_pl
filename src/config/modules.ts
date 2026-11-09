@@ -154,6 +154,9 @@ export const TROUBLESHOOTING_SLUG = 'cos-nie-dziala';
 /** Rozszerzony słownik pojęć n8n (poza krótkim słowniczkiem w Module 0). */
 export const GLOSSARY_SLUG = 'slownik-pojec';
 
+/** Strona o kosztach n8n (Cloud, self-hosting, licencje, tokeny AI). */
+export const COSTS_SLUG = 'ile-kosztuje-n8n';
+
 /**
  * Wszystkie slugi traktowane jak artykuły (TechArticle + BreadcrumbList +
  * obraz OG per strona) - klasyfikacja w Head.astro. Odpowiednik po stronie
@@ -166,5 +169,6 @@ export const ARTICLE_SLUGS: ReadonlySet<string> = new Set([
 	QUICK_WINS_HUB_SLUG,
 	TROUBLESHOOTING_SLUG,
 	GLOSSARY_SLUG,
+	COSTS_SLUG,
 	...QUICK_WINS.map((w) => w.slug),
 ]);
