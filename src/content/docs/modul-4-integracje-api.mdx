@@ -19,6 +19,7 @@ teaches:
   - Konfiguracja uwierzytelniania - API key i OAuth2 w n8n
   - "Budowanie zapytań node'em HTTP Request: metody, nagłówki, body, autoryzacja"
   - Odbieranie i wysyłanie zdarzeń przez webhooki
+  - "Weryfikacja podpisu webhooka (HMAC): Raw Body, node Crypto i porównanie odporne na timing w Code node"
   - Obsługa paginacji, rate limitów (429) i ponawiania zapytań
 about:
   - name: n8n
@@ -34,6 +35,12 @@ mentions:
     sameAs: https://www.notion.so/
   - name: Airtable
     sameAs: https://www.airtable.com/
+  - name: HMAC
+    sameAs: https://en.wikipedia.org/wiki/HMAC
+  - name: GitHub
+    sameAs: https://github.com/
+  - name: Stripe
+    sameAs: https://stripe.com/
 faq:
   - q: "Co zrobić, gdy usługa nie ma gotowego node'a w n8n?"
     a: "Użyj node'a HTTP Request. Jeśli usługa ma dokumentację API, niemal zawsze obsłużysz ją ręcznie: ustawiasz metodę, URL, nagłówki i body, a autoryzację podpinasz przez \"Generic Credential Type\". Najszybciej zacząć od opcji \"Import cURL\" i wklejenia gotowego polecenia z dokumentacji."
@@ -41,6 +48,8 @@ faq:
     a: "Jeśli usługa daje wybór: OAuth2 jest bezpieczniejszy, bo ma ograniczony zakres i łatwo cofnąć dostęp, ale wymaga publicznego HTTPS i callbacku. API key jest prostszy do skonfigurowania i dobry do własnych/wewnętrznych API oraz szybkich testów. Często usługa narzuca jeden typ - wtedy decyzji nie ma."
   - q: "Mój webhook nie reaguje - dlaczego?"
     a: "Najczęstsze przyczyny: użyłeś Test URL zamiast Production URL, workflow nie jest aktywny (przełącznik \"Active\"), niezgodna metoda HTTP (np. wysyłasz GET, a node nasłuchuje POST) albo blokuje Cię uwierzytelnianie webhooka. Przy self-hostingu sprawdź też, czy instancja jest publicznie dostępna pod HTTPS."
+  - q: "Jak sprawdzić, że webhook naprawdę przyszedł od Stripe albo GitHuba?"
+    a: "Zweryfikuj podpis HMAC. Dostawca liczy HMAC-SHA256 z surowego body żądania wspólnym sekretem i wysyła wynik w nagłówku (GitHub: X-Hub-Signature-256, Stripe: Stripe-Signature). W n8n włącz w node Webhook opcję Raw Body, policz HMAC node'em Crypto (sekret w credentialu Crypto) i porównaj oba podpisy w Code node funkcją crypto.timingSafeEqual, sprawdzając najpierw długość. Żądanie z błędnym podpisem odrzuć kodem 401, a przed powtórkami chroń się znacznikiem czasu i odsiewaniem ID zdarzeń."
   - q: "Dostaję błąd HTTP 429 - co to znaczy i jak to naprawić?"
     a: "To \"Too Many Requests\" - przekroczyłeś rate limit API. Zmniejsz tempo: podziel dane node'em Loop Over Items, dodaj node Wait między partiami, a w ustawieniach node'a włącz Retry On Fail z odstępem. Sprawdź też w dokumentacji API, jaki jest limit zapytań na minutę."
   - q: "Jak pobrać wszystkie wyniki, a nie tylko pierwszą stronę?"
@@ -55,7 +64,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Moduł 4 · Poziom: średnio zaawansowany"
-  readingTime="~20 min"
+  readingTime="~25 min"
   note="Wymaga: Moduły 0-3"
 />
 
@@ -291,6 +300,138 @@ wywołujący - m.in. `JSON`, `Text`, dane binarne, przekierowanie (redirect) alb
 Ustawisz też **kod odpowiedzi** (np. 200, 201, 400) i własne nagłówki. To kluczowe, gdy budujesz
 mały endpoint API albo obsługujesz formularz oczekujący konkretnej odpowiedzi.
 
+### Czy to naprawdę Stripe? Weryfikacja podpisu (HMAC)
+
+Production URL webhooka to zwykły publiczny adres. Każdy, kto go pozna, może wysłać na niego
+`POST` z JSON-em wyglądającym jak "płatność opłacona" od Stripe albo "nowy push" od GitHuba.
+Jeśli Twój workflow na tej podstawie wysyła fakturę albo nadaje dostęp do kursu, musisz najpierw
+sprawdzić, czy żądanie naprawdę przyszło od nadawcy i czy nikt nie zmienił treści po drodze.
+Służy do tego **podpis HMAC** - i to jest coś innego niż pole Authentication w node Webhook.
+
+#### Authentication w node Webhook a podpis HMAC
+
+Node Webhook ma wbudowane opcje **Authentication**, m.in. _Basic auth_, _Header auth_, _JWT auth_
+i _None_ ([dokumentacja node'a Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/),
+stan na listopad 2026). Header auth działa świetnie, gdy to Ty konfigurujesz nadawcę - np. własną
+aplikację, formularz albo inne n8n - i możesz dopisać do żądania nagłówek ze stałym tokenem.
+
+Duzi dostawcy (Stripe, GitHub, Shopify i podobni) zwykle nie dają Ci dopisać własnego nagłówka.
+Zamiast tego **podpisują** każde żądanie wspólnym sekretem, który dostajesz przy zakładaniu
+webhooka w ich panelu. Różnica jest zasadnicza:
+
+| | Header auth (stały token) | Podpis HMAC |
+| --- | --- | --- |
+| Co leci w żądaniu | Sam sekret, przy każdym wywołaniu | Tylko podpis - sekret nigdy nie opuszcza nadawcy |
+| Wyciek jednego żądania | Atakujący ma token i wyśle dowolną treść | Atakujący ma podpis tylko tej jednej treści |
+| Ochrona treści | Brak - body można podmienić | Każda zmiana body psuje podpis |
+| Gdzie sprawdzasz | n8n robi to sam (pole Authentication) | Ty, w workflow (Crypto + Code) |
+
+#### Jak działa podpis
+
+**HMAC** (Hash-based Message Authentication Code) to skrót kryptograficzny liczony z dwóch
+składników naraz: treści wiadomości i sekretu. Nadawca liczy HMAC z **surowego body** żądania
+(dokładnie tych bajtów, które wysyła) i dokleja wynik w nagłówku. Ty liczysz to samo po swojej
+stronie tym samym sekretem i porównujesz. Zgodność oznacza, że nadawca zna sekret i że body
+dotarło bez zmian.
+
+Na przykładzie GitHuba: podpis przychodzi w nagłówku `X-Hub-Signature-256`, to HMAC-SHA256
+w zapisie szesnastkowym (hex) z prefiksem `sha256=`
+([dokumentacja GitHuba o walidacji dostaw webhooków](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries),
+stan na listopad 2026). Stripe używa nagłówka `Stripe-Signature` w formacie `t=...,v1=...`, czyli
+podpis plus znacznik czasu
+([dokumentacja Stripe o błędach weryfikacji podpisu](https://docs.stripe.com/webhooks/signature),
+stan na listopad 2026). Nazwa nagłówka i format zmieniają się między dostawcami - zasada zostaje ta sama.
+
+:::caution[Podpisane jest surowe body, nie JSON po parsowaniu]
+Node Webhook domyślnie parsuje JSON do `$json.body`. Jeśli zamienisz go z powrotem na tekst
+(`JSON.stringify`), dostaniesz inne bajty - inne spacje, czasem inną kolejność - i podpis się nie
+zgodzi, choć dane są prawdziwe. HMAC licz zawsze z surowej treści żądania.
+:::
+
+#### Realizacja w n8n: Webhook, Crypto, Code
+
+<Flow
+  title="webhook-hmac"
+  alt="Diagram: Webhook z opcją Raw Body odbiera żądanie, node Crypto liczy HMAC z surowego body, Code porównuje podpisy, If przepuszcza żądanie z poprawnym podpisem do dalszej logiki, a z błędnym odsyła 401"
+  caption="Podpis sprawdzasz na samym początku workflow - zanim cokolwiek zrobisz z danymi."
+  spec={`
+    Webhook (Raw Body włączone):satellite-dish @pink -> Crypto (Hmac SHA256, HEX):fingerprint @violet
+    Crypto -> Code (porównaj podpisy):code @blue
+    Code -> If (podpis OK?):code-branch @amber
+    If -tak-> Logika workflow:gears @green
+    If -nie-> Respond 401:ban @red
+  `}
+/>
+
+1. **Webhook** - w _Options_ włącz **Raw Body**. Node dalej oddaje sparsowane `body` w JSON-ie,
+   ale dodatkowo zapisuje surową treść żądania jako dane binarne pod nazwą `data`
+   (tak działa kod node'a w [repozytorium n8n](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Webhook/Webhook.node.ts),
+   stan na listopad 2026). Respond ustaw na _Using 'Respond to Webhook' Node_, żeby móc odesłać 401.
+2. **Crypto** - akcja **Hmac**: włącz _Binary File_, _Binary Property Name_ `data`, _Type_ `SHA256`,
+   _Encoding_ `HEX`, _Property Name_ np. `expected`. Sekret od dostawcy wpisujesz w credentialu
+   Crypto, w polu **Hmac Secret** - jest zaszyfrowany jak każde credentials, a nie widoczny w workflow
+   ([dokumentacja node'a Crypto](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.crypto/),
+   stan na listopad 2026).
+3. **Code** (tryb _Run Once for Each Item_) - porównuje podpis z nagłówka z wyliczonym, w sposób
+   odporny na timing (kod niżej).
+4. **If** na polu `signatureValid` - gałąź _true_ prowadzi do właściwej logiki, gałąź _false_ do
+   **Respond to Webhook** z kodem `401` i do niczego więcej.
+
+```js
+// Code node, tryb "Run Once for Each Item"
+// Wejście: item z node'a Crypto (nagłówki z Webhooka + pole "expected")
+const crypto = require('crypto');
+
+// 1. Podpis od nadawcy. n8n zapisuje nazwy nagłówków małymi literami.
+//    GitHub: "sha256=<hex>". Brak nagłówka = pusty tekst = podpis odrzucony.
+const received = String($json.headers['x-hub-signature-256'] || '');
+
+// 2. Podpis policzony przez node Crypto z surowego body (HEX) + prefiks GitHuba
+const expected = 'sha256=' + $json.expected;
+
+const a = Buffer.from(received, 'utf8');
+const b = Buffer.from(expected, 'utf8');
+
+// 3. Porównanie w stałym czasie. timingSafeEqual rzuca wyjątek przy buforach
+//    różnej długości, więc długość sprawdzamy najpierw.
+const valid = a.length === b.length && crypto.timingSafeEqual(a, b);
+
+return { json: { ...$json, signatureValid: valid } };
+```
+
+Dlaczego nie zwykłe `received === expected`? Porównanie tekstów kończy się na pierwszym
+różniącym się znaku, więc czas odpowiedzi zdradza, ile początkowych znaków atakujący trafił.
+`crypto.timingSafeEqual` sprawdza zawsze wszystkie bajty - tego wymaga też dokumentacja GitHuba.
+
+:::note[Moduł crypto w Code node]
+W n8n Cloud moduł `crypto` jest dostępny w Code node od ręki
+([dokumentacja Code node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/),
+stan na listopad 2026). Na self-hostingu import modułów jest domyślnie wyłączony - dopuść go
+zmienną `NODE_FUNCTION_ALLOW_BUILTIN=crypto`, a przy task runnerach ustaw ją na runnerach, nie na
+głównym procesie n8n ([włączanie modułów w Code node](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/enable-modules-in-code-node)).
+Więcej o modułach w [Module 5: Kod i sub-workflow](/modul-5-kod-sub-workflow).
+:::
+
+#### Ochrona przed powtórką (replay)
+
+Poprawny podpis nie zabezpiecza przed jednym: ktoś przechwytuje prawdziwe, podpisane żądanie
+i wysyła je ponownie za godzinę. Podpis dalej się zgadza, bo body jest to samo. Bronisz się na
+dwa sposoby, najlepiej łącznie:
+
+- **Znacznik czasu w podpisie** - jeśli dostawca go podpisuje (jak `t=` w nagłówku Stripe),
+  odrzucaj żądania starsze niż kilka minut. Czas jest objęty podpisem, więc nie da się go podmienić.
+- **Identyfikator zdarzenia** - każde zdarzenie ma unikalne ID. Node **Remove Duplicates**
+  z operacją _Remove Items Processed in Previous Executions_ odsiewa ID widziane w poprzednich
+  wykonaniach ([dokumentacja Remove Duplicates](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.removeduplicates/),
+  stan na listopad 2026). To chroni też przed zwykłymi ponowieniami - dostawcy wysyłają to samo
+  zdarzenie drugi raz, gdy nie dostaną szybko odpowiedzi 2xx.
+
+:::tip[Sekret traktuj jak hasło]
+Sekret webhooka trzymaj wyłącznie w credentialu, nigdy wpisany w kod Code node'a. Rotuj go
+w panelu dostawcy, gdy podejrzewasz wyciek - Stripe pozwala do 24 godzin utrzymać stary
+i nowy sekret równolegle, żebyś zdążył podmienić credential bez przerwy w działaniu.
+:::
+
 ### Wysyłanie zdarzeń do cudzego webhooka
 
 Druga strona medalu: to _Ty_ powiadamiasz inny system. Nie ma do tego osobnego node'a - używasz
@@ -385,6 +526,10 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 4. Podpiąłeś raz swoje konto Google jako credential w n8n. Czy w kolejnym workflow, który
    też go potrzebuje, musisz przechodzić całą autoryzację OAuth2 od nowa? Dlaczego tak albo
    nie? Jeśli nie masz pewności - [Jak działają credentials w n8n](#jak-działają-credentials-w-n8n).
+5. Twój webhook przyjmuje płatności ze Stripe i ma włączone Header auth. Stripe nie pozwala
+   dopisać własnego nagłówka - co zrobisz zamiast tego i dlaczego nie wystarczy policzyć HMAC
+   z `$json.body` zamienionego z powrotem na tekst? Jeśli nie masz pewności -
+   [Czy to naprawdę Stripe? Weryfikacja podpisu (HMAC)](#czy-to-naprawdę-stripe-weryfikacja-podpisu-hmac).
 
 <details>
 <summary>Mini-zadanie: zbuduj mały endpoint webhookiem</summary>
@@ -410,5 +555,6 @@ Potrzebujesz działającej instancji n8n i kilkunastu minut.
   - **API key** = szybki sekret o pełnym zakresie; **OAuth2** = ograniczona, odwoływalna zgoda wymagająca publicznego HTTPS i callbacku.
   - **HTTP Request** obsłuży każde API, gdy brakuje gotowego node'a - z metodami, nagłówkami, body i autoryzacją przez credentials.
   - Webhook node odbiera zdarzenia (test vs production URL, odpowiedź przez Respond to Webhook); HTTP Request wysyła zdarzenia do cudzych webhooków.
+  - Webhook od zewnętrznego dostawcy weryfikuj **podpisem HMAC**: Raw Body, node Crypto z sekretem w credentialu i porównanie przez `crypto.timingSafeEqual` z kontrolą długości; przed powtórkami chroni znacznik czasu i odsiewanie ID zdarzeń.
   - Na produkcji obsłuż **paginację**, **rate limity (429)** i błędy - łącząc Pagination, Loop Over Items, Wait oraz Retry On Fail.
 </Takeaways>
