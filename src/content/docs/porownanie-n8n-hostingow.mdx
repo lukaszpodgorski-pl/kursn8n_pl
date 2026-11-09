@@ -118,9 +118,9 @@ oceniam tak a nie inaczej:
   Mikrusa 2.1), piszę o nich wprost.
 - Rekomendacje w sekcji "Macierz decyzyjna" to **moje doświadczenia i moje przemyślenia**.
   Twoja sytuacja może być inna i Twoja decyzja może (i powinna) być inna.
-- **Każdy może samodzielnie przeprowadzić testy** z katalogu w sekcji "Wyniki testów
-  własnych" i zweryfikować, czy moje oceny pasują do Twojego przypadku. Zachęcam do tego -
-  to też cel tego poradnika.
+- **Każdy może samodzielnie przeprowadzić testy** z katalogu w sekcji "Testy do
+  samodzielnego powtórzenia" i zweryfikować, czy moje oceny pasują do Twojego przypadku.
+  Zachęcam do tego - to też cel tego poradnika.
 - **Prywatnie korzystam z Raspberry Pi oraz VM na własnym serwerze domowym.** Po prostu
   taki setup mi wystarcza i spełnia wszystkie moje potrzeby - nie hostuję komercyjnie n8n
   dla klientów, nie potrzebuję SLA, dane mam fizycznie u siebie. Twój przypadek może
@@ -1114,10 +1114,10 @@ lock-in i RODO; gdy pomysł chwyta - migrujesz.
 **→ Raspberry Pi z piwnicy / stary mini PC z OLX** (300-500 zł za używany Beelink) +
 Cloudflare Tunnel + domena `.xyz` za 50 zł/rok.
 
-## Wyniki testów własnych
+## Testy do samodzielnego powtórzenia
 
-Gotowa metodyka i tabele, według których samodzielnie zmierzysz i porównasz każde
-środowisko. Wypełnij je wynikami własnych pomiarów.
+Gotowa metodyka i katalog pomiarów, według których samodzielnie zmierzysz i porównasz
+każde środowisko. Moich wyników tu nie ma - to zestaw do powtórzenia u siebie.
 
 ### Metodologia testów
 
@@ -1127,18 +1127,6 @@ Gotowa metodyka i tabele, według których samodzielnie zmierzysz i porównasz k
 - **Okres obserwacji:** np. 24-72h ciągłej pracy
 - **Punkty pomiarowe:** czas instalacji od zera, czas wykonania workflow, zużycie
   RAM/CPU, czas odtworzenia z backupu, koszt netto po miesiącu
-
-### Wyniki - tabela do wypełnienia
-
-| Środowisko | Czas instalacji | Czas workflow | RAM idle | RAM pod obc. | Czas restore | Koszt po 1 mc | Uwagi |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Raspberry Pi 5 | - | - | - | - | - | - | - |
-| Mini PC N100 | - | - | - | - | - | - | - |
-| Mikrus 3.5 | - | - | - | - | - | - | - |
-| cyber_Folks vroot_SPRINT | - | - | - | - | - | - | - |
-| Hostinger KVM 2 | - | - | - | - | - | - | - |
-| Hetzner CX23 | - | - | - | - | - | - | - |
-| Railway Hobby | - | - | - | - | - | - | - |
 
 ### Katalog testów - propozycja zestawu pomiarowego
 
@@ -1769,44 +1757,10 @@ n8n import:credentials --separate --input=./backup/
 **Oczekiwany wynik:** pełny export i import bez utraty danych; credentials działają
 (klucz szyfr. ten sam!)
 
-### Scorecard - tabela do wypełnienia
+### Jak czytać wyniki
 
-Dla każdego z testów oceń każde środowisko: ✓ PASS / ~ partial / ✗ FAIL / - nie
-testowano. Łatwo policzyć procentowy wynik per dostawca.
-
-| ID | Test | RPi 5 | Mini PC | Mikrus | cyber_Folks | Hostinger | Hetzner | Railway |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| B-01 | CPU benchmark | - | - | - | - | - | - | - |
-| B-02 | Dysk IOPS | - | - | - | - | - | - | - |
-| B-03 | RAM throughput | - | - | - | - | - | - | - |
-| B-04 | Latencja do API | - | - | - | - | - | - | - |
-| B-05 | Zimny start | - | - | - | - | - | - | - |
-| T-01 | Czas odpowiedzi webhooka | - | - | - | - | - | - | - |
-| T-02 | Concurrent execs | - | - | - | - | - | - | - |
-| T-03 | Długo działający | - | - | - | - | - | - | - |
-| T-04 | Duży ładunek danych | - | - | - | - | - | - | - |
-| T-05 | External HTTP | - | - | - | - | - | - | - |
-| T-06 | SSL/HTTPS | - | - | - | - | - | - | - |
-| T-07 | Rate limit (429) | - | - | - | - | - | - | - |
-| T-08 | Obsługa błędów | - | - | - | - | - | - | - |
-| T-09 | Precyzja harmonogramu | - | - | - | - | - | - | - |
-| T-10 | Trwałość danych | - | - | - | - | - | - | - |
-| T-11 | Limit pamięci | - | - | - | - | - | - | - |
-| T-12 | Pliki binarne | - | - | - | - | - | - | - |
-| T-13 | Obciążenie procesora | - | - | - | - | - | - | - |
-| T-14 | Custom code | - | - | - | - | - | - | - |
-| T-15 | Sub-scenariusz | - | - | - | - | - | - | - |
-| T-16 | Połączenie z bazą | - | - | - | - | - | - | - |
-| T-17 | Bezpieczeństwo poświadczeń | - | - | - | - | - | - | - |
-| T-18 | Zmienne środowiskowe | - | - | - | - | - | - | - |
-| T-19 | Uptime 24h+ | - | - | - | - | - | - | - |
-| T-20 | Eksport/kopia zapasowa | - | - | - | - | - | - | - |
-| **SCORE %** | | - | - | - | - | - | - | - |
-
-### Wnioski z testów
-
-Po wypełnieniu tabel porównaj środowiska kolumnami - największe różnice zwykle widać w
-czasie odtwarzania z backupu i realnym koszcie po miesiącu.
+Porównuj środowiska kolumnami - największe różnice zwykle widać w czasie odtwarzania
+z backupu i w realnym koszcie po miesiącu.
 
 ## Lista kontrolna przed produkcyjnym uruchomieniem
 
