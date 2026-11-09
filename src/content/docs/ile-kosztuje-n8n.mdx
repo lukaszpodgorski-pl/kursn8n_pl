@@ -1,0 +1,314 @@
+---
+title: Ile realnie kosztuje n8n? Cloud, self-hosting, licencje i AI
+description: "Ile kosztuje n8n w 2026: ceny n8n Cloud, darmowy self-hosting na licencji Community, koszt serwera i czasu, płatne licencje Business/Enterprise, tokeny AI na realnych przykładach i porównanie z Zapierem."
+head:
+  - tag: title
+    content: "Ile kosztuje n8n? Cloud, self-hosting, licencje i koszty AI | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Ile realnie kosztuje n8n?"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "n8n Cloud od 20 EUR miesięcznie albo self-hosting za cenę serwera - plus Twój czas i tokeny AI. Policzone na przykładach, z linkami do cenników."
+datePublished: 2026-11-09
+educationalLevel: Beginner
+teaches:
+  - Ile kosztują plany n8n Cloud i co oznacza limit wykonań (executions)
+  - Co wolno za darmo na licencji Community (Sustainable Use License), a co wymaga płatnej licencji
+  - Jak policzyć koszt self-hostingu - serwer plus czas na utrzymanie
+  - Jak oszacować miesięczny koszt tokenów AI z liczby wywołań, tokenów i ceny modelu
+  - Czym różni się rozliczanie n8n od Zapiera i Make na jednym przykładzie
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Zapier
+    sameAs: https://en.wikipedia.org/wiki/Zapier
+  - name: Make
+    sameAs: https://www.make.com/
+  - name: OpenAI
+    sameAs: https://en.wikipedia.org/wiki/OpenAI
+  - name: Anthropic
+    sameAs: https://en.wikipedia.org/wiki/Anthropic
+  - name: Virtual private server
+    sameAs: https://en.wikipedia.org/wiki/Virtual_private_server
+faq:
+  - q: "Czy n8n jest za darmo?"
+    a: "Wersja self-hosted (Community) tak - licencja Sustainable Use License pozwala używać n8n bez opłat do celów wewnętrznych firmy, osobistych i niekomercyjnych. Płacisz wtedy za serwer, prąd i własny czas. n8n Cloud jest płatnym abonamentem, a funkcje Business i Enterprise na self-hostingu wymagają płatnej licencji. Stan na listopad 2026."
+  - q: "Ile kosztuje n8n Cloud?"
+    a: "Według cennika n8n (stan na listopad 2026) plan Starter kosztuje 20 EUR miesięcznie i daje 2 500 wykonań, a plan Pro 50 EUR miesięcznie i 10 000 wykonań - obie stawki przy rozliczeniu rocznym. Enterprise jest wyceniany indywidualnie. Na start jest darmowy trial bez karty z limitem 1 000 wykonań."
+  - q: "Czy n8n liczy każdy krok workflow jako osobne wykonanie?"
+    a: "Nie. W n8n jedno wykonanie (execution) to jedno uruchomienie całego workflow, niezależnie od liczby kroków i ilości danych - tak definiuje to cennik n8n. Zapier liczy taski, czyli każdą udaną akcję, a Make kredyty za większość akcji w scenariuszu. Przy długich workflow ta różnica robi się duża."
+  - q: "Czy mogę budować workflow dla klientów na darmowej licencji?"
+    a: "Tak, o ile klienci nie mają dostępu do n8n ani możliwości tworzenia i edytowania workflow. FAQ licencji n8n wprost pozwala pobierać opłaty za budowę, konfigurację i utrzymanie workflow oraz za szkolenia i consulting. Hostowanie n8n jako usługi, w której klienci sami budują workflow, wymaga osobnej umowy komercyjnej."
+  - q: "Ile kosztują tokeny AI w workflow n8n?"
+    a: "Policzysz to wzorem: liczba wywołań × tokeny na wywołanie × cena modelu. Dla przykładu: codzienne podsumowanie RSS na gpt-5-mini (0,25 USD za milion tokenów wejściowych i 2 USD za milion wyjściowych, stan na listopad 2026) to kilka centów miesięcznie. Ten sam workflow na droższym modelu potrafi kosztować kilkukrotnie więcej - model wybieraj świadomie."
+---
+
+import ModuleHero from '../../components/ModuleHero.astro';
+import Takeaways from '../../components/Takeaways.astro';
+
+<ModuleHero
+  tag="Koszty · wszystkie poziomy"
+  readingTime="~11 min"
+  note="Ceny zweryfikowane w listopadzie 2026"
+/>
+
+Krótka odpowiedź: **n8n na własnym serwerze jest darmowy** (licencja Community), więc płacisz
+tylko za serwer - od kilkunastu złotych miesięcznie - i za swój czas na utrzymanie.
+**n8n Cloud zaczyna się od 20 EUR miesięcznie** przy rozliczeniu rocznym. Do tego, niezależnie
+od wyboru, dochodzą **tokeny AI**, jeśli Twoje workflow wołają modele językowe - zwykle centy
+albo pojedyncze dolary miesięcznie, ale tylko przy świadomym wyborze modelu. Niżej rozkładam
+każdy z tych kosztów na liczby, z linkiem do źródła przy każdej cenie.
+
+:::caution[Ceny zmieniają się szybciej niż ta strona]
+Wszystkie kwoty poniżej sprawdziłem na oficjalnych cennikach w listopadzie 2026. Dostawcy
+zmieniają plany, limity i nazwy modeli kilka razy w roku. Zanim podejmiesz decyzję albo
+wpiszesz liczbę do budżetu, otwórz podlinkowany cennik i sprawdź bieżącą stawkę. Ceny podaję
+w walucie cennika (EUR, USD, PLN) - bez przeliczania po kursie, który i tak się zmieni.
+:::
+
+## Ile kosztuje n8n Cloud?
+
+n8n Cloud to wersja, w której n8n hostuje i aktualizuje instancję za Ciebie. Płacisz abonament
+zależny od liczby **wykonań** (executions, czyli pojedynczych uruchomień workflow). Według
+[cennika n8n](https://n8n.io/pricing) (stan na listopad 2026, ceny przy rozliczeniu rocznym):
+
+| Plan | Cena | Wykonania / mies. | Równoległe wykonania | Projekty współdzielone |
+| --- | --- | --- | --- | --- |
+| Starter | 20 EUR / mies. | 2 500 | 5 | 1 |
+| Pro | 50 EUR / mies. | 10 000 | 20 / 50 (tak podaje cennik) | 3 |
+| Enterprise | wycena indywidualna | indywidualnie | 200+ | bez limitu |
+
+Kilka rzeczy, które warto wiedzieć, zanim klikniesz "Kup":
+
+- **Wykonanie to całe uruchomienie workflow**, nie pojedynczy krok. Cennik mówi wprost, że
+  nie ma znaczenia, ile kroków ma workflow ani ile danych przetwarza. To największa różnica
+  względem Zapiera i Make - wracam do niej [niżej](#ile-kosztuje-ten-sam-workflow-w-n8n-zapierze-i-make).
+- **Limit jest twardy.** W planach Starter i Pro cennik opisuje nadwyżkę jako "Capped" - po
+  wyczerpaniu puli nie dopłacasz automatycznie, tylko musisz przejść na wyższy plan.
+- **Limity czasu i historii.** Pojedyncze wykonanie może trwać do 5 minut w Starterze i do
+  40 minut w Pro; zapisanych wykonań w historii jest odpowiednio 2 500 i 25 000.
+- **Trial bez karty.** Na start dostajesz wersję próbną z funkcjami planu Pro, limitem 1 000
+  wykonań i 5 równoległymi wykonaniami - wystarczy, żeby przejść
+  [Moduł 2](/modul-2-interfejs-pierwszy-workflow) bez instalowania czegokolwiek.
+
+Cennik pokazuje stawki przy płatności rocznej. Jeśli wolisz płacić miesięcznie, sprawdź
+przełącznik na stronie cennika - n8n nie podaje tych kwot w treści strony, więc ich tu nie
+przepisuję. Szczegóły zakładania instancji opisuję w
+[Module 1 - n8n Cloud](/modul-1-instalacja-hosting#n8n-cloud---najszybszy-start).
+
+## Czy n8n na własnym serwerze jest naprawdę za darmo?
+
+Tak - jeśli mieścisz się w licencji. Wersja self-hosted działa na licencji **Sustainable Use
+License**, którą n8n w dokumentacji nazywa też licencją Community. Według
+[strony licencji w dokumentacji n8n](https://docs.n8n.io/n8n-community-license/community-license)
+daje ona prawo do używania, modyfikowania i rozpowszechniania n8n z trzema ograniczeniami:
+używasz go tylko do **wewnętrznych celów firmy albo do celów niekomercyjnych lub osobistych**,
+rozpowszechniasz go innym tylko **bezpłatnie i niekomercyjnie** oraz **nie usuwasz** informacji
+o licencji i prawach autorskich. Pełny tekst leży w
+[pliku LICENSE.md w repozytorium n8n](https://github.com/n8n-io/n8n/blob/master/LICENSE.md).
+
+[FAQ licencji](https://docs.n8n.io/n8n-community-license/community-license/license-faq)
+(stan na listopad 2026) podaje konkretne przykłady. Streszczam je, bez własnej interpretacji
+prawnej:
+
+| Wolno za darmo | Nie wolno bez umowy z n8n |
+| --- | --- |
+| Używać n8n do prowadzenia własnej firmy | Hostować n8n jako usługę, w której klienci budują workflow |
+| Projekty osobiste, nauka, research | Pozwalać zewnętrznym użytkownikom budować lub konfigurować workflow - przez własny interfejs, API, MCP albo agenta AI |
+| Budować automatyzacje dla klientów na swojej instancji, jeśli klienci nie mogą ich tworzyć ani edytować | Forkować kod n8n, żeby wydać własny produkt do automatyzacji |
+| Pobierać opłaty za budowę, konfigurację i utrzymanie workflow oraz za szkolenia i consulting | Robić white-label, czyli usuwać branding n8n i oferować go jako własny |
+| Używać n8n "pod spodem" własnego produktu, gdy użytkownicy tylko uruchamiają gotowe automatyzacje | Używać funkcji Enterprise, które proszą o klucz licencyjny, bez licencji Enterprise |
+| Uruchamiać kilka instancji wersji Community | |
+
+FAQ dodaje jedno zdanie, które dobrze streszcza całość: jeśli workflow tworzysz lub zmieniasz
+tylko Ty albo ludzie z Twojej organizacji, możesz używać n8n na licencji Community za darmo.
+Przy przypadkach granicznych n8n odsyła na adres license@n8n.io - i ja zrobiłbym to samo,
+zanim zbudujesz na tym biznes. Historię licencji i jej zmianę z 2022 roku opisuję w
+[Module 0](/modul-0-fundamenty#licencja-sustainable-use-license-fair-code).
+
+## Ile kosztuje serwer pod self-hosting?
+
+"Darmowy" n8n potrzebuje maszyny, na której działa. Masz trzy drogi, od najtańszej:
+
+- **Własny sprzęt w domu** (Raspberry Pi, mini PC) - jednorazowy zakup plus prąd. Wyliczenia
+  dla obu urządzeń są w [poradniku hostingowym](/porownanie-n8n-hostingow).
+- **Mały polski VPS** - na przykład [Mikrus](https://mikr.us/): plan 3.0 (2 GB RAM, 25 GB
+  dysku) kosztuje 130 zł brutto za rok, a plan 3.5 (4 GB RAM, 40 GB dysku) 197 zł brutto za
+  rok. Mikrus sprzedaje serwery wyłącznie w abonamencie rocznym (stan na listopad 2026).
+- **VPS w chmurze w UE** - na przykład [Hetzner Cloud](https://www.hetzner.com/cloud/), gdzie
+  najtańsze serwery współdzielone zaczynają się od 5,99 EUR netto miesięcznie (stan na
+  listopad 2026). Mocniejsze plany kosztują odpowiednio więcej - konfigurację dobierasz
+  w cenniku.
+
+Ile RAM-u realnie potrzebujesz i którego dostawcę wybrać pod RODO, porównuję w
+[poradniku "Porównanie hostingów n8n"](/porownanie-n8n-hostingow) - tam są też pełne tabele
+cen kilku dostawców. Na naukę i kilka lekkich workflow wystarczy najtańsza półka. Agenci AI,
+duże pliki i dziesiątki aktywnych workflow wymagają więcej.
+
+### Ile kosztuje Twój czas na utrzymanie?
+
+To pozycja, którą prawie wszyscy pomijają w kalkulacji, a na self-hostingu jest często
+największa. W n8n Cloud aktualizacje, backupy i HTTPS są po stronie dostawcy. Na własnym
+serwerze to Twoja robota:
+
+- **Aktualizacje** - dokumentacja n8n zaleca
+  [aktualizować co najmniej raz w miesiącu](https://docs.n8n.io/deploy/host-n8n/keep-n8n-running/update-n8n)
+  i sprawdzać przed tym release notes pod kątem zmian łamiących zgodność. Jak to zrobić
+  w Dockerze, pokazuję w [Module 1](/modul-1-instalacja-hosting#aktualizacje-i-utrzymanie).
+- **Backupy i test odtwarzania** - backup, którego nie sprawdzasz, nie istnieje. Procedurę
+  opisuję w [Module 7](/modul-7-produkcja#backupy-3-2-1-i-testowane-odtwarzanie).
+- **Monitoring i reagowanie na awarie** - ktoś musi zauważyć, że instancja nie wstała po
+  restarcie serwera.
+
+Nie podam Ci jednej liczby godzin, bo zależy to od skali i od tego, ile automatyzujesz samo
+utrzymanie. Policz to po swojemu: **godziny miesięcznie × wartość Twojej godziny**. Przykład
+czysto rachunkowy: jeśli comiesięczna aktualizacja i sprawdzenie backupu zajmą Ci 2 godziny,
+a Twoja godzina jest warta 100 zł, utrzymanie kosztuje Cię 200 zł miesięcznie - więcej niż
+sam serwer i więcej niż plan Starter w Cloud. Dla firmy to argument za Cloudem albo za
+dobrą automatyzacją utrzymania. Dla hobbysty, który się przy tym uczy, ten czas jest raczej
+inwestycją niż kosztem.
+
+## Które funkcje self-hosted wymagają płatnej licencji?
+
+Wersja Community nie ma abonamentu ani opłat za wykonania - ogranicza Cię tylko Twój sprzęt.
+Część funkcji dla zespołów i firm jest jednak zamknięta za płatnymi planami. Według
+[cennika n8n](https://n8n.io/pricing) (stan na listopad 2026):
+
+- **Business** - 667 EUR miesięcznie przy rozliczeniu rocznym, tylko self-hosted, z pulą
+  40 000 wykonań miesięcznie. Plan jest przeznaczony dla firm poniżej 100 pracowników
+  i dodaje m.in. SSO i LDAP, wiele środowisk (np. dev i prod), kontrolę wersji przez Git
+  i 30 dni statystyk (insights). Firmy poniżej 20 pracowników mogą się zakwalifikować do
+  planu Startup z 50% zniżki na Business. Jest też 14-dniowy trial Business, ale wymaga
+  karty.
+- **Enterprise** - wycena indywidualna, w wersji hostowanej albo self-hosted. Dochodzą
+  m.in. logi audytowe, log streaming, zewnętrzny magazyn sekretów (external secrets),
+  redakcja danych wykonań, wymuszone 2FA, własne role i wsparcie z SLA.
+
+Cennik zaznacza też, że instancje self-hosted z licencją Business i Enterprise muszą raz
+dziennie łączyć się z serwerem licencji n8n. Kod tych funkcji leży w tym samym repozytorium,
+ale w plikach z `.ee.` w nazwie, objętych osobną licencją n8n Enterprise - tak opisuje to
+[strona licencji](https://docs.n8n.io/n8n-community-license/community-license).
+
+Dla porządku jedna niespójność, którą widać dziś w cenniku: SSO i LDAP figurują na karcie
+planu Business, ale w tabeli porównawczej są zaznaczone tylko przy Enterprise. Jeśli to dla
+Ciebie warunek zakupu, dopytaj n8n przed podpisaniem umowy.
+
+## Ile kosztują tokeny AI w workflow?
+
+Jeśli Twój workflow woła model językowy (jak w [Module 6](/modul-6-ai-agenci)), płacisz
+dostawcy modelu za **tokeny** - jednostki tekstu, w których liczone są wejście (prompt i dane)
+i wyjście (odpowiedź). To osobny rachunek, niezależny od tego, czy n8n stoi w Cloud, czy
+u Ciebie. Wzór jest prosty:
+
+**liczba wywołań w miesiącu × (tokeny wejściowe × cena wejścia + tokeny wyjściowe × cena
+wyjścia)**
+
+Ceny modeli podaje się za milion tokenów. Stan na listopad 2026, stawki standardowe:
+
+| Model | Wejście (1 mln tokenów) | Wyjście (1 mln tokenów) | Źródło |
+| --- | --- | --- | --- |
+| OpenAI gpt-5-mini | 0,25 USD | 2 USD | [cennik OpenAI](https://developers.openai.com/api/docs/pricing) |
+| Anthropic Claude Haiku 5.5 (prompt do 100 000 tokenów) | 0,10 USD | 0,50 USD | [cennik Anthropic](https://platform.claude.com/docs/en/about-claude/pricing) |
+| Anthropic Claude Sonnet 5.5 | 2 USD | 10 USD | [cennik Anthropic](https://platform.claude.com/docs/en/about-claude/pricing) |
+| Transkrypcja OpenAI Whisper | 0,006 USD za minutę nagrania | - | [cennik OpenAI](https://developers.openai.com/api/docs/pricing) |
+
+Policzmy to na dwóch gotowcach z tego kursu. Liczby tokenów to moje założenia do
+przykładu, nie pomiar - Twoje będą zależeć od długości wpisów i promptu.
+
+### Przykład 1: codzienne podsumowanie RSS
+
+Gotowiec [RSS → podsumowanie AI](/workflow-rss-podsumowanie-ai) woła model **raz dziennie**,
+czyli około 30 razy w miesiącu. Załóżmy, że jedno wywołanie to 3 000 tokenów na wejściu
+(prompt i kilkanaście wpisów z tytułem, linkiem i zajawką) oraz 400 tokenów odpowiedzi.
+
+| Model | Koszt jednego wywołania | Koszt miesięczny (30 wywołań) |
+| --- | --- | --- |
+| Claude Haiku 5.5 | ok. 0,0005 USD | ok. 0,02 USD |
+| gpt-5-mini | ok. 0,0016 USD | ok. 0,05 USD |
+| Claude Sonnet 5.5 | ok. 0,01 USD | ok. 0,30 USD |
+
+Rachunek dla gpt-5-mini: 3 000 × 0,25 USD / 1 000 000 + 400 × 2 USD / 1 000 000 =
+0,00075 + 0,0008 = 0,00155 USD na wywołanie. Wszystkie kwoty są małe, ale różnica między
+najtańszym a najdroższym modelem w tabeli to ponad dziesięć razy - przy jednym workflow
+nieistotna, przy setkach wywołań dziennie już tak.
+
+### Przykład 2: notatki głosowe do Notion
+
+Gotowiec [Notatka głosowa → Notion](/workflow-notatka-glosowa-notion) płaci za **minutę
+nagrania**, nie za tokeny. Załóżmy 5 notatek dziennie po 2 minuty, czyli 300 minut
+w miesiącu: 300 × 0,006 USD = **1,80 USD miesięcznie** za transkrypcję Whisperem.
+
+### Gdzie koszty AI naprawdę rosną
+
+Tam, gdzie liczba wywołań przestaje być pod Twoją kontrolą: agent AI, który sam decyduje
+o kolejnych krokach i woła model kilka razy w jednym wykonaniu, chatbot otwarty dla klientów
+albo workflow uruchamiany webhookiem przez kogoś z zewnątrz. Do tego dochodzi n8n Assistant,
+który buduje workflow za Ciebie na Twoim kluczu API - konkretny przykład rachunku i pułapkę
+z domyślnie podpowiadanym najdroższym modelem opisuję w
+[Module 9](/modul-9-n8n-assistant). Jak ograniczać zużycie w samych workflow, pokazuję
+w [Module 8](/modul-8-wzorce-wdrozenia#optymalizacja-wydajności-i-kosztów).
+
+:::tip[Limit wydatków ustaw u dostawcy, nie w n8n]
+Każdy klucz API do modelu trzymaj pod limitem wydatków i alertem ustawionym w panelu dostawcy.
+Błąd w pętli albo zalew wywołań przez webhook potrafi spalić budżet w nocy, zanim zajrzysz
+do zakładki Executions.
+:::
+
+## Ile miesięcznie zapłacisz w typowym scenariuszu?
+
+Zebrane w jedną tabelę - stan na listopad 2026, kwoty z cenników podlinkowanych wyżej.
+Pozycja "Twój czas" to osobny koszt, policzony według wzoru z sekcji o
+[utrzymaniu](#ile-kosztuje-twój-czas-na-utrzymanie).
+
+| Scenariusz | n8n Cloud | Self-hosting | AI (przykładowo) |
+| --- | --- | --- | --- |
+| **Hobby** - kilka workflow, w tym oba gotowce z przykładów wyżej | Starter: 20 EUR / mies. | Mikrus 3.0: 130 zł brutto / rok + Twój czas | ok. 2 USD / mies. (przykłady 1 i 2) |
+| **Mała firma** - kilkanaście workflow, do 10 000 wykonań miesięcznie | Pro: 50 EUR / mies. | VPS w UE: od 5,99 EUR netto / mies. + Twój czas | zależnie od liczby wywołań, wg wzoru wyżej |
+| **Agencja** - workflow dla wielu klientów | Pro albo Enterprise (wycena indywidualna) | Community, jeśli klienci nie mają dostępu do n8n; Business 667 EUR / mies. przy potrzebie środowisk, Gita lub SSO; Enterprise, jeśli klienci mają sami budować workflow | rachunek per klient, najlepiej na osobnych kluczach API |
+
+Najważniejszy wniosek z tej tabeli: przy małej skali **różnica w cenie jest mniejsza niż
+różnica w czasie**. Cloud kosztuje więcej w euro, a self-hosting więcej w godzinach. Dla agencji
+decydujący jest model licencji, a nie cena serwera - dlatego wiersz agencji odsyła do sekcji
+o [licencji](#czy-n8n-na-własnym-serwerze-jest-naprawdę-za-darmo).
+
+## Ile kosztuje ten sam workflow w n8n, Zapierze i Make?
+
+Weźmy jeden przykład: workflow z **triggerem i 10 akcjami**, uruchamiany **1 000 razy
+w miesiącu** (np. obsługa zgłoszeń z formularza z zapisem do kilku systemów).
+
+| Narzędzie | Jak liczy | Zużycie | Koszt (stan na listopad 2026) |
+| --- | --- | --- | --- |
+| n8n Cloud | wykonania - jedno uruchomienie całego workflow | 1 000 wykonań | Starter: 20 EUR / mies. (limit 2 500) |
+| n8n self-hosted | brak opłat za wykonania | 1 000 wykonań | tylko serwer i Twój czas |
+| Zapier | taski - każda udana akcja; trigger i filtry się nie liczą | 10 akcji × 1 000 = 10 000 tasków | Professional: 129 USD / mies. przy płatności rocznej albo 193,50 USD przy miesięcznej |
+| Make | kredyty - większość akcji to 1 kredyt | ok. 10 000 kredytów lub więcej | według pakietu kredytów w cenniku |
+
+Źródła: [cennik n8n](https://n8n.io/pricing), [cennik Zapiera](https://zapier.com/pricing),
+[cennik Make](https://www.make.com/en/pricing). Make opisuje w cenniku sposób liczenia
+kredytów (większość akcji zużywa 1 kredyt, router i moduły obsługi błędów nie zużywają
+żadnego, darmowy plan ma 1 000 kredytów miesięcznie), ale ceny płatnych pakietów pokazuje
+dopiero w interaktywnym kalkulatorze - sprawdź je tam dla swojej liczby kredytów.
+
+Różnica bierze się z modelu rozliczeń, nie z "drożyzny" konkurencji. Krótki workflow na 1-2
+akcje w Zapierze bywa tani i najprostszy w obsłudze. Im dłuższy workflow i im częściej się
+uruchamia, tym bardziej opłaca się model "płacę za całe uruchomienie" albo "nie płacę za
+uruchomienia wcale". Szerzej porównuję te narzędzia w
+[Module 0](/modul-0-fundamenty#n8n-vs-make-zapier-i-power-automate).
+
+<Takeaways title="Co warto zapamiętać">
+- Self-hosted n8n na licencji Community jest darmowy do celów wewnętrznych, osobistych
+  i niekomercyjnych - płacisz za serwer, prąd i własny czas.
+- n8n Cloud kosztuje od 20 EUR (Starter, 2 500 wykonań) do 50 EUR miesięcznie (Pro, 10 000
+  wykonań) przy rozliczeniu rocznym - stan na listopad 2026.
+- Wykonanie w n8n to całe uruchomienie workflow, niezależnie od liczby kroków. Zapier i Make
+  liczą pojedyncze akcje, więc długie workflow kosztują tam proporcjonalnie więcej.
+- Budować workflow dla klientów na darmowej licencji wolno, dopóki klienci nie mają dostępu do
+  n8n i sami niczego nie tworzą. Funkcje Business i Enterprise wymagają płatnej licencji.
+- Koszt AI liczysz wzorem: wywołania × tokeny × cena modelu. Wybór modelu potrafi zmienić
+  rachunek ponad dziesięciokrotnie, a limit wydatków ustawiasz u dostawcy.
+- Na self-hostingu Twój czas na aktualizacje i backupy bywa największą pozycją w budżecie.
+</Takeaways>
