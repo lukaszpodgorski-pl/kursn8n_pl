@@ -22,3 +22,11 @@
 
 /sw.js
   Cache-Control: no-cache, must-revalidate
+
+# Skrypty powloki do pobrania (Modul 1). text/plain zamiast domyslnego typu
+# z rozszerzenia .sh: przegladarka pokazuje tresc do przeczytania zamiast
+# sciagac plik, a curl i tak pobiera bajty 1:1. no-cache, zeby po poprawce
+# nikt nie dostal starej wersji instalatora z cache.
+/scripts/*
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: no-cache

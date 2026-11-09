@@ -1,0 +1,3 @@
+# Skrypty powloki musza miec LF niezaleznie od core.autocrlf - z CRLF bash
+# na Raspberry Pi pada na pierwszej linii ($'\r': command not found).
+*.sh text eol=lf
