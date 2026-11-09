@@ -28,6 +28,7 @@ teaches:
   - Rolę klucza N8N_ENCRYPTION_KEY i bezpieczne aktualizowanie instancji
   - Jak bezpiecznie przejść na n8n 3.0 - Migration Report, kolejność kroków i zmiany ważne dla self-hostingu
   - Jak dołożyć do Compose sandbox wymagany przez n8n Assistant, bez przepisywania działającego pliku
+  - Jak postawić n8n na Raspberry Pi gotowym skryptem - z PostgreSQL, Cloudflare Tunnel, backupem i przywracaniem
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -57,6 +58,8 @@ faq:
     a: "Nie odszyfrujesz istniejących poświadczeń zapisanych w bazie - trzeba będzie wprowadzić je ponownie. Dlatego klucz traktuj jak hasło: przechowuj go bezpiecznie i backupuj razem z bazą danych. Na produkcji najlepiej ustawić własny klucz zmienną środowiskową, zanim uruchomisz instancję po raz pierwszy."
   - q: "Czy muszę dokładać sandbox, żeby korzystać z n8n Assistant?"
     a: "Tak, jeśli hostujesz n8n samodzielnie. Assistant pisze kod i musi go gdzieś uruchomić, a n8n nie pozwala robić tego we własnym kontenerze - bez sandboxa funkcja się nie włączy. Instalator jednolinijkowy `curl -fsSL https://get.n8n.io | sh` stawia sandbox automatycznie. Przy własnym pliku `docker-compose.yml` dokładasz trzy usługi przez `docker-compose.override.yml`, bez ruszania pliku bazowego. Doliczyć trzeba około 4 GB RAM i 2 rdzenie, bo sandbox uruchamia Dockera wewnątrz Dockera."
+  - q: "Czy jest gotowy instalator n8n na Raspberry Pi?"
+    a: "Tak, w tym kursie jest skrypt install-n8n-rpi.sh do pobrania z kursn8n.pl/scripts. Na Raspberry Pi 4 lub 5 z 64-bitowym systemem instaluje Dockera, stawia n8n w przypiętej wersji z PostgreSQL, generuje własny klucz szyfrowania, zakłada Cloudflare Tunnel i ustawia codzienny backup z rotacją 7 kopii oraz polecenia przywracania i aktualizacji. Pobierz go, przeczytaj i dopiero wtedy uruchom przez sudo bash - nie przez curl … | sh. Oficjalny instalator get.n8n.io służy do wypróbowania n8n lokalnie i nie ustawia HTTPS, PostgreSQL ani backupu."
   - q: "Jak bezpiecznie aktualizować n8n?"
     a: "Najpierw backup (wolumen/baza + klucz), potem przeczytaj release notes pod kątem zmian łamiących zgodność, a następnie w Compose: `docker compose pull` i `docker compose up -d`. Na ważnych instancjach nie przeskakuj wielu wersji naraz i testuj po aktualizacji."
   - q: "Czy już teraz aktualizować do n8n 3.0?"
@@ -72,7 +75,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 1 · Poziom: początkujący"
-  readingTime="~28 min"
+  readingTime="~31 min"
   note="Docker · VPS · Cloud"
 />
 
@@ -571,6 +574,75 @@ serwera:
 - **Backup** - domowy sprzęt potrafi paść (zasilanie, karta). Regularnie kopiuj wolumen
   danych i klucz szyfrowania.
 
+### Instalator dla Raspberry Pi
+
+Wszystkie trzy punkty z listy wyżej da się ustawić ręcznie, ale na Raspberry Pi robi się
+to zwykle raz na kilka lat i za każdym razem od nowa szuka się tych samych komend. Dlatego
+przygotowałem skrypt, który stawia kompletną domową instancję jednym przebiegiem.
+
+Instalator jednolinijkowy n8n (`get.n8n.io`) tego nie zastąpi, bo celuje w coś innego: sam
+na koniec pisze, że jest do wypróbowania n8n lokalnie, a po HTTPS i PostgreSQL odsyła do
+dokumentacji hostingu
+([źródło skryptu](https://github.com/n8n-io/n8n/blob/master/docker/get-n8n.sh), stan na
+listopad 2026). Wymaga też zainstalowanego wcześniej Dockera. Mój skrypt robi resztę:
+
+- instaluje Dockera i stawia n8n w przypiętej wersji `2.46.6` z bazą **PostgreSQL**
+  (z rozszerzeniem pgvector pod workflow AI),
+- generuje własny `N8N_ENCRYPTION_KEY` i hasło bazy (`openssl rand`) i zapisuje je w
+  pliku `.env` czytelnym tylko dla roota,
+- zakłada **Cloudflare Tunnel**, więc n8n jest od razu dostępne po HTTPS na Twojej
+  subdomenie, bez otwierania portów,
+- ustawia codzienny backup (baza, wolumen, konfiguracja) z rotacją 7 kopii i daje
+  polecenie przywracania - także na nowej karcie lub dysku,
+- dodaje polecenie aktualizacji, które zawsze najpierw robi backup.
+
+Potrzebujesz Raspberry Pi 4 lub 5 z **64-bitowym** Raspberry Pi OS (obrazy n8n są tylko
+dla arm64 i amd64), co najmniej 4 GB RAM-u, najlepiej dysku SSD oraz domeny dodanej do
+konta Cloudflare. Skrypt działa też na innych systemach opartych o Debiana.
+
+Pobierz skrypt, **przeczytaj go** i dopiero wtedy uruchom:
+
+```bash
+curl -fsSLo install-n8n-rpi.sh https://kursn8n.pl/scripts/install-n8n-rpi.sh
+less install-n8n-rpi.sh
+sudo bash install-n8n-rpi.sh
+```
+
+:::caution[Nie wklejaj tego jako `curl … | sh`]
+Skrypt działa na prawach roota: aktualizuje pakiety systemu, instaluje Dockera i
+`cloudflared`, zakłada usługę systemd i zadanie cron. Takiego programu nie uruchamia się
+na ślepo - także mojego. Plik ma niecałe 2 000 linii, a sekcje są opisane komentarzami.
+:::
+
+Instalator zapyta o język, domenę i strefę czasową, a w trakcie otworzy logowanie do
+Cloudflare. Na końcu pokaże hasło bazy i klucz szyfrowania - tylko na ekranie, do logu
+instalacji nie trafiają. **Zapisz klucz w menedżerze haseł**, zanim zamkniesz terminal.
+Po instalacji masz trzy polecenia:
+
+| Polecenie | Co robi |
+| --- | --- |
+| `sudo n8n-backup` | backup na żądanie (automatycznie codziennie około 3:00) |
+| `sudo n8n-restore --latest` | przywraca najnowszy backup z `/var/lib/n8n/backups` |
+| `sudo n8n-update 2.46.7` | backup, potem przejście na wskazaną wersję n8n |
+
+`n8n-update` nie pozwoli zejść do starszej wersji (migracje bazy działają tylko w przód)
+ani przeskoczyć na 3.x bez flagi `--major`. Zanim jej użyjesz, przejdź kroki z sekcji
+[Aktualizacja do n8n 3.0](#aktualizacja-do-n8n-30).
+
+:::danger[Backup na tej samej karcie to nie backup]
+Kopie lądują lokalnie, w `/var/lib/n8n/backups`. Gdy padnie karta lub dysk, giną razem z
+n8n. Regularnie kopiuj je poza Raspberry Pi (`rsync` na inny komputer, pendrive, `rclone`
+do chmury) - instalator świadomie nie trzyma żadnych danych dostępowych do zewnętrznych
+usług. W archiwum jest plik `.env` z kluczem szyfrowania, więc trzymaj je tam, gdzie
+trzymasz hasła.
+:::
+
+Skrypt nie stawia sandboxa dla n8n Assistant - na Raspberry Pi z 4 GB RAM-u zwykle
+zabrakłoby na niego pamięci. Jeśli masz 8 GB i chcesz go dołożyć, zrób to nakładką opisaną
+w sekcji [Sandbox dla AI Assistant](#sandbox-dla-ai-assistant---najlepszy-moment-jest-teraz).
+Kod jest na licencji MIT, a błędy zgłaszaj w
+[issues repozytorium kursu](https://github.com/lukaszpodgorski-pl/kursn8n_pl/issues).
+
 :::tip[Pełny poradnik osobno]
 Szczegóły doboru sprzętu i konfiguracji domowej rozkładam w dedykowanym materiale o
 hostingu - zobacz [porównanie hostingów n8n](/porownanie-n8n-hostingow), gdzie zestawiam
@@ -883,6 +955,9 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
    Dlaczego odpowiedź brzmi "dziś nie, ale przed przejściem na 3.x tak", i który katalog
    jest w tej przeprowadzce ważniejszy niż sama baza? Jeśli nie masz pewności -
    [Migracja z npm na Dockera](#migracja-z-npm-na-dockera).
+6. Instalator dla Raspberry Pi codziennie robi backup z rotacją 7 kopii. Dlaczego mimo
+   to po awarii karty microSD możesz zostać bez niczego, i co musisz robić sam? Jeśli nie
+   masz pewności - [Instalator dla Raspberry Pi](#instalator-dla-raspberry-pi).
 
 <details>
 <summary>Mini-zadanie: sprawdź, czy Twój wolumen naprawdę chroni dane</summary>
@@ -909,6 +984,7 @@ Potrzebujesz Dockera i kilkunastu minut.
   - n8n Cloud = najszybszy start bez administracji; self-host = kontrola i niższy koszt długofalowy.
   - Docker to jedyny wspierany self-host: pamiętaj o wolumenie `n8n_data` - bez niego tracisz dane.
   - OAuth i webhooki potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel.
+  - Na Raspberry Pi możesz użyć gotowego instalatora z kursu: pobierz, przeczytaj, uruchom - i kopiuj backupy poza Pi.
   - Za reverse proxy ustaw `WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
   - `N8N_ENCRYPTION_KEY` szyfruje poświadczenia - utrata klucza = utrata poświadczeń. Backupuj go razem z bazą.
   - Aktualizuj świadomie: backup, release notes, `docker compose pull && up -d`.
