@@ -1,6 +1,6 @@
 ---
 title: n8n w produkcji - bezpiecznie i niezawodnie
-description: "n8n produkcyjnie i bezpiecznie: zabezpieczenie instancji (2FA, reverse proxy, SSL), RODO, backupy 3-2-1 i testowane odtwarzanie, monitoring i logi (N8N_LOG_LEVEL), tryb kolejkowy z workerami oraz środowiska dev/prod z wersjonowaniem."
+description: "n8n produkcyjnie i bezpiecznie: zabezpieczenie instancji (2FA, reverse proxy, SSL), RODO, backupy 3-2-1 i testowane odtwarzanie, monitoring i logi (N8N_LOG_LEVEL), tryb kolejkowy z workerami oraz środowiska dev/prod z wersjonowaniem i pipeline'em CI/CD (n8n CLI, Public API, GitHub Actions)."
 head:
   - tag: title
     content: "Moduł 7: Produkcja n8n - bezpieczeństwo, RODO, backupy, monitoring, queue mode | KursN8N.pl"
@@ -21,6 +21,11 @@ teaches:
   - Jak monitorować n8n - poziomy logów, healthchecki i dead man's switch
   - Kiedy i jak włączyć tryb kolejkowy (queue mode) z workerami
   - Jak rozdzielić środowiska dev/prod i wersjonować workflow w Git
+  - Jak eksportować i importować workflow i credentials komendami n8n CLI w kontenerze Docker
+  - Jak przenosić workflow między instancjami przez Public API n8n (nagłówek X-N8N-API-KEY)
+  - Jak zbudować pipeline GitHub Actions, który promuje workflow z dev na prod przez pull request
+  - Na co uważać przy promocji dev → staging → prod - ID workflow, credentials, zmienne i publikacja
+  - Które plany n8n obejmują Source Control i Environments
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -33,6 +38,12 @@ mentions:
     sameAs: https://www.postgresql.org/
   - name: Let's Encrypt
     sameAs: https://letsencrypt.org/
+  - name: Git
+    sameAs: https://en.wikipedia.org/wiki/Git
+  - name: GitHub Actions
+    sameAs: https://docs.github.com/en/actions
+  - name: CI/CD
+    sameAs: https://en.wikipedia.org/wiki/CI/CD
 faq:
   - q: "Czy do produkcji muszę używać PostgreSQL zamiast SQLite?"
     a: "Dla pojedynczej, niewielkiej instancji SQLite bywa wystarczający, ale dla poważnej produkcji - a obowiązkowo w trybie kolejkowym - używaj PostgreSQL. Lepiej znosi obciążenie, równoległy dostęp i jest wymagany, gdy wiele procesów (main + workery) korzysta ze wspólnej bazy."
@@ -40,8 +51,12 @@ faq:
     a: "Stracisz dostęp do wszystkich zapisanych credentials - n8n nie odszyfruje ich z bazy. Workflow zostaną, ale każde połączenie z usługą zewnętrzną trzeba będzie skonfigurować od nowa. Dlatego klucz backupujesz osobno (menedżer haseł) i to on jest najważniejszym elementem kopii."
   - q: "Kiedy realnie potrzebuję trybu kolejkowego?"
     a: "Gdy pomiary pokazują, że jeden proces n8n nie wyrabia: wykonania się piętrzą, potrzebujesz równoległości albo masz długie, ciężkie zadania blokujące resztę. Dopóki pojedyncza instancja sobie radzi, queue mode dodaje tylko niepotrzebną złożoność (Redis, wiele procesów)."
-  - q: "Jak wersjonować workflow bez planu Enterprise?"
-    a: "Eksportuj każdy workflow jako JSON i trzymaj te pliki w repozytorium Git. Dostajesz historię zmian, możliwość cofnięcia i prosty transfer między instancją dev a prod. Pełny Source Control z gałęziami i promocją środowisk to funkcja Enterprise, ale podstawową dyscyplinę zapewnisz samym eksportem do Gita."
+  - q: "Jak wersjonować workflow bez płatnego planu?"
+    a: "Eksportuj każdy workflow jako JSON i trzymaj te pliki w repozytorium Git - ręcznie z edytora, komendą n8n export:workflow albo przez Public API. Dostajesz historię zmian, możliwość cofnięcia i prosty transfer między instancją dev a prod. Wbudowany Source Control (Environments) to funkcja planów Business i Enterprise (stan na listopad 2026), ale podstawową dyscyplinę zapewnisz samym eksportem do Gita."
+  - q: "Jak automatycznie przenosić workflow z dev na prod?"
+    a: "Najprościej pipeline'em CI: eksport z dev przez Public API albo n8n CLI, pull request z plikami JSON do przeglądu, a po merge import na prod. Przez API nowy workflow dostaje na prod nowe ID, więc dopasowujesz go po nazwie i podmieniasz ID credentials na te z prod (ta sama nazwa, inne wartości). Nowe workflow publikujesz na prod świadomie, ręcznie."
+  - q: "Czy mogę trzymać wyeksportowane credentials w repozytorium Git?"
+    a: "Tylko w postaci zaszyfrowanej, a i to rzadko ma sens - odczyta je wyłącznie instancja z tym samym N8N_ENCRYPTION_KEY. Eksport z flagą --decrypted zapisuje wszystkie klucze i tokeny otwartym tekstem i nigdy nie powinien trafić do Gita ani artefaktu CI. Na każdym środowisku zakładasz credentials osobno, pod tą samą nazwą."
   - q: "Czy webhooki też muszą być schowane za logowaniem?"
     a: "Nie - to dwie różne ścieżki. Panel n8n warto ograniczyć (IP / VPN / SSO + 2FA), ale endpointy webhooków zwykle muszą być publiczne, by usługi zewnętrzne mogły je wywołać. Zabezpiecz je inaczej: trudny do odgadnięcia URL, weryfikacja podpisu/sekretu w workflow i HTTPS."
 ---
@@ -54,7 +69,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Moduł 7 · Poziom: zaawansowany"
-  readingTime="~20 min"
+  readingTime="~32 min"
   note="Produkcja i bezpieczeństwo"
 />
 
@@ -342,29 +357,320 @@ proces nie wyrabia - nie wcześniej.
 
 Edycja workflow bezpośrednio na produkcji to przepis na katastrofę. Profesjonalne
 wdrożenie rozdziela **środowisko deweloperskie** (gdzie eksperymentujesz) od
-**produkcyjnego** (gdzie działają sprawdzone wersje) i wersjonuje zmiany.
+**produkcyjnego** (gdzie działają sprawdzone wersje) i wersjonuje zmiany. W tej sekcji
+przechodzę od zasady do konkretu: komendy, API i szkic pipeline'u CI/CD (_CI/CD_ to
+automatyczne sprawdzanie i wdrażanie zmian po każdym zatwierdzeniu w repozytorium), który
+sam przenosi workflow z dev na prod.
 
-### Source control (Git) w n8n
+<Flow
+  title="promocja-dev-prod"
+  alt="Schemat promocji workflow: instancja dev, eksport przez CLI albo Public API, pull request w Git z przeglądem, po merge pipeline CI importuje workflow na instancję produkcyjną"
+  caption="Promocja dev → prod: workflow wychodzi z dev jako JSON, przechodzi przez pull request w Git, a po merge pipeline wgrywa go na produkcję. Nikt nie klika na prod ręcznie."
+  spec={`
+    Dev (instancja robocza):code @blue -> Eksport (CLI albo Public API):file-export @slate
+    Eksport -> Git (pull request i review):fab/github @violet
+    Git -merge-> Import (pipeline CI):file-import @amber
+    Import -> Prod (instancja produkcyjna):server @green
+  `}
+/>
 
-n8n w planach Enterprise oferuje **Source Control & Environments**: łączysz instancję
-z repozytorium Git (_Git_ to system kontroli wersji - przechowuje historię każdej
-zmiany i pozwala cofnąć się do wcześniejszej wersji), a workflow i credentials (jako
-referencje, nie sekrety) są pod kontrolą wersji. Pracujesz w gałęziach, przeglądasz
-zmiany i promujesz je z dev do prod w kontrolowany sposób. Dokumentacja:
-[Source control and environments](https://docs.n8n.io/source-control-environments/).
+### Cztery sposoby przenoszenia workflow
 
-### Eksport/import JSON - wersjonowanie dla każdego
+Zanim sięgniesz po automatyzację, wybierz drogę. Wszystkie cztery przenoszą tę samą rzecz -
+definicję workflow w JSON - różnią się tym, kto i skąd ją przenosi (stan na listopad 2026):
 
-Nie masz Enterprise? Wersjonować i tak warto. Każdy workflow możesz wyeksportować jako
-**JSON** (z edytora) i trzymać w repozytorium Git. Daje to historię zmian, możliwość
-cofnięcia i odtworzenia workflow oraz prosty transfer między instancjami dev i prod.
+| Sposób | Dostępność | Kiedy wybrać |
+| --- | --- | --- |
+| Eksport/import JSON z edytora | każda instancja | kilka workflow, pierwsze kroki |
+| Server CLI (`n8n export:workflow` w kontenerze) | self-hosted, każda edycja | masz dostęp do serwera i chcesz zachować ID workflow |
+| Public API (`/api/v1/workflows`) | self-hosted każda edycja, Cloud od planu Starter | pipeline CI działający z dowolnej maszyny |
+| Environments (Source Control w n8n) | plany Business i Enterprise | zespół, wiele projektów, przegląd zmian w n8n |
+
+### Eksport JSON z edytora - punkt startu
+
+Nie masz płatnego planu? Wersjonować i tak warto. Każdy workflow możesz wyeksportować jako
+**JSON** (z edytora: menu workflow → Download) i trzymać w repozytorium Git. Daje to historię
+zmian, możliwość cofnięcia i odtworzenia workflow oraz prosty transfer między instancjami dev
+i prod.
+
+Ręczne klikanie szybko się nudzi, więc pierwszy krok automatyzacji masz gotowy: gotowiec
+[backup workflow n8n do GitHuba](/workflow-backup-n8n-github) co noc eksportuje wszystkie
+workflow przez API do repozytorium. To wersjonowanie i backup definicji - dobry punkt
+startu, do którego niżej dokładam drugą połowę: drogę z Gita z powrotem na produkcję.
+
+### Komendy n8n CLI w kontenerze Docker
+
+n8n ma wbudowany **Server CLI** (_CLI_ to interfejs wiersza poleceń - komendy wpisywane w
+terminalu). Działa na tej samej maszynie co n8n, czyta bezpośrednio z bazy i większość komend
+wykona nawet przy zatrzymanym n8n. W Dockerze wołasz go przez `docker exec` - w przykładach
+kontener nazywa się `n8n`, a ścieżki są ścieżkami **wewnątrz** kontenera (katalog
+`/home/node/.n8n` to zwykle zamontowany wolumen, więc pliki lądują też na hoście).
+
+Eksport workflow:
+
+```bash
+# wszystkie workflow, jeden plik na workflow (--backup = --all --pretty --separate)
+docker exec -u node n8n n8n export:workflow --backup --output=/home/node/.n8n/export/workflows/
+
+# jeden workflow po ID
+docker exec -u node n8n n8n export:workflow --id=<ID> --output=/home/node/.n8n/export/moj-workflow.json
+
+# tylko opublikowane wersje (pomija szkice robocze i workflow bez publikacji)
+docker exec -u node n8n n8n export:workflow --all --published --output=/home/node/.n8n/export/opublikowane.json
+```
+
+Import i publikacja na instancji docelowej:
+
+```bash
+# wszystkie pliki *.json z katalogu
+docker exec -u node n8n n8n import:workflow --separate --input=/home/node/.n8n/export/workflows/
+
+# import importuje workflow jako nieopublikowane - publikujesz świadomie, po jednym
+docker exec -u node n8n n8n publish:workflow --id=<ID>
+```
+
+Cztery rzeczy, na które musisz uważać przy imporcie:
+
+- **Import nadpisuje po ID.** Eksport zawiera ID workflow - jeśli na instancji docelowej istnieje workflow o tym samym ID, zostanie nadpisany. Na prod to zwykle dokładnie to, czego chcesz; na instancji z innymi workflow sprawdź ID przed importem.
+- **Wszystko wchodzi jako nieopublikowane.** Domyślnie `import:workflow` wyłącza każdy importowany workflow. Flaga `--activeState=fromJson` zachowuje stan z pliku, ale działa tylko w trybie multi-main i kolejkowym.
+- **Publikujesz po ID, bez `--all`.** `publish:workflow` celowo nie ma flagi `--all` - żeby nikt przypadkiem nie opublikował hurtem wszystkiego na produkcji. Stara komenda `update:workflow --active=true` jest od n8n 2.0 przestarzała (w 2.0 przełącznik active/inactive zastąpił model publish/unpublish).
+- **Znany błąd z cronem.** Na instancji bez multi-main poprzednio aktywny workflow po imporcie zostawia działające triggery czasowe aż do restartu n8n. Po imporcie na prod zrób restart albo sprawdź, czy nic nie odpala się podwójnie.
+
+Credentials eksportujesz analogicznie:
+
+```bash
+# zaszyfrowane - odczyta je tylko instancja z tym samym N8N_ENCRYPTION_KEY
+docker exec -u node n8n n8n export:credentials --backup --output=/home/node/.n8n/export/credentials/
+
+docker exec -u node n8n n8n import:credentials --separate --input=/home/node/.n8n/export/credentials/
+```
+
+:::danger[`--decrypted` wypisuje sekrety otwartym tekstem]
+`n8n export:credentials --all --decrypted` zapisuje wszystkie klucze API, hasła i tokeny
+OAuth jawnym tekstem - dokumentacja mówi wprost, że wszystkie wrażliwe dane są widoczne w
+pliku. Ta flaga służy do jednorazowej migracji między instalacjami z **różnym**
+`N8N_ENCRYPTION_KEY`. Taki plik nigdy nie trafia do Gita, artefaktu CI ani maila - kopiujesz
+go bezpośrednio na nowy serwer, importujesz i od razu usuwasz.
+:::
+
+Pełna lista flag: [Use the command line](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line)
+(dokumentacja n8n, zweryfikowane 9 listopada 2026, n8n 2.46.x).
+
+:::note[n8n 3.0 (beta) - co się zmienia]
+Komendy Server CLI z tej sekcji działają tak samo. Dwie zmiany z
+[listy zmian łamiących 3.0](https://docs.n8n.io/changelog/v30-breaking-changes) dotykają
+jednak tego tematu: n8n 3.0 obsługuje self-hosting **wyłącznie w Dockerze** (koniec instalacji
+przez `npm` i `npx n8n`), więc `docker exec` staje się jedyną drogą do Server CLI, a z
+edytora znika **Import from URL**. Import z pliku, przez CLI i przez API zostaje.
+:::
+
+### Public API jako alternatywa dla CLI
+
+Server CLI wymaga dostępu do serwera. **Public API** n8n (_REST API_ - interfejs, z którym
+rozmawiasz zwykłymi zapytaniami HTTP) działa z dowolnej maszyny w sieci, więc nadaje się do
+pipeline'u CI, który biegnie na serwerach GitHuba. Dostępność: self-hosted we wszystkich
+edycjach, n8n Cloud od planu Starter (bez okresu próbnego).
+
+Klucz tworzysz w **Settings → n8n API → Create an API key** (z etykietą i datą wygaśnięcia) i
+wysyłasz w nagłówku `X-N8N-API-KEY`:
+
+```bash
+curl -sS "https://n8n-dev.twojadomena.pl/api/v1/workflows?limit=250&tags=do-prod" \
+  -H "accept: application/json" \
+  -H "X-N8N-API-KEY: $N8N_API_KEY"
+```
+
+Endpointy, których potrzebujesz do promocji:
+
+| Endpoint | Co robi |
+| --- | --- |
+| `GET /api/v1/workflows` | Lista workflow. Filtry `name`, `tags`, `active`, `projectId`; stronicowanie `limit` (domyślnie 100, maks. 250) i `cursor` z pola `nextCursor`. |
+| `GET /api/v1/workflows/{id}` | Jeden workflow z pełną definicją. |
+| `POST /api/v1/workflows` | Tworzy workflow. Wymagane pola: `name`, `nodes`, `connections`, `settings`. `id` jest tylko do odczytu - nowy workflow dostaje **nowe** ID. |
+| `PUT /api/v1/workflows/{id}` | Aktualizuje workflow. Jeśli jest opublikowany, nowa wersja od razu idzie na żywo, chyba że dodasz `?publishIfActive=false`. |
+| `POST /api/v1/workflows/{id}/publish` | Publikuje workflow (dawne `/activate`, dziś przestarzałe). |
+| `GET /api/v1/credentials` | Lista credentials: ID, nazwa, typ - bez sekretów. Tylko dla ownera i admina. |
+
+Na planie Enterprise klucz API możesz ograniczyć **zakresami** (scopes), np. tylko do odczytu
+i aktualizacji workflow. Poza Enterprise klucz ma pełne uprawnienia swojego konta - dlatego
+trzymaj go wyłącznie w sekretach CI i ustaw mu datę wygaśnięcia.
+
+Źródła: [n8n API](https://docs.n8n.io/connect/n8n-api),
+[Authentication](https://docs.n8n.io/connect/n8n-api/authentication),
+[Workflow - endpoint reference](https://docs.n8n.io/connect/n8n-api/workflow)
+(zweryfikowane 9 listopada 2026). Jeśli wolisz komendy od `curl`, n8n wydaje też lekkiego
+klienta [n8n CLI](https://docs.n8n.io/connect/n8n-cli) (`npx @n8n/cli workflow list`) - to
+ten sam Public API, tylko w formie komend.
+
+### Pipeline GitHub Actions: dev → pull request → prod
+
+Poniżej szkic dwóch workflow GitHub Actions (_GitHub Actions_ to wbudowany w GitHuba system
+CI/CD, który uruchamia zadania z plików YAML w katalogu `.github/workflows/`). Pierwszy co noc
+pobiera z dev workflow oznaczone tagiem `do-prod` i otwiera pull request z różnicami. Drugi
+po merge do `main` wgrywa zmienione pliki na prod przez Public API. Pomiędzy jest Twój
+przegląd w pull requeście - to jest właściwa bramka jakości.
+
+Potrzebujesz czterech sekretów repozytorium: `N8N_DEV_URL`, `N8N_DEV_API_KEY`, `N8N_PROD_URL`,
+`N8N_PROD_API_KEY` (adresy bez końcowego ukośnika, np. `https://n8n.twojadomena.pl`).
+
+:::caution[To jest szkic do dostosowania, nie gotowiec]
+Pipeline sprawdziłem składniowo, ale każda instancja ma inne nazwy credentials, tagi, projekty
+i uprawnienia. Uruchom go najpierw na instancji testowej zamiast na prawdziwej produkcji,
+przeczytaj każdy krok i dopasuj do siebie.
+:::
+
+`.github/workflows/n8n-eksport-dev.yml`:
+
+```yaml
+name: Eksport workflow z dev
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'   # codziennie o 2:00 UTC
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  eksport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Pobierz workflow z tagiem do-prod
+        env:
+          N8N_URL: ${{ secrets.N8N_DEV_URL }}
+          N8N_API_KEY: ${{ secrets.N8N_DEV_API_KEY }}
+        run: |
+          set -euo pipefail
+          rm -rf workflows && mkdir workflows
+          cursor=""
+          while :; do
+            resp=$(curl -sS --fail-with-body \
+              -H "X-N8N-API-KEY: $N8N_API_KEY" \
+              "$N8N_URL/api/v1/workflows?tags=do-prod&limit=250&excludePinnedData=true${cursor:+&cursor=$cursor}")
+            # zapisuj tylko pola, które da się wgrać z powrotem przez API
+            echo "$resp" | jq -c '.data[]' | while read -r wf; do
+              id=$(jq -r '.id' <<< "$wf")
+              jq '{name, nodes, connections, settings}' <<< "$wf" > "workflows/$id.json"
+            done
+            cursor=$(jq -r '.nextCursor // empty' <<< "$resp")
+            [ -z "$cursor" ] && break
+          done
+      - name: Otwórz pull request z różnicami
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: eksport/n8n-dev
+          title: 'n8n: zmiany z dev do przeglądu'
+          commit-message: 'chore: eksport workflow z dev'
+          body: 'Automatyczny eksport workflow z tagiem do-prod. Przejrzyj diff przed merge - merge wdraża na prod.'
+          delete-branch: true
+```
+
+`.github/workflows/n8n-wdrozenie-prod.yml`:
+
+```yaml
+name: Wdrożenie workflow na prod
+on:
+  push:
+    branches: [main]
+    paths: ['workflows/**.json']
+  workflow_dispatch:
+concurrency: n8n-prod
+jobs:
+  wdrozenie:
+    runs-on: ubuntu-latest
+    environment: production   # w ustawieniach repo możesz wymagać akceptacji
+    steps:
+      - uses: actions/checkout@v7
+      - name: Wgraj workflow na prod przez Public API
+        env:
+          N8N_URL: ${{ secrets.N8N_PROD_URL }}
+          N8N_API_KEY: ${{ secrets.N8N_PROD_API_KEY }}
+        run: |
+          set -euo pipefail
+          api() {
+            curl -sS --fail-with-body -H "X-N8N-API-KEY: $N8N_API_KEY" \
+              -H "Content-Type: application/json" "$@"
+          }
+          # mapa credentials na prod: nazwa -> ID (ta sama nazwa co na dev, inne wartości)
+          api "$N8N_URL/api/v1/credentials?limit=250" \
+            | jq '[.data[] | {(.name): .id}] | add // {}' > prod-credentials.json
+          for f in workflows/*.json; do
+            name=$(jq -r '.name' "$f")
+            # podmień ID credentials z dev na ID z prod, dopasowując po nazwie
+            jq --slurpfile m prod-credentials.json '
+              .nodes |= map(
+                if .credentials then
+                  .credentials |= with_entries(
+                    .value.id = ($m[0][.value.name]
+                      // error("Brak credentials na prod: " + .value.name)))
+                else . end)' "$f" > body.json
+            id=$(api -G "$N8N_URL/api/v1/workflows" --data-urlencode "name=$name" \
+              | jq -r --arg n "$name" '[.data[] | select(.name == $n)][0].id // empty')
+            if [ -n "$id" ]; then
+              echo "Aktualizuję: $name ($id)"
+              api -X PUT "$N8N_URL/api/v1/workflows/$id" --data-binary @body.json > /dev/null
+            else
+              echo "Tworzę: $name - po wdrożeniu opublikuj go ręcznie"
+              api -X POST "$N8N_URL/api/v1/workflows" --data-binary @body.json > /dev/null
+            fi
+          done
+```
+
+Czego ten szkic świadomie **nie** robi:
+
+- **Nie publikuje nowych workflow.** Nowy workflow ląduje na prod jako nieopublikowany - pierwsze uruchomienie zatwierdzasz sam. Zaktualizowany, już opublikowany workflow idzie na żywo od razu (zachowanie `PUT`).
+- **Nie usuwa workflow** z prod, gdy znikną z repozytorium. Usuwanie na produkcji robię ręcznie.
+- **Nie przenosi credentials.** Jeśli na prod brakuje credentials o tej samej nazwie, pipeline się zatrzymuje z czytelnym błędem.
+- **Nie znosi zmiany nazwy.** Prod dopasowuje workflow po nazwie, więc zmiana nazwy na dev oznacza nowy workflow na prod (stary zostaje). Nazw nie zmieniaj w locie.
+- **Nie stronicuje credentials** powyżej 250 - przy większej instancji dopisz pętlę z `cursor` jak w eksporcie.
+
+Jeśli API odrzuci aktualizację z błędem `400`, najczęściej winne jest pole w `settings`,
+którego wersja docelowa nie zna - wtedy zawęź `settings` do pól, których używasz. Wariant z
+Server CLI zamiast API wygląda podobnie: zamiast `curl` krok wdrożenia kopiuje pliki na
+serwer przez SSH i woła `n8n import:workflow --separate`, a potem `n8n publish:workflow` dla
+wybranych ID. Zaleta: zachowujesz te same ID na dev i prod.
+
+### Promocja dev → staging → prod: ID, credentials, zmienne
+
+Sam transport JSON-a to połowa roboty. Druga połowa to wszystko, co w workflow wskazuje na
+konkretną instancję:
+
+- **ID workflow.** Server CLI zachowuje ID z eksportu, Public API nadaje nowe. Przy API dopasowujesz po nazwie (jak w pipelinie), więc nazwy workflow muszą być unikalne i stabilne. Uważaj na odwołania po ID wewnątrz workflow: node Execute Sub-workflow wskazujący sub-workflow po ID i ustawienie **Error Workflow** w `settings` - na prod te ID są inne, chyba że importujesz przez CLI.
+- **Credentials: ta sama nazwa, inne wartości.** Na każdej instancji zakładasz credentials o identycznej nazwie (np. `Slack - powiadomienia`), ale z danymi właściwymi dla środowiska: na dev testowy kanał i klucz sandbox, na prod prawdziwe. Workflow wskazuje nazwę, sekrety nigdy nie przechodzą przez Git.
+- **Zmienne.** Wartości, które różnią się między środowiskami (adres API, ID arkusza, kanał), wyciągnij poza node'y. Na planach Business i Enterprise (Cloud: Pro i Enterprise) masz [Custom variables](https://docs.n8n.io/build/code-in-n8n/define-custom-variables) dostępne jako `$vars.NAZWA`. W edycji Community zostają zmienne środowiskowe kontenera (`$env.NAZWA`) - ale zmienna `N8N_BLOCK_ENV_ACCESS_IN_NODE` potrafi zablokować `$env` w wyrażeniach i Code node, a według [listy zmian łamiących n8n 2.0](https://docs.n8n.io/changelog/v20-breaking-changes) blokada jest domyślnie włączona. Sekrety i tak trzymaj w credentials, nie w zmiennych.
+- **Aktywacja po imporcie.** CLI importuje wszystko jako nieopublikowane, API publikuje automatycznie tylko aktualizację już opublikowanego workflow. Po każdej promocji sprawdź listę opublikowanych workflow na prod i adresy webhooków - ścieżka zostaje ta sama, ale host jest inny.
+- **Staging.** Trzecie środowisko to ten sam pipeline uruchomiony dwa razy: najpierw na staging, potem na prod. W GitHub Actions robisz to osobnymi [environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) (`staging`, `production`) z własnymi sekretami i wymaganą akceptacją przed prod.
+
+### Source Control i Environments w n8n - stan licencji
+
+n8n ma wbudowane przenoszenie zmian przez Git: łączysz instancję z repozytorium (_Git_ to
+system kontroli wersji - przechowuje historię każdej zmiany i pozwala cofnąć się do
+wcześniejszej wersji), a workflow trafiają do gałęzi zamiast do ręcznego eksportu. Stan na
+listopad 2026 to dwie wersje tej funkcji:
+
+| | Environments (Classic) | Environments (nowe) |
+| --- | --- | --- |
+| Plan | Business i Enterprise | tylko Enterprise (Cloud i self-hosted) |
+| Status | stabilne | Preview - może się zmienić |
+| Model | push do gałęzi i pull z gałęzi | promote do środowiska i apply na instancji docelowej |
+| Co przenosi | workflow, tagi, "zaślepki" credentials i zmiennych (bez wartości) | workflow z zależnościami: credentials (bez sekretów), zmienne z wartościami, tabele danych (bez wierszy), tagi |
+| Przegląd zmian | ręcznie na hostingu Git | przegląd promocji w n8n (merge requesty na GitLabie) |
+
+Uprawnienia są w obu wersjach podobne: konfiguruje owner albo admin instancji. Jeśli masz
+plan Business, Classic załatwia promocję bez własnego pipeline'u. Na edycji Community
+zostaje Ci CLI albo Public API z poprzednich podsekcji. Dokumentacja:
+[Environments (Classic)](https://docs.n8n.io/administer/use-source-control-and-environments),
+[Environments](https://docs.n8n.io/administer/environments) i
+[porównanie obu wersji](https://docs.n8n.io/administer/environments/upgrade-from-environments-classic)
+(zweryfikowane 9 listopada 2026).
 
 :::tip[Dyscyplina zmian na produkcji]
 
 - Buduj i testuj na **osobnej** instancji dev (lub kopii), nie na produkcji.
-- Zmiany trzymaj w Git (Source Control albo eksport JSON) - masz historię i cofkę.
-- Promuj do prod świadomie, po teście - nie "na żywca" w godzinach pracy.
+- Zmiany trzymaj w Git (Environments, CLI albo Public API) - masz historię i cofkę.
+- Promuj do prod przez pull request, po teście - nie "na żywca" w godzinach pracy.
 - Wartości specyficzne dla środowiska wyciągaj do **zmiennych** i credentials, nie wpisuj na sztywno.
+- `--decrypted` i klucze API nigdy nie lądują w repozytorium.
 - Przed większą zmianą i przed aktualizacją n8n - backup (patrz sekcję "Backupy 3-2-1 i testowane odtwarzanie" wyżej).
 
 :::
@@ -386,6 +692,10 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 4. Healthcheck pokazuje, że n8n "żyje", ale kluczowa automatyzacja od trzech dni nic nie
    zsynchronizowała - jak to możliwe, i jakiego mechanizmu monitoringu Ci brakuje? Jeśli nie masz
    pewności - [Healthcheck i monitoring czasu działania](#healthcheck-i-monitoring-czasu-działania).
+5. Pipeline wgrał na prod workflow przez Public API, ale pierwsze wykonanie pada na credentials, a
+   Execute Sub-workflow nie znajduje sub-workflow - co poszło nie tak i jak temu zapobiec? I czemu
+   ten workflow w ogóle się nie uruchomił sam po imporcie? Jeśli nie masz pewności -
+   [Promocja dev → staging → prod](#promocja-dev--staging--prod-id-credentials-zmienne).
 
 <details>
 <summary>Mini-zadanie: przetestuj dead man's switch na swojej instancji</summary>
@@ -409,6 +719,8 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
   - Monitoruj logi (`N8N_LOG_LEVEL`) i zdrowie (`/healthz`, Uptime Kuma, healthchecks.io) - także efekt, nie tylko proces.
   - Queue mode (main + workery + Redis) skaluje pod obciążenie - wszystkie workery muszą mieć ten sam `N8N_ENCRYPTION_KEY`.
   - Rozdziel dev od prod i wersjonuj workflow (Git / eksport JSON) - koniec z edycją na żywca.
+  - Promocję dev → prod automatyzujesz przez n8n CLI (`export:workflow`, `import:workflow`, `publish:workflow`) albo Public API z kluczem w `X-N8N-API-KEY` - z pull requestem jako bramką.
+  - Credentials mają na każdym środowisku tę samą nazwę i inne wartości; `--decrypted` nigdy nie trafia do Gita.
 </Takeaways>
 
 :::note[Twoje n8n już działa na produkcji?]
