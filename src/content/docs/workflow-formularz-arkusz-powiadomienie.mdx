@@ -24,7 +24,7 @@ teaches:
     na puste pola (Moduł 5)
   - Zapis nowego zgłoszenia do Google Sheets operacją Append z ręcznym mapowaniem kolumn
   - Wysyłkę powiadomienia na Telegram o każdym nowym zgłoszeniu
-  - Rozpoznawanie i naprawę typowych awarii - nieaktywny formularz, niezgodne nazwy kolumn w
+  - Rozpoznawanie i naprawę typowych awarii - nieopublikowany formularz, niezgodne nazwy kolumn w
     arkuszu, limit zapytań Google Sheets
 about:
   - name: n8n
@@ -40,7 +40,7 @@ faq:
   - q: "Czy do zbierania zgłoszeń potrzebuję osobnego narzędzia formularzowego, np. Typeform albo Google Forms?"
     a: "Nie - n8n ma własny n8n Form Trigger, który sam generuje i hostuje stronę formularza pod adresem Twojej instancji, bez rejestracji w kolejnym serwisie. Ten gotowiec korzysta wyłącznie z niego."
   - q: "Dlaczego mój formularz nie przyjmuje zgłoszeń, mimo że w edytorze n8n działał bez zarzutu?"
-    a: "Najczęściej dlatego, że ktoś dostał Test URL zamiast Production URL, albo workflow nie jest aktywny. Formularz - podobnie jak webhook - ma dwa różne adresy, a produkcyjny działa dopiero po włączeniu przełącznika Active."
+    a: "Najczęściej dlatego, że ktoś dostał Test URL zamiast Production URL, albo workflow nie jest opublikowany. Formularz - podobnie jak webhook - ma dwa różne adresy, a produkcyjny działa dopiero po kliknięciu Publish (w n8n 1.x przełącznik Active)."
   - q: "Co się stanie, jeśli ktoś spróbuje wysłać formularz bez wypełnienia imienia albo e-maila?"
     a: "Formularz ma oba pola oznaczone jako Required Field, więc przeglądarka nie pozwoli wysłać pustego formularza. Dodatkowo Code Node ma własny guard (\"throw new Error\"), który zatrzyma workflow, gdyby mimo to dotarły puste dane - np. przy ręcznym wywołaniu adresu formularza z pominięciem przeglądarki."
   - q: "Czy mogę zamiast Google Sheets zapisywać zgłoszenia bezpośrednio do CRM?"
@@ -159,11 +159,12 @@ W polu **Form Title** wpisz tytuł widoczny na stronie formularza (np. "Zapisz s
 
 W sekcji **Options** dodaj opcję **Form Path**, żeby ustawić czytelny fragment adresu - w
 gotowcu to `formularz-zgloszenia`. Tak jak przy webhookach, formularz ma dwa adresy: **Test
-URL** (aktywny po kliknięciu **Execute step** albo **Execute workflow** na nieaktywnym workflow -
-dokładnie ten sam mechanizm, który znasz z
+URL** (aktywny po kliknięciu **Execute step** albo **Execute workflow** na nieopublikowanym
+workflow - dokładnie ten sam mechanizm, który znasz z
 [Modułu 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow) i
 [Modułu 4: Integracje i API](/modul-4-integracje-api)) i **Production URL** (działa dopiero po
-**aktywacji** workflow). Zanim wyślesz link do prawdziwych odbiorców, przełącz **Active**.
+**publikacji** workflow). Zanim wyślesz link do prawdziwych odbiorców, kliknij **Publish** w
+prawym górnym rogu edytora (w n8n 1.x był to przełącznik **Active**).
 
 :::note[Skąd biorą się nazwy pól w danych]
 Klucz, pod jakim pole trafia do `$json`, to dokładnie tekst wpisany w **Field Name** - bez zmian,
@@ -282,12 +283,13 @@ Zweryfikowane pola:
 - **Objaw:** link do formularza, który wysyłasz realnym odbiorcom, zwraca błąd albo w ogóle się
   nie otwiera, mimo że w edytorze n8n wszystko działało.
 - **Przyczyna:** tak jak webhook, formularz ma dwa różne adresy - **Test URL** (aktywny tylko po
-  kliknięciu **Execute step**/**Execute workflow** na nieaktywnym workflow) i **Production URL**
-  (działa stale, ale dopiero gdy workflow jest **aktywny**) - dokładnie ten sam mechanizm, co przy
+  kliknięciu **Execute step**/**Execute workflow** na nieopublikowanym workflow) i **Production
+  URL** (działa stale, ale dopiero gdy workflow jest **opublikowany**) - dokładnie ten sam mechanizm, co przy
   zwykłym Webhooku, opisany w [Moduł 2](/modul-2-interfejs-pierwszy-workflow) i
   [Moduł 4](/modul-4-integracje-api).
-- **Naprawa:** skopiuj **Production URL** z node'a Form Trigger (nie Test URL) i włącz przełącznik
-  **Active** w prawym górnym rogu edytora, zanim wyślesz link dalej.
+- **Naprawa:** skopiuj **Production URL** z node'a Form Trigger (nie Test URL) i kliknij
+  **Publish** w prawym górnym rogu edytora, zanim wyślesz link dalej. Jeśli zmieniałeś pola
+  formularza po publikacji, opublikuj workflow ponownie - inaczej odbiorcy zobaczą starą wersję.
 
 ### Krzywe nazwy kolumn w arkuszu - dane trafiają w złe miejsce
 

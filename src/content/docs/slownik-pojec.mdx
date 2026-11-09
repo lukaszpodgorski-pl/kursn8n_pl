@@ -74,16 +74,20 @@ konkretnym przykładzie.
 ## Podstawy
 
 - **Workflow (przepływ)** - cały zautomatyzowany proces: zbiór node'ów połączonych
-  w logiczną sekwencję, którą budujesz, zapisujesz i opcjonalnie aktywujesz do
-  samodzielnego działania. Budowę pierwszego workflow krok po kroku pokazuję w
+  w logiczną sekwencję, którą budujesz i publikujesz do samodzielnego działania. Budowę pierwszego workflow krok po kroku pokazuję w
   [Module 2](/modul-2-interfejs-pierwszy-workflow#twój-pierwszy-workflow---krok-po-kroku).
 - **Node (węzeł)** - pojedynczy "klocek" wykonujący konkretne zadanie: wywołanie API,
   przekształcenie danych, warunek logiczny. Łączysz node'y w kolejności, by zbudować
   workflow. Przegląd elementów edytora, w którym je układasz - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#przegląd-interfejsu-edytora).
 - **Trigger (wyzwalacz)** - specjalny node, który _rozpoczyna_ workflow: reaguje na
   zdarzenie (Webhook), harmonogram (Schedule) albo ręczne uruchomienie (Manual).
-  Triggery Schedule i Webhook reagują same dopiero po aktywacji workflow (przełącznik
-  Active). Porównanie typów triggerów - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#triggery-manual-schedule-i-webhook).
+  Triggery Schedule i Webhook reagują same dopiero po publikacji workflow. Porównanie
+  typów triggerów - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#triggery-manual-schedule-i-webhook).
+- **Publikacja workflow (Publish)** - udostępnienie workflow do samodzielnego działania
+  przyciskiem **Publish** w prawym górnym rogu edytora (skrót `Shift + P`). n8n zapisuje
+  edycje automatycznie, ale produkcja zawsze używa ostatniej opublikowanej wersji - zmiany
+  wprowadzone później działają dopiero po ponownej publikacji. W n8n 1.x tę rolę pełnił
+  przełącznik Active / Inactive ("aktywacja workflow"). Szczegóły - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#toolbar-nad-kanwą).
 - **Execution (wykonanie)** - pojedyncze uruchomienie workflow, ręczne albo produkcyjne.
   n8n zapisuje historię wykonań ze statusem (Success, Error, Running) - to pierwsze
   miejsce, w którym szukasz przyczyny błędu. Szczegóły - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#lista-i-szczegóły-executions).
@@ -142,7 +146,7 @@ konkretnym przykładzie.
   odpytywania w pętli. Odbieranie i wysyłanie webhooków opisuje [Moduł 4](/modul-4-integracje-api#webhooki-odbieranie-i-wysyłanie).
 - **Test URL / Production URL** - dwa różne adresy tego samego node'a Webhook. Test URL
   działa po kliknięciu "Listen for test event"; Production URL działa stale, ale dopiero
-  po aktywacji workflow. Częsta pułapka początkujących - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#webhook-tryb-testowy-vs-produkcyjny).
+  po publikacji workflow. Częsta pułapka początkujących - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#webhook-tryb-testowy-vs-produkcyjny).
 - **Paginacja i rate limit** - paginacja to pobieranie wyników API po kawałkach
   (stronach), aż skończą się dane; rate limit to narzucony przez API limit zapytań,
   którego przekroczenie zwraca błąd HTTP 429. Obsługa obu - [Moduł 4](/modul-4-integracje-api#paginacja-limity-zapytań-i-ponawianie).

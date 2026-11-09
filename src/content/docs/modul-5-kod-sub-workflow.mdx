@@ -40,7 +40,7 @@ faq:
   - q: "Czy mogę zainstalować pakiet npm w Code Node?"
     a: "W n8n Cloud nie - dostępne są tylko wbudowane moduły dopuszczone przez n8n (jak crypto). Na instancji self-hosted możesz włączyć moduły zmiennymi środowiskowymi NODE_FUNCTION_ALLOW_BUILTIN (wbudowane Node.js) oraz NODE_FUNCTION_ALLOW_EXTERNAL (pakiety npm zainstalowane obok n8n). Wiele typowych potrzeb (daty, zapytania JSON) pokrywają jednak wbudowane $now/Luxon i $jmespath."
   - q: "Dlaczego moje static data nie zapamiętuje wartości podczas testów?"
-    a: "Bo dane statyczne utrwalają się tylko po udanym wykonaniu produkcyjnym (np. uruchomienie przez trigger w aktywnym workflow). Ręczne uruchomienia z edytora nie zapisują zmian - dlatego klikając \"Test\" w kółko, nie zobaczysz przyrastającej pamięci. Włącz workflow i sprawdź na realnym wykonaniu."
+    a: "Bo dane statyczne utrwalają się tylko po udanym wykonaniu produkcyjnym (np. uruchomienie przez trigger w opublikowanym workflow). Ręczne uruchomienia z edytora nie zapisują zmian - dlatego klikając \"Test\" w kółko, nie zobaczysz przyrastającej pamięci. Opublikuj workflow (przycisk Publish) i sprawdź na realnym wykonaniu."
   - q: "Kiedy wydzielić logikę do sub-workflow?"
     a: "Gdy ten sam fragment powtarza się w kilku workflow, gdy kanwa robi się za duża do ogarnięcia, albo gdy chcesz mieć jeden testowalny \"klocek\" (np. \"wyślij powiadomienie\"). Dla małej logiki używanej raz sub-workflow zwykle nie warto - dodaje tylko warstwę pośrednią."
   - q: "Jaka jest różnica między \"Continue On Fail\" a Stop And Error?"
