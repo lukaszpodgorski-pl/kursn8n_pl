@@ -20,6 +20,7 @@ teaches:
   - Jak Code Node w trybie Run Once for Each Item przygotowuje nazwę i treść pliku dla każdego workflow bez osobnej pętli
   - Różnicę między operacjami Create i Edit w node'cie GitHub - i jak Edit radzi sobie z aktualizacją istniejącego pliku
   - Dlaczego eksport definicji workflow to nie pełny backup - i co brakuje względem zasady 3-2-1 z Modułu 7
+  - Jak zamienić ostatni node gotowca na GitLab, Gitea/Forgejo, Bitbucket, Nextcloud albo S3 - wbudowany node albo HTTP Request - i czym te API różnią się od GitHuba
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -30,6 +31,20 @@ mentions:
     sameAs: https://en.wikipedia.org/wiki/Git
   - name: JSON
     sameAs: https://en.wikipedia.org/wiki/JSON
+  - name: GitLab
+    sameAs: https://en.wikipedia.org/wiki/GitLab
+  - name: Gitea
+    sameAs: https://en.wikipedia.org/wiki/Gitea
+  - name: Forgejo
+    sameAs: https://en.wikipedia.org/wiki/Forgejo
+  - name: Bitbucket
+    sameAs: https://en.wikipedia.org/wiki/Bitbucket
+  - name: Nextcloud
+    sameAs: https://en.wikipedia.org/wiki/Nextcloud
+  - name: Amazon S3
+    sameAs: https://en.wikipedia.org/wiki/Amazon_S3
+  - name: Backblaze
+    sameAs: https://en.wikipedia.org/wiki/Backblaze
 faq:
   - q: "Czy ten backup zawiera moje credentials (klucze API, tokeny OAuth)?"
     a: "Nie. API n8n, którym posługuje się ten workflow, nie eksportuje credentials w jawnej, użytecznej postaci - w pliku JSON dostajesz wyłącznie definicje workflow (node'y, połączenia, parametry). Pełny backup, który obejmuje też credentials, opisuję w \"Backupy 3-2-1 i testowane odtwarzanie\" z Modułu 7: kopia bazy danych plus bezpiecznie przechowany klucz N8N_ENCRYPTION_KEY."
@@ -41,6 +56,8 @@ faq:
     a: "Technicznie tak, ale lepiej nie. Osobne, dedykowane repozytorium na kopie workflow jest czytelniejsze (historia commitów nie miesza się z niczym innym) i bezpieczniejsze - token GitHub podłączony do tego workflow powinien mieć dostęp tylko tam, gdzie faktycznie musi zapisywać."
   - q: "Jak odtworzyć workflow z takiego backupu?"
     a: "Pobierz odpowiedni plik JSON z historii repozytorium GitHub i zaimportuj go w n8n tak samo, jak każdy inny eksportowany workflow - Import from File albo przeciągnięcie pliku na kanwę. Musisz jednak ręcznie podłączyć credentials w każdym node'cie, który ich wymaga - te, jak wyjaśniam wyżej, nie są częścią tego backupu."
+  - q: "Czy mogę zapisywać kopie gdzie indziej niż na GitHubie?"
+    a: "Tak. Wymieniasz tylko ostatni node, reszta workflow zostaje bez zmian. GitLab, Nextcloud i magazyny zgodne z S3 (np. Backblaze B2) mają w n8n wbudowane node'y, a do Gitea, Forgejo i Bitbucketa wysyłasz pliki przez HTTP Request. Szczegóły i tabelę porównawczą znajdziesz w sekcji \"A jeśli nie GitHub?\"."
   - q: "Czy każda noc nadpisuje poprzedni plik, czy zachowuję historię zmian?"
     a: "Zachowujesz pełną historię - operacja Edit tworzy nowy commit przy każdej aktualizacji pliku, więc w historii repozytorium widzisz, jak dany workflow wyglądał każdej nocy. To jedna z głównych zalet tego podejścia względem zwykłego nadpisywania pliku na dysku."
 ---
@@ -52,7 +69,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Gotowy workflow · po Module 7"
-  readingTime="~16 min"
+  readingTime="~22 min"
   note="Wdrożenie: ~40 min"
 />
 
@@ -309,6 +326,186 @@ Access Token (classic)** zamiast tokena fine-grained - ma mniej ograniczeń
   repozytorium przeznaczonego wyłącznie na te kopie. Token używany tylko przez ten workflow nie
   powinien mieć dostępu do niczego więcej.
 
+## A jeśli nie GitHub?
+
+GitHub to tylko jedno z miejsc, do których możesz odkładać kopie. Jeśli Twoja firma siedzi na
+GitLabie, trzymasz kod na własnym Gitea, a może w ogóle nie chcesz Gita i wolisz zwykły katalog
+w chmurze - pierwsze trzy node'y gotowca zostają **bez zmian**. Harmonogram, node n8n i Code
+przygotowują dokładnie to samo: ścieżkę pliku (`sciezka`), treść JSON (`tresc`) i opis
+(`wiadomoscCommit`). Wymieniasz tylko ostatni node - ten, który zapisuje.
+
+Różnią się trzy rzeczy: czy n8n ma do danej usługi **wbudowany node** (gotowy klocek z formularzem)
+czy musisz wołać API przez **HTTP Request**, jak usługa radzi sobie z plikiem, który już istnieje,
+i skąd bierzesz **historię zmian**. Wszystko poniżej sprawdziłem w dokumentacji n8n i dostawców
+w listopadzie 2026.
+
+### GitLab - wbudowany node, najmniej zmian
+
+n8n ma wbudowany [node GitLab](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gitlab/)
+z resource **File** i tymi samymi operacjami co GitHub: Create, Delete, Edit, Get i List. Podmieniasz
+node GitHub na GitLab, wybierasz **File → Edit** i podpinasz te same wyrażenia: `{{ $json.sciezka }}`
+w ścieżce pliku, `{{ $json.tresc }}` w treści, `{{ $json.wiadomoscCommit }}` w opisie commita,
+plus nazwę gałęzi.
+
+Co jest inaczej niż w GitHubie:
+
+- **Właściciel projektu** w polu Project Owner. Jeśli repozytorium leży w podgrupie, wpisujesz
+  całą ścieżkę grup z ukośnikami zamienionymi na `%2F`, np. `firma%2Fdevops%2Fbackupy` - tak każe
+  dokumentacja node'a.
+- **Własny GitLab (self-managed)** - w credentials typu
+  [GitLab API](https://docs.n8n.io/integrations/builtin/credentials/gitlab/) wpisujesz adres swojego
+  serwera w polu GitLab Server. n8n zaleca token z zakresem `api`.
+- **Bez SHA.** API GitLaba nie wymaga, żebyś przy aktualizacji podawał skrót bieżącej wersji pliku
+  ([dokumentacja Repository Files API](https://docs.gitlab.com/api/repository_files/)). Logika
+  pierwszego uruchomienia zostaje jednak ta sama co w kroku 5: Create zakłada nowy plik, Edit
+  aktualizuje istniejący.
+
+### Gitea i Forgejo - HTTP Request, za to jeden commit na całą noc
+
+Do Gitea i Forgejo (oraz Codeberga, który stoi na Forgejo) n8n **nie ma wbudowanego node'a** -
+strona integracji [n8n i Gitea](https://n8n.io/integrations/gitea) odsyła do node'a **HTTP Request**.
+Istnieją community nodes (paczki od społeczności, instalowane osobno), ale to nieoficjalny kod
+i przed instalacją na produkcji warto sprawdzić, kto go utrzymuje.
+
+Dobra wiadomość: API Gitea pozwala zapisać **wszystkie pliki w jednym commicie**. Endpoint
+`POST /api/v1/repos/{właściciel}/{repo}/contents` przyjmuje tablicę `files`, a od Gitea 1.25
+każda pozycja może mieć operację `upload` - "utwórz albo zaktualizuj", bez sprawdzania, czy plik
+już istnieje ([specyfikacja API Gitea](https://gitea.com/api/swagger)). Znika cały problem
+z pierwszym uruchomieniem. Code przełączasz wtedy w tryb **Run Once for All Items** i budujesz
+jedno zapytanie zamiast wielu:
+
+```javascript
+// Run Once for All Items - wszystkie workflow w jednym commicie
+const folder = 'SCIEZKA_W_REPO';
+
+const files = $input.all().map(({ json: workflow }) => {
+  const slug = workflow.name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return {
+    operation: 'upload',
+    path: `${folder}/${slug}-${workflow.id}.json`,
+    // API Gitea wymaga treści zakodowanej w Base64
+    content: Buffer.from(JSON.stringify(workflow, null, 2)).toString('base64')
+  };
+});
+
+return [{ json: { branch: 'main', message: `Backup ${files.length} workflow`, files } }];
+```
+
+Node HTTP Request ustawiasz tak:
+
+- **Method** `POST`, **URL** `https://twoj-gitea/api/v1/repos/WLASCICIEL/REPO/contents`.
+- **Authentication** - Generic Credential Type → **Header Auth**: nazwa nagłówka `Authorization`,
+  wartość `token TWOJ_TOKEN` (słowo `token`, spacja, token wygenerowany w ustawieniach konta Gitea).
+- **Body** - JSON, wartość `{{ JSON.stringify($json) }}`.
+
+:::caution[Forgejo i starsze Gitea]
+Operacja `upload` doszła w Gitea 1.25. Forgejo (w tym Codeberg) i Gitea 1.24 znają tylko
+`create`, `update` i `delete`, a `update` wymaga SHA bieżącej wersji pliku - tak jak GitHub
+pod spodem. Wtedy zostajesz przy wariancie "item po itemie": HTTP Request z `GET` na
+`/contents/{ścieżka}` pobiera SHA, przy błędzie 404 kierujesz item do `POST` (utworzenie pliku),
+a przy sukcesie do `PUT` z polem `sha`. Do rozgałęzienia wystarczy ustawienie node'a
+**On Error → Continue (using error output)**. Sprawdź wersję swojej instancji w stopce panelu,
+zanim wybierzesz wariant.
+:::
+
+Gdzie trzymać takie repozytorium? Najprościej na własnym serwerze - Gitea i Forgejo to lekkie
+aplikacje, które postawisz obok n8n tym samym Docker Compose. Codeberg pozwala na prywatne treści
+tylko w małej skali (do 100 MB) i tylko osobom, które realnie rozwijają wolne oprogramowanie -
+nie jest to hosting prywatnych kopii ([FAQ Codeberga](https://docs.codeberg.org/getting-started/faq/)).
+
+### Bitbucket - HTTP Request, zapis bez SHA
+
+W n8n istnieje tylko [Bitbucket Trigger](https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.bitbuckettrigger/) -
+node, który _reaguje_ na zdarzenia w repozytorium, ale niczego do niego nie zapisuje. Zapis robisz
+więc przez **HTTP Request** do endpointu `POST https://api.bitbucket.org/2.0/repositories/{workspace}/{repo}/src`
+([dokumentacja Bitbucket Cloud REST API](https://developer.atlassian.com/cloud/bitbucket/rest/api-group-source/)).
+
+Ten endpoint jest wygodniejszy niż GitHub: tworzy commit, który **dodaje albo nadpisuje** plik,
+więc nie ma SHA i nie ma problemu pierwszego uruchomienia. Format jest za to nietypowy - nazwa pola
+formularza to ścieżka pliku w repo, a wartość to jego treść:
+
+- **Method** `POST`, **Body Content Type** `Form Urlencoded`.
+- Pole o nazwie `/{{ $json.sciezka }}` i wartości `{{ $json.tresc }}`. Ukośnik na początku jest
+  ważny: bez niego plik nazwany np. `message` zostałby wzięty za opis commita, nie za plik.
+- Pole `message` z wartością `{{ $json.wiadomoscCommit }}` i opcjonalnie `branch`.
+- **Authentication** - Basic Auth: login to adres e-mail konta Atlassian, hasło to
+  [API token](https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/) z uprawnieniami
+  `read:repository:bitbucket` i `write:repository:bitbucket`.
+
+### Nextcloud - wbudowany node, katalog zamiast Gita
+
+Jeśli nie potrzebujesz Gita, a masz własną chmurę plików, [node Nextcloud](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.nextcloud/)
+ma resource **File** z operacją **Upload**. Wyłączasz w nim Binary File, w File Path wpisujesz
+pełną ścieżkę, np. `/Backup/n8n/{{ $json.sciezka }}`, a w File Content `{{ $json.tresc }}`.
+Node wysyła plik przez WebDAV metodą `PUT`, która po prostu **nadpisuje** istniejący plik - nie ma
+tu rozróżnienia Create/Edit. Katalog docelowy załóż raz ręcznie (albo operacją Folder → Create),
+bo upload do nieistniejącego folderu się nie powiedzie.
+
+W [credentials Nextcloud](https://docs.n8n.io/integrations/builtin/credentials/nextcloud/) podajesz
+adres WebDAV: adres Twojej chmury z dopisanym `/remote.php/webdav`. Załóż do tego osobne hasło
+aplikacji w ustawieniach bezpieczeństwa Nextclouda, nie używaj głównego hasła konta.
+
+Historii commitów tu nie ma. Jest za to aplikacja Versions: Nextcloud zachowuje poprzednie wersje
+nadpisanego pliku, ale je przerzedza (po 30 dniach zostaje jedna wersja na tydzień) i nie zajmuje
+na nie więcej niż połowę wolnego miejsca użytkownika ([podręcznik Nextcloud - wersje plików](https://docs.nextcloud.com/server/latest/user_manual/en/files/version_control.html)).
+Na kopie zapasowe to wystarcza, na przeglądanie, co dokładnie zmieniło się we wtorek, już nie.
+
+### S3 i Backblaze B2 - wbudowany node, kopia poza Twoim serwerem
+
+Magazyny obiektowe zgodne z S3 obsługujesz dwoma wbudowanymi node'ami:
+[AWS S3](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.awss3/) dla Amazona
+i [S3](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.s3/) dla pozostałych
+dostawców zgodnych z S3 (dokumentacja wymienia m.in. MinIO, Wasabi i DigitalOcean Spaces; tak samo
+podłączysz Backblaze B2). W obu wybierasz **File → Upload**, nazwę bucketu, w File Name nazwę pliku,
+a w Parent Folder Key folder.
+
+Różnice względem GitHuba:
+
+- **Credentials** typu [S3](https://docs.n8n.io/integrations/builtin/credentials/s3/) mają pola
+  S3 Endpoint, Region, Access Key ID i Secret Access Key - endpoint i klucze znajdziesz w panelu
+  dostawcy przy buckecie.
+- **Upload nadpisuje** obiekt o tej samej nazwie, więc znowu nie ma problemu pierwszego uruchomienia.
+- **Treść jako tekst** - przy wyłączonym Binary Data node przyjmie `{{ $json.tresc }}` wprost
+  w polu File Content. Plik dostaje wtedy typ `text/html` zamiast `application/json`; dla kopii to
+  bez znaczenia, a jeśli Ci przeszkadza, zamień treść na plik node'em
+  [Convert to File](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.converttofile/)
+  i wyślij ją jako binarną.
+- **Historia** - albo włączasz wersjonowanie obiektów w ustawieniach bucketu, albo dopisujesz datę
+  do ścieżki (np. `backup/2026-11-09/...`) i każdej nocy powstaje nowy komplet. Przy drugim wariancie
+  ustaw regułę cyklu życia (lifecycle), która po kilkudziesięciu dniach usuwa stare foldery.
+
+To jedyny wariant, który z definicji ląduje **poza Twoim serwerem i poza Gitem** - dobra "kopia
+poza siedzibą" z zasady 3-2-1. Backblaze B2 daje 10 GB za darmo, a potem kosztuje od 6,95 USD
+za TB miesięcznie ([cennik Backblaze B2](https://www.backblaze.com/cloud-storage/pricing), stan na
+listopad 2026) - kopie workflow zajmują zwykle pojedyncze megabajty.
+
+### Porównanie wariantów
+
+Ceny i limity darmowych planów w stanie na listopad 2026, ze stron cenników:
+[GitHub](https://github.com/pricing), [GitLab](https://about.gitlab.com/pricing/),
+[Bitbucket](https://www.atlassian.com/software/bitbucket/pricing),
+[Backblaze B2](https://www.backblaze.com/cloud-storage/pricing).
+
+| Gdzie | Node w n8n | Prywatne kopie | Koszt | Pierwsze uruchomienie | Historia zmian |
+| --- | --- | --- | --- | --- | --- |
+| GitHub | wbudowany GitHub | tak, bez limitu repozytoriów | plan Free 0 USD | Create, potem Edit (SHA) | commity |
+| GitLab.com / własny GitLab | wbudowany GitLab | tak, w planie Free do 5 osób w prywatnej grupie i 10 GiB na projekt | plan Free 0 USD; własny serwer w wersji Free | Create, potem Edit (bez SHA) | commity |
+| Gitea / Forgejo | HTTP Request | tak, na własnym serwerze bez limitów | 0 zł + Twój serwer | Gitea 1.25+: `upload`, bez rozróżnienia | commity, jeden na noc |
+| Bitbucket Cloud | HTTP Request (wbudowany jest tylko trigger) | tak, w planie Free do 5 osób, 1 GB na repozytorium | plan Free 0 USD | bez rozróżnienia, zapis nadpisuje | commity |
+| Nextcloud | wbudowany Nextcloud | tak, na własnym serwerze | 0 zł + Twój serwer albo abonament dostawcy | bez rozróżnienia, upload nadpisuje | wersje plików, przerzedzane |
+| S3 / Backblaze B2 | wbudowany AWS S3 albo S3 | tak, prywatny bucket | B2: 10 GB gratis, potem od 6,95 USD/TB/mies. | bez rozróżnienia, upload nadpisuje | wersjonowanie bucketu albo foldery z datą |
+
+Moja rada: jeśli już używasz któregoś z tych miejsc w pracy, wybierz je - jeden token i jedno konto
+mniej do pilnowania. Jeśli zaczynasz od zera, Git (GitHub, GitLab albo własna Gitea) daje najlepszą
+historię zmian, a S3 najlepiej spełnia rolę kopii poza serwerem. Nic nie stoi na przeszkodzie, żeby
+na końcu workflow postawić dwa node'y zapisu obok siebie i mieć jedno i drugie.
+
 ## Jak to rozbudować
 
 - **Commit message z datą** - dopisz do `wiadomoscCommit` w Code Node aktualną datę (np. przez
@@ -338,6 +535,9 @@ Access Token (classic)** zamiast tokena fine-grained - ma mniej ograniczeń
     wyniki domyślnie po 100, maksymalnie 250.
   - Ten backup to wersjonowanie definicji workflow w Git, nie pełny disaster recovery - credentials i
     `N8N_ENCRYPTION_KEY` backupujesz osobno, jak w Module 7.
+  - Poza GitHubem wymieniasz tylko ostatni node: GitLab, Nextcloud i S3 mają wbudowane node'y, Gitea,
+    Forgejo i Bitbucket obsługujesz przez HTTP Request - a Bitbucket, Nextcloud, S3 i Gitea 1.25+
+    nadpisują plik bez problemu pierwszego uruchomienia.
 </Takeaways>
 
 Szukasz kolejnego gotowca do wdrożenia od razu? Zobacz [wszystkie gotowe workflow](/gotowe-workflow).
