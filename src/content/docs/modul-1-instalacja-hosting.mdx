@@ -26,6 +26,7 @@ teaches:
   - Wymagania systemowe oraz wybór między SQLite a PostgreSQL
   - Jak wystawić n8n po HTTPS - reverse proxy, Let's Encrypt i Cloudflare Tunnel
   - Rolę klucza N8N_ENCRYPTION_KEY i bezpieczne aktualizowanie instancji
+  - Jak bezpiecznie przejść na n8n 3.0 - Migration Report, kolejność kroków i zmiany ważne dla self-hostingu
   - Jak dołożyć do Compose sandbox wymagany przez n8n Assistant, bez przepisywania działającego pliku
 about:
   - name: n8n
@@ -45,9 +46,9 @@ faq:
   - q: "Cloud czy self-hosting - od czego zacząć naukę?"
     a: "Najszybszy start daje n8n Cloud (trial) albo lokalny Docker. Cloud ma zerową konfigurację i od razu działające OAuth, więc świetnie nadaje się do nauki. Gdy poczujesz się pewnie i będziesz chciał kontroli nad danymi oraz kosztami, przejdź na self-hosting przez Dockera."
   - q: "Czy mogę jeszcze zainstalować n8n przez npm albo uruchomić przez npx?"
-    a: "W tym kursie nie - self-hosting idzie przez Dockera i tego wymagamy już teraz. Technicznie taka instalacja dziś jeszcze zadziała, ale n8n opisuje instalacje z npm jako przestarzałe od wersji 3.0, a sama wersja 3.0 planowana jest na październik 2026 - po niej self-hosting wymaga Dockera. Stawianie dziś instancji na npm oznacza więc zaplanowanie sobie przeprowadzki za kilka tygodni. Do szybkiego testu zamiast `npx n8n` użyj instalatora jednolinijkowego `curl -fsSL https://get.n8n.io | sh`, który stawia n8n w Docker Compose."
+    a: "W tym kursie nie - self-hosting idzie przez Dockera i tego wymagamy już teraz. Technicznie taka instalacja dziś jeszcze zadziała, ale n8n opisuje instalacje z npm jako przestarzałe od wersji 3.0, a wersja 3.0 jest od 27 października 2026 dostępna jako beta, z wydaniem stabilnym zapowiedzianym na początek grudnia 2026 - od niej self-hosting wymaga Dockera. Stawianie dziś instancji na npm oznacza więc zaplanowanie sobie przeprowadzki za kilka tygodni. Do szybkiego testu zamiast `npx n8n` użyj instalatora jednolinijkowego `curl -fsSL https://get.n8n.io | sh`, który stawia n8n w Docker Compose."
   - q: "Mam n8n zainstalowane przez npm - co teraz zrobić?"
-    a: "Nie musisz działać tej nocy, ale zaplanuj przeniesienie przed wersją 3.0. Kolejność: zatrzymaj n8n, zrób kopię katalogu `~/.n8n` (baza SQLite, plik `config` z kluczem szyfrowania), wgraj tę zawartość do wolumenu Dockera `n8n_data` zamontowanego w `/home/node/.n8n`, uruchom kontener i sprawdź, czy widzisz swoje workflow oraz czy poświadczenia się odszyfrowują. Dopiero po udanym teście usuń pakiet npm."
+    a: "Nie musisz działać tej nocy - linia 2.x dostaje poprawki bezpieczeństwa jeszcze przez 12 miesięcy od wydania stabilnej 3.0 - ale zaplanuj przeniesienie przed przejściem na 3.x. Kolejność: zatrzymaj n8n, zrób kopię katalogu `~/.n8n` (baza SQLite, plik `config` z kluczem szyfrowania), wgraj tę zawartość do wolumenu Dockera `n8n_data` zamontowanego w `/home/node/.n8n`, uruchom kontener i sprawdź, czy widzisz swoje workflow oraz czy poświadczenia się odszyfrowują. Dopiero po udanym teście usuń pakiet npm."
   - q: "Po restarcie zniknęły mi workflow i poświadczenia - dlaczego?"
     a: "Najczęściej dlatego, że kontener uruchomiono bez wolumenu danych. Upewnij się, że masz `-v n8n_data:/home/node/.n8n` (lub odpowiedni wpis w Compose). Dane n8n - baza, poświadczenia, klucz szyfrowania - żyją w tym wolumenie, nie w samym kontenerze."
   - q: "Czy potrzebuję własnej domeny i HTTPS?"
@@ -58,6 +59,8 @@ faq:
     a: "Tak, jeśli hostujesz n8n samodzielnie. Assistant pisze kod i musi go gdzieś uruchomić, a n8n nie pozwala robić tego we własnym kontenerze - bez sandboxa funkcja się nie włączy. Instalator jednolinijkowy `curl -fsSL https://get.n8n.io | sh` stawia sandbox automatycznie. Przy własnym pliku `docker-compose.yml` dokładasz trzy usługi przez `docker-compose.override.yml`, bez ruszania pliku bazowego. Doliczyć trzeba około 4 GB RAM i 2 rdzenie, bo sandbox uruchamia Dockera wewnątrz Dockera."
   - q: "Jak bezpiecznie aktualizować n8n?"
     a: "Najpierw backup (wolumen/baza + klucz), potem przeczytaj release notes pod kątem zmian łamiących zgodność, a następnie w Compose: `docker compose pull` i `docker compose up -d`. Na ważnych instancjach nie przeskakuj wielu wersji naraz i testuj po aktualizacji."
+  - q: "Czy już teraz aktualizować do n8n 3.0?"
+    a: "Na produkcji jeszcze nie. Od 27 października 2026 wersja 3.0 jest dostępna jako beta, a wydanie stabilne n8n zapowiada na początek grudnia 2026. Przejście na 3.x jest jednokierunkowe - z 3.x nie wrócisz do 2.x. Przygotuj się już teraz: zaktualizuj instancję do najnowszej wersji 2.x, otwórz Settings → Migration Report (od wersji 2.39) i popraw wskazane workflow, a samą 3.0 przetestuj najpierw na kopii. Linia 2.x dostaje poprawki bezpieczeństwa jeszcze przez 12 miesięcy od wydania stabilnej 3.0, więc nie musisz się spieszyć."
 ---
 
 import { CardGrid } from '@astrojs/starlight/components';
@@ -69,7 +72,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 1 · Poziom: początkujący"
-  readingTime="~25 min"
+  readingTime="~28 min"
   note="Docker · VPS · Cloud"
 />
 
@@ -81,8 +84,9 @@ opcja ma sens, a nie tylko na klikaniu po kroku.
 :::danger[Self-hosting w tym kursie idzie przez Dockera. Bez wyjątków]
 Jeśli stawiasz n8n na swoim, robisz to **Dockerem**. Nie ma tu wariantu "albo tak, albo
 inaczej" i nie jest to kwestia gustu: n8n zapowiedziało, że od wersji 3.0 self-hosting
-wymaga wdrożenia opartego o Dockera. Stawiam ten wymóg **już teraz**, a nie dopiero
-w październiku, żebyś nie budował instancji, którą za chwilę trzeba przenosić.
+wymaga wdrożenia opartego o Dockera. Stawiam ten wymóg **już teraz**, a nie dopiero przy
+stabilnym wydaniu 3.0 (zapowiedzianym na początek grudnia 2026), żebyś nie budował
+instancji, którą za chwilę trzeba przenosić.
 
 Do wyboru zostaje **gdzie** ten Docker postawisz: na własnym komputerze, na Raspberry Pi,
 na VPS-ie czy na platformie PaaS. O tym jest reszta modułu. Nie chcesz w ogóle
@@ -407,7 +411,7 @@ services:
 
   # Twoja istniejąca usługa n8n - te wpisy dokleją się do tego, co już masz.
   n8n:
-    image: n8nio/n8n:2.35.7 # wpisz wersję, która u Ciebie chodzi
+    image: n8nio/n8n:2.46.6 # wpisz wersję, która u Ciebie chodzi
     environment:
       N8N_ENABLED_MODULES: instance-ai
       N8N_INSTANCE_AI_SANDBOX_ENABLED: 'true'
@@ -468,9 +472,10 @@ prostu starsze niż decyzja n8n.
 
 :::danger[Jeśli gdziekolwiek zobaczysz instalację n8n przez npm lub npx - to nie będzie wspierane]
 n8n zapowiedziało, że **od wersji 3.0 self-hosting wymaga wdrożenia opartego o Dockera, a
-instalacje uruchamiane przez `npm` i `npx n8n` przestaną być wspierane**. Wersja 3.0
-planowana jest na **październik 2026**, a dokumentacja instalacji z npm nosi już dziś
-adnotację "npm-based installs are deprecated from n8n 3.0".
+instalacje uruchamiane przez `npm` i `npx n8n` przestaną być wspierane**. Wersja 3.0 jest
+od **27 października 2026** dostępna jako beta, wydanie stabilne n8n zapowiada na
+**początek grudnia 2026**. Sama 3.0 nie publikuje już w npm uruchamialnego pakietu `n8n`,
+a dokumentacja instalacji z npm nosi adnotację "npm-based installs are deprecated from n8n 3.0".
 
 Co z tym zrobić, zależnie od tego, gdzie jesteś:
 
@@ -483,7 +488,8 @@ Co z tym zrobić, zależnie od tego, gdzie jesteś:
   [instalatora jednolinijkowego](#najszybszy-start-instalator-jednolinijkowy).
 
 Źródła: [v3.0 Breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes) ·
-[Install with npm](https://docs.n8n.io/deploy/host-n8n/install-options/install-with-npm)
+[Install with npm](https://docs.n8n.io/deploy/host-n8n/install-options/install-with-npm) ·
+[Introducing n8n v3](https://blog.n8n.io/introducing-n8n-v3)
 :::
 
 ## Migracja z npm na Dockera
@@ -709,13 +715,13 @@ docker run -d --name n8n \
  -p 5678:5678 \
  -e N8N_ENCRYPTION_KEY=<TWÓJ_WYGENEROWANY_KLUCZ> \
  -v n8n_data:/home/node/.n8n \
- docker.n8n.io/n8nio/n8n:2.36.7
+ docker.n8n.io/n8nio/n8n:2.46.6
 ```
 
 ```yaml
 services:
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.36.7
+    image: docker.n8n.io/n8nio/n8n:2.46.6
     environment:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 ```
@@ -777,17 +783,18 @@ docker rm n8n
 ```
 
 Możesz też przypiąć konkretną wersję zamiast najnowszej, podając tag, np.
-`docker.n8n.io/n8nio/n8n:2.36.7` (wersja stabilna na sierpień 2026) - przydatne, gdy
+`docker.n8n.io/n8nio/n8n:2.46.6` (wersja stabilna z 4 listopada 2026) - przydatne, gdy
 chcesz kontrolować, na co dokładnie aktualizujesz.
 
 | Tag | Co dostajesz |
 | --- | --- |
 | `:stable` | najnowsze wydanie stabilne - to chcesz na produkcji |
-| `:2.36.7` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
+| `:2.46.6` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
 | `:beta` | najświeższe wydanie eksperymentalne - do testów, nie na produkcję |
 
-Numery wersji podane wyżej to stan na sierpień 2026 - aktualny stabilny tag sprawdzisz w
-[release notes n8n](https://docs.n8n.io/changelog/release-notes-2.x).
+Numery wersji podane wyżej to stan na listopad 2026 - aktualny stabilny tag sprawdzisz w
+[release notes n8n](https://docs.n8n.io/changelog/release-notes-2.x) albo na
+[liście wydań na GitHubie](https://github.com/n8n-io/n8n/releases).
 
 :::caution[Zanim zaktualizujesz produkcję]
 
@@ -797,13 +804,54 @@ Numery wersji podane wyżej to stan na sierpień 2026 - aktualny stabilny tag sp
   (breaking changes) między większymi wersjami.
 - **Nie przeskakuj o wiele wersji naraz** na ważnej instancji - aktualizuj rozsądnymi
   krokami i testuj.
-- **Wersja 3.0 (październik 2026) to wydanie z listą zmian łamiących zgodność** - poza
-  końcem npm znikają m.in. stare node'y Function i Function Item, node Item List, tryby
-  agenta AI w wersji 1 oraz import workflow z adresu URL. Domyślny limit dekompresji
-  spada z 2 GiB do 256 MiB. Zanim podniesiesz produkcję, przeczytaj
-  [pełną listę](https://docs.n8n.io/changelog/v30-breaking-changes).
+- **Przejście na 3.0 rządzi się własnymi zasadami** - jest jednokierunkowe i zmienia kilka
+  rzeczy w samej instalacji. Zanim podniesiesz produkcję, przeczytaj
+  [Aktualizacja do n8n 3.0](#aktualizacja-do-n8n-30) niżej.
 
 :::
+
+### Aktualizacja do n8n 3.0
+
+Stan na 9 listopada 2026: wersja 3.0 jest od **27 października 2026** dostępna jako beta
+(na n8n Cloud wybierasz ją w ustawieniach wersji jako "3.0.0 Beta"), a wydanie stabilne
+n8n zapowiada na **początek grudnia 2026**, bez konkretnego dnia. Najnowsza stabilna
+wersja to wciąż linia 2.x.
+
+Dwie rzeczy, które zmieniają podejście do tej aktualizacji:
+
+- **Nie ma drogi powrotu.** Przejście na 3.x jest jednokierunkowe - po aktualizacji nie
+  cofniesz instancji do 2.x podmianą tagu obrazu. Jedyny odwrót to backup sprzed
+  aktualizacji.
+- **Nie musisz się spieszyć.** Linia 2.x dostaje poprawki bezpieczeństwa i krytycznych
+  błędów jeszcze przez **12 miesięcy od wydania stabilnej 3.0**.
+
+Kolejność, którą zaleca n8n, rozpisana na kroki:
+
+1. **Zaktualizuj do najnowszej wersji 2.x.** Masz jeszcze 1.x? Najpierw przejdź na 2.x,
+   dopiero potem na 3.x.
+2. **Otwórz Settings → Migration Report** (dostępny od wersji 2.39, najnowszy raport jest
+   w najnowszej 2.x). Pokazuje workflow i ustawienia, których dotkną zmiany w 3.0.
+3. **Popraw to, co wskazał raport**, jeszcze na 2.x.
+4. **Zrób backup** bazy, wolumenu i klucza `N8N_ENCRYPTION_KEY`.
+5. **Przetestuj 3.0 na kopii** (instancja testowa lub staging z kopii danych), dopiero
+   potem produkcja.
+
+Co zmienia się w samej instalacji (wybór najważniejszych pozycji dla self-hostingu):
+
+| Zmiana w 3.0 | Co to znaczy dla Ciebie |
+| --- | --- |
+| Koniec instalacji przez `npm` i `npx` | Self-hosting tylko w Dockerze - patrz [Migracja z npm na Dockera](#migracja-z-npm-na-dockera). |
+| Katalog `~/.n8n/binaryData` zmienia nazwę na `~/.n8n/storage` | Montujesz cały `/home/node/.n8n` (jak w tym module)? Nic nie robisz - n8n przemianuje katalog przy pierwszym starcie. Montujesz osobny wolumen na `binaryData`? Przemontuj go na `storage` albo ustaw `N8N_STORAGE_PATH`. Jeśli istnieją oba katalogi, 3.0 nie wystartuje. |
+| Rotacja kluczy szyfrowania danych domyślnie włączona | Klucze zobaczysz w Settings → Data Encryption Keys. Stare dane zostają czytelne i przechodzą na nowy klucz przy najbliższej zmianie rekordu. Przed aktualizacją zrób backup bazy. |
+| Domyślny limit czasu task runnera spada z 300 do 60 sekund | Code node, który liczy dłużej niż minutę, zacznie padać. Potrzebujesz więcej - ustaw jawnie `N8N_RUNNERS_TASK_TIMEOUT`. |
+| Niezweryfikowane community nodes domyślnie wyłączone | Paczki spoza listy zweryfikowanych trzeba świadomie włączyć z powrotem. |
+| Znikają stare node'y | M.in. Function i Function Item (zastępuje je Code node), Item Lists, Cron, Interval, AI Transform i agent AI w wersji 1. Workflow z takim node'em pada przy uruchomieniu, a opublikowany przestaje się aktywować. |
+| Usunięty import workflow z adresu URL | Workflow importujesz z pliku albo przez wklejenie JSON-a. |
+
+Pełna lista zmian, w tym zachowanie poszczególnych node'ów, jest w
+[v3.0 Breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes). Źródła terminów i
+zasad aktualizacji: [Introducing n8n v3](https://blog.n8n.io/introducing-n8n-v3) ·
+[Announcing n8n version 3.0](https://community.n8n.io/t/announcing-n8n-version-3-0/324016).
 
 :::note[Rytm utrzymania]
 Self-hosting oznacza, że aktualizacje, backupy i bezpieczeństwo są po Twojej stronie.
@@ -832,7 +880,7 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
    wszystkie muszą mieć dokładnie ten sam `N8N_ENCRYPTION_KEY`, a nie każdy swój? Jeśli nie
    masz pewności - [Jak ustawić własny klucz](#jak-ustawić-własny-klucz).
 5. Kolega ma n8n postawione przez `npm install n8n -g` i pyta, czy musi coś robić.
-   Dlaczego odpowiedź brzmi "dziś nie, ale przed październikiem 2026 tak", i który katalog
+   Dlaczego odpowiedź brzmi "dziś nie, ale przed przejściem na 3.x tak", i który katalog
    jest w tej przeprowadzce ważniejszy niż sama baza? Jeśli nie masz pewności -
    [Migracja z npm na Dockera](#migracja-z-npm-na-dockera).
 
@@ -853,7 +901,8 @@ Potrzebujesz Dockera i kilkunastu minut.
 </details>
 
 <Takeaways>
-  - Self-hosting stawiasz Dockerem - już teraz, bez wariantów. Od n8n 3.0 (październik 2026) `npm install n8n` i `npx n8n` przestają być wspierane.
+  - Self-hosting stawiasz Dockerem - już teraz, bez wariantów. Od n8n 3.0 (beta od października, stabilna zapowiedziana na początek grudnia 2026) `npm install n8n` i `npx n8n` przestają być wspierane.
+  - Przejście na 3.x jest jednokierunkowe: najpierw najnowsza 2.x i Migration Report, potem backup i test na kopii, a produkcja na końcu.
   - Widzisz gdzieś poradnik z npm? Jest starszy niż decyzja n8n - nie idź tą drogą.
   - Masz instalację z npm? Przenieś zawartość `~/.n8n` do wolumenu `n8n_data` - razem z plikiem `config`, bo w nim jest klucz szyfrowania.
   - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj 2 GB+ RAM i PostgreSQL.
