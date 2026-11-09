@@ -142,11 +142,11 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 | --- | --- | --- |
 | `ADRES_KANALU_RSS` | node Wczytaj kanał RSS (pole URL) | pełny adres kanału RSS, który chcesz monitorować |
 | `NAZWA_MODELU_AI` | node Podsumowanie AI (treść żądania) | identyfikator aktualnie dostępnego, taniego modelu czatu u wybranego dostawcy - sprawdź aktualną listę modeli w jego dokumentacji, bo nazwy i ceny zmieniają się często |
-| `TWOJ_KLUCZ_API_OPENAI` | node Podsumowanie AI (nagłówek Authorization) | Twój klucz API do modelu (w tym gotowcu OpenAI) |
 | `TWOJ_CHAT_ID` | node Wyślij podsumowanie (pole Chat ID) | ID czatu Telegram, na który ma trafić podsumowanie |
 
-Klucz API do modelu AI nie wymaga podpinania żadnych credentials w n8n - wpisujesz go wprost w
-nagłówku żądania node'a Podsumowanie AI (patrz krok 5 niżej). Node Telegram nadal potrzebuje
+Klucz API do modelu AI podpinasz jako credentials typu **OpenAI** w node'cie Podsumowanie AI
+(patrz krok 5 niżej) - n8n przechowuje go zaszyfrowanego, więc nie trafi do eksportu ani do
+[backupu workflow w GitHubie](/workflow-backup-n8n-github). Node Telegram potrzebuje
 swoich credentials z tokenem bota - podepnij je dokładnie tak, jak w gotowcu
 [Poranny brief na Telegram](/workflow-poranny-brief-telegram), zanim uruchomisz workflow.
 
@@ -214,8 +214,13 @@ promptu (`title, link, contentSnippet, isoDate`) - pomija pełne, często dużo 
 Node **HTTP Request** wysyła żądanie `POST` pod adres
 `https://api.openai.com/v1/chat/completions` - standardowy punkt wejścia
 [API OpenAI do generowania odpowiedzi czatu](https://platform.openai.com/docs/api-reference/chat).
-W nagłówkach ustawiasz `Authorization: Bearer TWOJ_KLUCZ_API_OPENAI` - ręczne dopisywanie
-nagłówka `Content-Type: application/json` nie jest tu potrzebne, bo node HTTP Request ustawia go
+Uwierzytelnianie ustawiasz w polu **Authentication**: _Predefined Credential Type_ →
+_Credential Type_ **OpenAI** i wybierasz (albo zakładasz) credentials z kluczem API. Node sam
+dołoży nagłówek `Authorization: Bearer …`, a klucz zostaje zaszyfrowany w n8n, zamiast leżeć
+jawnym tekstem w parametrach workflow, które trafiają do każdego eksportu
+([credentials OpenAI](https://docs.n8n.io/integrations/builtin/credentials/openai/), [HTTP Request - uwierzytelnianie](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/),
+stan na listopad 2026). Ręczne dopisywanie nagłówka `Content-Type: application/json` nie jest
+tu potrzebne, bo node HTTP Request ustawia go
 sam, gdy treść żądania wysyłasz w trybie **JSON Body**, dokładnie tak jak w tym gotowcu. Treść
 żądania (JSON Body) to wyrażenie budujące prompt:
 
@@ -294,9 +299,9 @@ jeśli jeszcze go nie znasz.
 
 - **Objaw:** node Podsumowanie AI kończy się błędem `401` (brak albo zły klucz) albo `429`
   (przekroczony limit zapytań lub wydatków).
-- **Przyczyna:** placeholder `TWOJ_KLUCZ_API_OPENAI` nie został podmieniony na prawdziwy klucz,
-  albo konto u dostawcy modelu wyczerpało przyznany limit.
-- **Naprawa:** sprawdź wartość nagłówka `Authorization` w node'cie Podsumowanie AI oraz saldo i
+- **Przyczyna:** w node'cie Podsumowanie AI nie wybrano credentials OpenAI albo klucz w nich
+  jest zły, albo konto u dostawcy modelu wyczerpało przyznany limit.
+- **Naprawa:** sprawdź credentials OpenAI podpięte pod node Podsumowanie AI oraz saldo i
   limit konta na stronie dostawcy modelu.
 
 ### Bot Telegram milczy, mimo że workflow zakończył się bez błędu
