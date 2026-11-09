@@ -42,13 +42,13 @@ faq:
   - q: "Jak zmienić godzinę, o której przychodzi brief?"
     a: "W node Schedule Trigger zmień pola Trigger at Hour i Trigger at Minute na dowolną porę. Godzina liczy się względem strefy czasowej ustawionej w Settings workflow, a gdy jej nie ma - względem strefy instancji n8n (GENERIC_TIMEZONE), nie względem Twojej przeglądarki."
   - q: "Dlaczego brief przychodzi o innej godzinie, niż ustawiłem w Schedule Trigger?"
-    a: "Bo workflow nie ma własnej strefy czasowej. Schedule Trigger liczy godzinę według strefy ustawionej w Settings workflow, a przy jej braku według strefy instancji - domyślnie America/New_York. Otwórz menu trzech kropek, wybierz Settings i w polu Timezone ustaw Europe/Warsaw, zanim aktywujesz workflow."
+    a: "Bo workflow nie ma własnej strefy czasowej. Schedule Trigger liczy godzinę według strefy ustawionej w Settings workflow, a przy jej braku według strefy instancji - domyślnie America/New_York. Otwórz menu trzech kropek, wybierz Settings i w polu Timezone ustaw Europe/Warsaw, zanim opublikujesz workflow."
   - q: "Współrzędne mam wpisane, a pogoda przychodzi z innego miejsca - dlaczego?"
     a: "Najpewniej szerokość i długość są zapisane z przecinkiem dziesiętnym zamiast kropki. Open-Meteo traktuje przecinek jako separator listy lokalizacji, więc z latitude=52,23 robi dwa osobne punkty i zwraca prognozy dla przypadkowych miejsc, bez żadnego błędu. Poprawny zapis to latitude=52.2297."
   - q: "Czy mogę wysyłać brief na czat grupowy zamiast prywatnego?"
     a: "Tak - dodaj bota do grupy i użyj ujemnego Chat ID grupy zamiast swojego prywatnego numeru. Reszta workflow zostaje bez zmian, bo node Telegram wysyła wiadomość na dowolny poprawny Chat ID, niezależnie czy to osoba, grupa czy kanał."
-  - q: "Co się stanie, jeśli zapomnę aktywować workflow?"
-    a: "Nic się nie wydarzy - Schedule Trigger nie uruchomi się sam, dopóki przełącznik Active w prawym górnym rogu edytora jest wyłączony. To ten sam mechanizm, który poznałeś w Module 2: Interfejs i 1. workflow."
+  - q: "Co się stanie, jeśli zapomnę opublikować workflow?"
+    a: "Nic się nie wydarzy - Schedule Trigger nie uruchomi się sam, dopóki nie klikniesz Publish w prawym górnym rogu edytora (w n8n 1.x był to przełącznik Active). To ten sam mechanizm, który poznałeś w Module 2: Interfejs i 1. workflow."
 ---
 
 import { Steps } from '@astrojs/starlight/components';
@@ -66,14 +66,14 @@ Zamiast rano samemu sprawdzać prognozę pogody w osobnej aplikacji, dostajesz j
 na Telegramie: dzisiejsza temperatura i szansa na opady. To gotowy, minimalny przykład
 takiego briefu do pobrania - złożysz go z czterech node'ów, które już częściowo znasz z
 [Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow). Zero kluczy API,
-zero logowania OAuth - tylko import, kilka pól do uzupełnienia i aktywacja. Gotowiec łatwo
+zero logowania OAuth - tylko import, kilka pól do uzupełnienia i publikacja. Gotowiec łatwo
 rozbudować - pogodę możesz uzupełnić o kalendarz czy listę zadań, pokazuję jak w sekcji
 "Jak to rozbudować" niżej.
 
 ## Czego potrzebujesz
 
 - **Poziom:** wystarczy ukończony [Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow) -
-  znasz kanwę, panel node'ów i umiesz aktywować workflow. Wyrażeń (Moduł 3) i OAuth2 (Moduł 4)
+  znasz kanwę, panel node'ów i umiesz opublikować workflow. Wyrażeń (Moduł 3) i OAuth2 (Moduł 4)
   tu nie potrzebujesz.
 - **Działająca instancja n8n** - Cloud albo self-hosted, patrz
   [Moduł 1: Instalacja i hosting](/modul-1-instalacja-hosting).
@@ -247,12 +247,14 @@ Dodaj node **Telegram**, podłącz credentials z tokenem z kroku 4 (Access Token
 kroku 5, a w polu `Text` wpisz wyrażenie `{{ $json.wiadomosc }}` - to pole złożone w
 poprzednim node.
 
-### 7. Aktywuj workflow
+### 7. Opublikuj workflow
 
-Na koniec przełącz **Active** w prawym górnym rogu edytora - dokładnie ten sam przełącznik,
-który poznałeś w [Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow).
-Bez aktywacji Schedule Trigger nie uruchomi się sam o 7:00 - zadziała tylko wtedy, gdy
-klikniesz **Execute workflow** ręcznie.
+Na koniec kliknij **Publish** w prawym górnym rogu edytora i potwierdź w oknie publikacji -
+dokładnie tak, jak w [Moduł 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow)
+(w n8n 1.x był to przełącznik **Active**). Bez publikacji Schedule Trigger nie uruchomi się
+sam o 7:00 - zadziała tylko wtedy, gdy klikniesz **Execute workflow** ręcznie. Jeśli później
+coś zmienisz (np. godzinę albo współrzędne), opublikuj workflow ponownie - produkcja używa
+ostatniej opublikowanej wersji.
 
 ## Co może pójść nie tak
 
@@ -269,9 +271,9 @@ klikniesz **Execute workflow** ręcznie.
 
 - **Objaw:** minęła 7:00, na Telegramie cisza, ale kliknięcie **Execute workflow** w edytorze
   działa bez zarzutu.
-- **Przyczyna:** workflow nie jest aktywny - Schedule Trigger reaguje samodzielnie dopiero po
-  włączeniu workflow.
-- **Naprawa:** włącz przełącznik **Active** w prawym górnym rogu edytora (patrz krok 7 wyżej).
+- **Przyczyna:** workflow nie jest opublikowany - Schedule Trigger reaguje samodzielnie dopiero
+  po publikacji workflow.
+- **Naprawa:** kliknij **Publish** w prawym górnym rogu edytora (patrz krok 7 wyżej).
 
 ### Brief przychodzi o innej godzinie niż ustawione 7:00
 
@@ -322,7 +324,7 @@ w kursie:
   - Chat ID znajdziesz przez metodę `getUpdates` Telegram Bot API, po wcześniejszej wiadomości do bota.
   - Strefę czasową ustaw w Settings workflow (**...** → **Settings** → **Timezone**) - bez tego n8n liczy godzinę według strefy instancji, domyślnie nowojorskiej.
   - Współrzędne zapisuj z kropką dziesiętną - przecinek Open-Meteo czyta jako listę lokalizacji i po cichu zwraca pogodę nie stąd.
-  - Workflow trzeba aktywować (Active) - inaczej Schedule Trigger nigdy nie uruchomi się sam.
+  - Workflow trzeba opublikować (**Publish**) - inaczej Schedule Trigger nigdy nie uruchomi się sam.
 </Takeaways>
 
 Ten przykład to jeden z wielu gotowców w kursie - zobacz

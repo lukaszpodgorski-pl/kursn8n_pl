@@ -35,12 +35,12 @@ mentions:
   - name: CSV
     sameAs: https://en.wikipedia.org/wiki/Comma-separated_values
 faq:
-  - q: "Czy workflow zadziała sam, jeśli go nie aktywuję?"
-    a: "Nie. Bez aktywacji (przełącznik Active) workflow działa wyłącznie w edytorze - uruchamiany ręcznie przyciskiem \"Execute workflow\". Triggery Schedule i Webhook reagują samodzielnie dopiero po aktywacji. Manual Trigger nigdy nie działa \"produkcyjnie\" - służy tylko do testów."
+  - q: "Czy workflow zadziała sam, jeśli go nie opublikuję?"
+    a: "Nie. Bez publikacji (przycisk Publish w prawym górnym rogu edytora, w n8n 1.x przełącznik Active) workflow działa wyłącznie w edytorze - uruchamiany ręcznie przyciskiem \"Execute workflow\". Triggery Schedule i Webhook reagują samodzielnie dopiero po publikacji, a produkcja zawsze używa ostatniej opublikowanej wersji - zmiany wprowadzone później zaczną działać dopiero po ponownym kliknięciu Publish. Manual Trigger nigdy nie działa \"produkcyjnie\" - służy tylko do testów."
   - q: "Czym różni się \"Execute workflow\" od \"Execute step\"?"
     a: "\"Execute workflow\" uruchamia cały przepływ od triggera. \"Execute step\" to częściowe wykonanie - odpala tylko zaznaczony node, korzystając z danych z wcześniejszych kroków. Drugie jest szybsze, gdy poprawiasz pojedynczy node i nie chcesz przepuszczać wszystkiego od nowa."
   - q: "Mój webhook działa w teście, ale nie na produkcji - dlaczego?"
-    a: "Najczęściej dlatego, że workflow nie jest aktywny lub system zewnętrzny używa Test URL zamiast Production URL. To dwa różne adresy. Aktywuj workflow przełącznikiem Active i skopiuj produkcyjny URL z node'a Webhook do systemu, który wysyła żądania."
+    a: "Najczęściej dlatego, że workflow nie jest opublikowany lub system zewnętrzny używa Test URL zamiast Production URL. To dwa różne adresy. Opublikuj workflow przyciskiem Publish i skopiuj produkcyjny URL z node'a Webhook do systemu, który wysyła żądania."
   - q: "Po co przypinać dane (pinning), skoro mogę po prostu uruchomić workflow?"
     a: "Pinning \"zamraża\" wynik node'a, więc kolejne testy nie wywołują ponownie API - oszczędzasz czas i limity, a zarazem pracujesz na tym samym, stałym zestawie danych (łatwiej porównać efekty zmian). Pamiętaj jednak, że przypięte dane działają tylko w edytorze; produkcja zawsze pobiera dane na żywo."
   - q: "Który trigger wybrać dla swojego pierwszego prawdziwego workflow?"
@@ -108,10 +108,26 @@ odwoływać przez cały kurs, a oficjalna dokumentacja używa tych samych nazw.
 
 ### Toolbar nad kanwą
 
-U góry edytora znajdziesz nazwę workflow (kliknij, by ją zmienić), przełącznik **Active /
-Inactive** (aktywuje workflow dla produkcyjnych uruchomień), dostęp do tagów oraz przycisk
-**Save**. Workflow nieaktywny działa tylko w testach z edytora; dopiero aktywacja sprawia,
-że triggery typu Schedule czy Webhook reagują samodzielnie.
+U góry edytora znajdziesz nazwę workflow (kliknij, by ją zmienić), dostęp do tagów oraz
+przycisk **Publish** w prawym górnym rogu (skrót `Shift + P`). Przycisku zapisu nie ma:
+n8n zapisuje każdą zmianę automatycznie w ciągu kilku sekund, ale wszystkie edycje są
+**szkicem**, dopóki nie opublikujesz workflow. Kliknięcie **Publish** otwiera okno, w którym
+możesz nazwać wersję i dodać opis. Dopiero opublikowany workflow działa sam: Schedule
+Trigger odpala się o swojej porze, a webhooki i formularze odpowiadają pod Production URL.
+Niepublikowany workflow uruchomisz tylko ręcznie, w testach z edytora. W n8n 1.x tę samą
+rolę pełnił przełącznik **Active / Inactive** - jeśli trafisz na starszy tutorial,
+"aktywuj workflow" czytaj jako "opublikuj workflow".
+
+:::caution[Edycje po publikacji nie trafiają na produkcję same]
+Produkcja zawsze używa **opublikowanej wersji**, nie Twoich ostatnich edycji. Jeśli
+poprawisz opublikowany workflow, zmiany zapiszą się jako szkic, a przycisk pokaże stan
+"Published, has changes" - opublikowany, ale z nieopublikowanymi zmianami. Żeby poprawka
+zaczęła działać, kliknij **Publish** jeszcze raz. Opublikowany workflow rozpoznasz też na
+liście Workflows po znaczniku na jego karcie, a wycofasz go opcją **Unpublish** z menu
+obok przycisku **Publish**. Źródło:
+[Save and publish workflows (docs.n8n.io)](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows/),
+stan na listopad 2026.
+:::
 
 ### Skróty klawiszowe
 
@@ -124,7 +140,8 @@ na obu systemach, o ile kursor nie stoi w polu tekstowym.
 | --- | --- | --- |
 | `N` | `N` | Otwiera panel node'ów - szukasz node'a po nazwie i wstawiasz go `Enter` |
 | `Ctrl + K` | `Cmd + K` | Otwiera Command Bar (paletę poleceń) - akcje edytora wpisywane z klawiatury |
-| `Ctrl + S` | `Cmd + S` | Zapisuje workflow |
+| `Shift + P` | `Shift + P` | Otwiera okno publikacji workflow (to samo co przycisk **Publish**) |
+| `Ctrl + S` | `Cmd + S` | Nadaje nazwę bieżącej wersji (_Name version_, płatne plany) - samo zapisywanie jest automatyczne |
 | `Ctrl + Enter` | `Cmd + Enter` | Uruchamia cały workflow (to samo co **Execute workflow**) |
 | `Ctrl + Z` / `Ctrl + Shift + Z` | `Cmd + Z` / `Cmd + Shift + Z` | Cofa / ponawia ostatnią zmianę |
 | `Ctrl + Alt + N` | `Cmd + Option + N` | Tworzy nowy workflow |
@@ -146,6 +163,8 @@ kroków.
 Skróty zweryfikowałem w oficjalnej dokumentacji -
 [Keyboard shortcuts (docs.n8n.io)](https://docs.n8n.io/build/keyboard-shortcuts/) - stan na
 listopad 2026. Tam znajdziesz też pełną listę, łącznie z nawigacją strzałkami między node'ami.
+Skróty publikacji (`Shift + P`, `Ctrl/Cmd + S` jako nazwanie wersji) pochodzą ze strony
+[Save and publish workflows](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows/).
 n8n rozwija edytor szybko, więc jeśli w Twojej wersji któryś skrót nie reaguje, zajrzyj
 najpierw do dokumentacji dla swojej wersji.
 :::
@@ -180,9 +199,13 @@ co potrzebne. Każdy workflow zaczyna się od triggera - bez niego n8n nie wie, 
 5. **Uruchom workflow.** Kliknij **Execute workflow** (przycisk u dołu kanwy). n8n wykona
    przepływ od triggera w trybie testowym i pokoloruje node'y, które zakończyły się
    sukcesem.
-6. **Sprawdź wynik i zapisz.** Otwórz node **Edit Fields** i spójrz na panel **Output** po
-   prawej - zobaczysz przygotowane pola `nazwa` i `gwiazdki`. Na końcu kliknij **Save** i
-   nadaj workflow czytelną nazwę.
+6. **Sprawdź wynik i nazwij workflow.** Otwórz node **Edit Fields** i spójrz na panel
+   **Output** po prawej - zobaczysz przygotowane pola `nazwa` i `gwiazdki`. Zapisywać nie
+   musisz, n8n robi to automatycznie. Nadaj workflow czytelną nazwę (kliknij nazwę u góry
+   edytora).
+7. **Opublikuj workflow.** Kliknij **Publish** w prawym górnym rogu edytora i potwierdź w
+   oknie publikacji. Od tej chwili Schedule Trigger będzie startował przepływ codziennie
+   o 7:00 bez Twojego udziału.
 
 :::tip[Dlaczego akurat ta trójka]
 To minimalny, ale kompletny wzorzec niemal każdej automatyzacji: **kiedy** (trigger) →
@@ -200,7 +223,7 @@ automatyzacja w ogóle ruszy. Na start wystarczy poznać trzy najczęstsze - ró
 <CardGrid>
   <ConceptCard icon="fa-hand-pointer" title="Manual Trigger">
     **Ty** uruchamiasz przepływ klikając "Execute workflow". Idealny do nauki i testów - nie
-    reaguje na nic z zewnątrz i nie działa po aktywacji.
+    reaguje na nic z zewnątrz i nie działa po publikacji.
   </ConceptCard>
   <ConceptCard icon="fa-calendar-days" title="Schedule Trigger">
     **Czas** uruchamia przepływ - co kilka sekund, minut, godzin, dni, tygodni, miesięcy lub
@@ -214,11 +237,11 @@ automatyzacja w ogóle ruszy. Na start wystarczy poznać trzy najczęstsze - ró
 
 ### Kiedy którego użyć
 
-| Trigger | Co go wyzwala | Wymaga aktywacji workflow? | Typowe zastosowanie |
+| Trigger | Co go wyzwala | Wymaga publikacji workflow? | Typowe zastosowanie |
 | --- | --- | --- | --- |
 | **Manual Trigger** | Kliknięcie "Execute workflow" w edytorze | Nie - działa tylko w teście | Nauka, testy, jednorazowe uruchomienia |
 | **Schedule Trigger** | Harmonogram (interwał lub cron) | Tak - by uruchamiał się sam | Raporty cykliczne, synchronizacje, sprzątanie danych |
-| **Webhook** | Przychodzące żądanie HTTP na URL | Tak - produkcyjny URL działa po aktywacji | Formularze, płatności, integracje real-time, callbacki z API |
+| **Webhook** | Przychodzące żądanie HTTP na URL | Tak - produkcyjny URL działa po publikacji | Formularze, płatności, integracje real-time, callbacki z API |
 
 :::note[Schedule Trigger - interwały]
 W parametrze `Trigger Interval` wybierasz jednostkę: _Seconds, Minutes, Hours, Days, Weeks,
@@ -260,8 +283,8 @@ użyje przypiętych danych zamiast ponownie wołać API - szybciej, taniej i zaw
 zestawie danych (łatwiej porównywać efekty zmian). Przypięcie zdejmiesz przez **Unpin
 data**.
 
-**Ważne:** pinning działa tylko w edytorze, przy wykonaniach ręcznych i częściowych. Po
-aktywacji workflow przypięte dane są ignorowane - produkcja zawsze pobiera dane "na żywo".
+**Ważne:** pinning działa tylko w edytorze, przy wykonaniach ręcznych i częściowych. W
+opublikowanym workflow przypięte dane są ignorowane - produkcja zawsze pobiera dane "na żywo".
 :::
 
 ### Lista i szczegóły executions
@@ -278,14 +301,16 @@ tak. Nieudane wykonania możesz też ponowić (**Retry**).
 
 Webhook ma **dwa URL-e**. **Test URL** działa po kliknięciu **Listen for test event** - n8n
 nasłuchuje pojedynczego żądania, żebyś zobaczył jego dane w edytorze. **Production URL**
-zaczyna działać dopiero, gdy workflow jest **aktywny** (przełącznik _Active_). To
+zaczyna działać dopiero, gdy workflow jest **opublikowany** (przycisk **Publish**). To
 najczęstsza pułapka początkujących: testowy URL działał, a "na produkcji" cisza - bo
-workflow nie został aktywowany.
+workflow nie został opublikowany. Druga pułapka: poprawiasz node po publikacji, testujesz
+pod Test URL i wszystko gra, a Production URL dalej odpowiada po staremu - bo produkcja
+używa opublikowanej wersji, dopóki nie klikniesz **Publish** ponownie.
 
 :::caution[Częsty błąd przy webhookach]
 Test URL i Production URL to **różne adresy**. Po przejściu na produkcję skopiuj
 produkcyjny URL z node'a Webhook i wpisz go w systemie zewnętrznym oraz upewnij się, że
-workflow jest aktywny. Do odsyłania własnej odpowiedzi na żądanie służy osobny node
+workflow jest opublikowany, a ostatnie zmiany nie czekają na ponowną publikację. Do odsyłania własnej odpowiedzi na żądanie służy osobny node
 **Respond to Webhook**.
 :::
 
@@ -447,7 +472,7 @@ Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdan
 kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 
 1. Dlaczego Manual Trigger nigdy nie uruchomi workflow "sam z siebie", nawet jeśli
-   przełączysz workflow na Active - co konkretnie odróżnia go pod tym względem od Schedule
+   opublikujesz workflow - co konkretnie odróżnia go pod tym względem od Schedule
    i Webhooka? Jeśli nie masz pewności -
    [Triggery: Manual, Schedule i Webhook](#triggery-manual-schedule-i-webhook).
 2. Kolejny node w Twoim przepływie "nie widzi" pola, którego się spodziewałeś, i się
@@ -480,8 +505,8 @@ Bazujesz na workflow z tego modułu (Schedule Trigger → HTTP Request → Edit 
 3. Kliknij **Listen for test event** i otwórz Test URL w przeglądarce (albo wywołaj go
    `curl`-em).
 4. Sprawdź w panelu Output node'a Edit Fields, że dane przeszły tak samo jak wcześniej.
-5. Żeby to zadziałało "na produkcji", pamiętaj o dwóch rzeczach z tego modułu: aktywacji
-   workflow (Active) i użyciu Production URL zamiast Test URL.
+5. Żeby to zadziałało "na produkcji", pamiętaj o dwóch rzeczach z tego modułu: publikacji
+   workflow (**Publish**) i użyciu Production URL zamiast Test URL.
 
 </details>
 
@@ -491,7 +516,8 @@ Bazujesz na workflow z tego modułu (Schedule Trigger → HTTP Request → Edit 
   - Manual = testy, Schedule = harmonogram/cron, Webhook = reakcja na zdarzenie z zewnątrz.
   - "Execute workflow" uruchamia całość, "Execute step" tylko jeden node - szybsze poprawki.
   - Pinning danych przyspiesza testy i oszczędza limity API, ale działa tylko w edytorze, nie na produkcji.
-  - Webhook ma osobny Test URL i Production URL; produkcyjny wymaga aktywnego workflow.
+  - n8n zapisuje zmiany sam, ale na produkcji działa tylko opublikowana wersja - po każdej poprawce kliknij **Publish** ponownie.
+  - Webhook ma osobny Test URL i Production URL; produkcyjny wymaga opublikowanego workflow.
   - Kilka skrótów robi największą różnicę: `N` (panel node'ów), `Ctrl/Cmd + Enter` (uruchom), `Ctrl/Cmd + K` (Command Bar), `P` (pin), `Shift + S` (notatka).
   - Data Tables to wbudowana "pamięć" workflow - do stanu, deduplikacji i cache'u; dane dla ludzi spoza n8n trzymaj w Google Sheets, duże i relacyjne - w prawdziwej bazie.
   - Porządek od początku: projekty i foldery, opisowe nazwy, tagi, sticky notes i grupy node'ów.

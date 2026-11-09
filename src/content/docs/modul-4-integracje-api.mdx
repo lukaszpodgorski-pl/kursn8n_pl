@@ -47,7 +47,7 @@ faq:
   - q: "API key czy OAuth2 - co wybrać?"
     a: "Jeśli usługa daje wybór: OAuth2 jest bezpieczniejszy, bo ma ograniczony zakres i łatwo cofnąć dostęp, ale wymaga publicznego HTTPS i callbacku. API key jest prostszy do skonfigurowania i dobry do własnych/wewnętrznych API oraz szybkich testów. Często usługa narzuca jeden typ - wtedy decyzji nie ma."
   - q: "Mój webhook nie reaguje - dlaczego?"
-    a: "Najczęstsze przyczyny: użyłeś Test URL zamiast Production URL, workflow nie jest aktywny (przełącznik \"Active\"), niezgodna metoda HTTP (np. wysyłasz GET, a node nasłuchuje POST) albo blokuje Cię uwierzytelnianie webhooka. Przy self-hostingu sprawdź też, czy instancja jest publicznie dostępna pod HTTPS."
+    a: "Najczęstsze przyczyny: użyłeś Test URL zamiast Production URL, workflow nie jest opublikowany (przycisk \"Publish\"; w n8n 1.x przełącznik \"Active\") albo nie opublikowałeś ponownie ostatnich zmian, niezgodna metoda HTTP (np. wysyłasz GET, a node nasłuchuje POST) albo blokuje Cię uwierzytelnianie webhooka. Przy self-hostingu sprawdź też, czy instancja jest publicznie dostępna pod HTTPS."
   - q: "Jak sprawdzić, że webhook naprawdę przyszedł od Stripe albo GitHuba?"
     a: "Zweryfikuj podpis HMAC. Dostawca liczy HMAC-SHA256 z surowego body żądania wspólnym sekretem i wysyła wynik w nagłówku (GitHub: X-Hub-Signature-256, Stripe: Stripe-Signature). W n8n włącz w node Webhook opcję Raw Body, policz HMAC node'em Crypto (sekret w credentialu Crypto) i porównaj oba podpisy w Code node funkcją crypto.timingSafeEqual, sprawdzając najpierw długość. Żądanie z błędnym podpisem odrzuć kodem 401, a przed powtórkami chroń się znacznikiem czasu i odsiewaniem ID zdarzeń."
   - q: "Dostaję błąd HTTP 429 - co to znaczy i jak to naprawić?"
@@ -288,8 +288,10 @@ URL i uruchamia workflow. Najważniejsze ustawienia:
 :::caution[Test URL vs Production URL]
 Webhook ma **dwa adresy**. **Test URL** działa tylko gdy klikniesz "Listen for test event" w
 edytorze - służy do budowania i podglądu danych. **Production URL** działa stale, ale dopiero gdy
-workflow jest **aktywny** (przełącznik "Active"). Częsty błąd początkujących: wpisanie zewnętrznej
-usłudze adresu testowego albo zapomnienie o aktywacji workflow w produkcji.
+workflow jest **opublikowany** (przycisk **Publish** w prawym górnym rogu edytora; w n8n 1.x
+był to przełącznik "Active"). Częsty błąd początkujących: wpisanie zewnętrznej usłudze adresu
+testowego albo zapomnienie o publikacji workflow. Pamiętaj też, że zmiany wprowadzone po
+publikacji trafiają na Production URL dopiero po ponownym kliknięciu **Publish**.
 :::
 
 #### Odpowiadanie: node Respond to Webhook
@@ -542,7 +544,7 @@ Potrzebujesz działającej instancji n8n i kilkunastu minut.
    `{ "status": "ok" }`.
 3. Kliknij **Listen for test event** i otwórz Test URL w przeglądarce - powinieneś zobaczyć
    swoją odpowiedź JSON.
-4. Aktywuj workflow (**Active**) i otwórz tym razem **Production URL** - efekt powinien być
+4. Opublikuj workflow (**Publish**) i otwórz tym razem **Production URL** - efekt powinien być
    identyczny, ale bez klikania "Listen".
 5. Dorzuć w ustawieniach node'a Webhook prostą **Authentication** (np. Header Auth), żeby
    nie każdy mógł wywołać Twój endpoint.
