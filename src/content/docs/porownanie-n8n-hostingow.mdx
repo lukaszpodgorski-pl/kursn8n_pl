@@ -91,8 +91,7 @@ dojrzałym** - i to jest jego największa zaleta, nie wada.
 Co w nim wciąż jest mocne:
 
 - **Tworzenie automatyzacji** - wizualny edytor jest jednym z najlepszych na rynku,
-  krzywa wejścia płaska, ale sufit wysoki (Code Node, Function, sub-scenariuszy, tryb
-  kolejkowy).
+  krzywa wejścia płaska, ale sufit wysoki (Code Node, sub-scenariusze, tryb kolejkowy).
 - **Zarządzanie** - wersjonowanie workflow przez eksport JSON, zmienne środowiskowe,
   role, foldery, tagi. Da się utrzymać setki workflow w sensownym porządku.
 - **Testowanie** - "Execute Workflow" daje natychmiastowy feedback, można uruchamiać
@@ -158,7 +157,8 @@ fair-code pod licencją Sustainable Use License. Wszystkie omawiane tu rozwiąza
 
 - **2 GB RAM**, 2 rdzenie CPU, 20 GB pamięci masowej
 - **Docker** na systemie Linux - odpowiedni Node.js siedzi w obrazie, sam go nie
-  instalujesz. Od n8n 3.0 (październik 2026) self-hosting wymaga Dockera, a instalacje
+  instalujesz. Od n8n 3.0 (beta od 27 października 2026, wydanie stabilne zapowiedziane na
+  początek grudnia 2026) self-hosting wymaga Dockera, a instalacje
   przez npm przestają być wspierane
   ([changelog](https://docs.n8n.io/changelog/v30-breaking-changes)).
 - Wbudowana baza **SQLite** działa od ręki; PostgreSQL rekomendowany dla większego
@@ -1336,17 +1336,22 @@ idle utrata połączenia).
 
 Kroki:
 
-1. Function Node z sleep(120000) - 2 minuty
+1. Code Node (tryb "Run Once for All Items") z odczekaniem 120 s - 2 minuty
 2. Wywołaj przez webhook
 3. Sprawdź, czy workflow dobiegł końca
 4. Sprawdź logi pod kątem timeout
 
-Kod Function Node:
+Kod Code Node:
 
 ```js
 await new Promise((r) => setTimeout(r, 120000));
 return [{ json: { done: true } }];
 ```
+
+W n8n 3.0 domyślny limit czasu task runnera, w którym działa Code Node, spada z 300 do
+60 sekund. Bez zmiany ten test padnie po minucie z winy samego n8n, nie hostingu - przed
+testem ustaw `N8N_RUNNERS_TASK_TIMEOUT=180`
+([v3.0 Breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes)).
 
 **Oczekiwany wynik:** workflow wykonany po 120s bez timeout; brak błędów 504
 
@@ -1513,10 +1518,10 @@ Kroki:
 3. Wywołaj workflow ponownie
 4. Sprawdź, czy Static Data nadal istnieje
 
-Kod Function Node:
+Kod Code Node (tryb "Run Once for All Items"):
 
 ```js
-const data = getWorkflowStaticData('global');
+const data = $getWorkflowStaticData('global');
 data.counter = (data.counter || 0) + 1;
 return [{ json: { counter: data.counter } }];
 ```
@@ -1532,7 +1537,7 @@ całego n8n.
 
 Kroki:
 
-1. Function Node alokujący 500 MB tablicy
+1. Code Node alokujący 500 MB tablicy
 2. Wykonaj i obserwuj błędy
 3. Stopniowo zwiększaj do 1 GB, 2 GB
 4. Sprawdź, jaki OOM error pojawia się w logach
@@ -1557,18 +1562,21 @@ n8n.
 Kroki:
 
 1. Workflow pobierający plik 100 MB przez HTTP Request
-2. Zapisz przez Write Binary File node
+2. Zapisz przez node Read/Write Files from Disk (operacja zapisu)
 3. Sprawdź, czy plik dostępny w kolejnym nodzie
 4. Sprawdź dostępne miejsce na dysku
 
 Test pliku:
 
 ```text
-HTTP Request (Binary) →
-  https://speed.hetzner.de/100MB.bin
-→ Write Binary File: /tmp/test.bin
-→ Read Binary File: /tmp/test.bin
+HTTP Request (Response Format: File) →
+  https://nbg1-speed.hetzner.com/100MB.bin
+→ Read/Write Files from Disk (Write): /tmp/test.bin
+→ Read/Write Files from Disk (Read): /tmp/test.bin
 ```
+
+Starsze poradniki używają tu node'ów Write Binary File i Read Binary File - w n8n 3.0
+zostały usunięte, a zastępuje je właśnie Read/Write Files from Disk.
 
 **Oczekiwany wynik:** plik 100 MB pobrany i zapisany \< 30s, brak OOM
 
@@ -1576,11 +1584,11 @@ HTTP Request (Binary) →
 
 **T-13 · Test obciążenia procesora (sortowanie)** - `ZASOBY`, istotność: niska
 
-Wydajność CPU przy intensywnych obliczeniach w Function Node.
+Wydajność CPU przy intensywnych obliczeniach w Code Node.
 
 Kroki:
 
-1. Function Node z sortowaniem 100k losowych liczb
+1. Code Node z sortowaniem 100k losowych liczb
 2. Uruchom 5 równoległych instancji
 3. Zmierz czas wykonania i użycie CPU (`htop`)
 4. Sprawdź, czy inne workflow są spowolnione
@@ -1626,8 +1634,8 @@ Wywoływanie workflow przez inne workflow - kluczowe dla modułowości i dużych
 
 Kroki:
 
-1. Utwórz "podrzędny" scenariusz z Execute Workflow Trigger
-2. Utwórz "nadrzędny" z Execute Workflow node → podrzędny
+1. Utwórz "podrzędny" scenariusz z Execute Sub-workflow Trigger
+2. Utwórz "nadrzędny" z Execute Sub-workflow node → podrzędny
 3. Przekaż parametry i sprawdź odbiór
 4. Sprawdź, czy błąd w podrzędnym propaguje do nadrzędnego
 
