@@ -112,10 +112,12 @@ workflow, node'em, który nazywa się po prostu **n8n**.
 
 :::danger[Czego ten backup NIE robi]
 API n8n, z którego korzysta ten workflow, eksportuje **definicje workflow** - node'y, połączenia,
-parametry - ale **nie eksportuje credentials** w użytecznej, odtwarzalnej postaci. Ten gotowiec to
+parametry - ale **nie eksportuje credentials** w użytecznej, odtwarzalnej postaci ani zawartości
+[Data Tables](/modul-2-interfejs-pierwszy-workflow#data-tables---wbudowane-tabele-danych) (workflow
+zapisuje tylko odwołanie do tabeli, nie jej wiersze). Ten gotowiec to
 wersjonowanie i możliwość odtworzenia logiki workflow, nie kompletny disaster recovery. Pełny backup,
 który obejmuje też credentials, to kopia bazy danych plus bezpiecznie przechowany klucz
-`N8N_ENCRYPTION_KEY` - dokładnie tak, jak opisuję w [Modułu 7 - sekcja o backupach](/modul-7-produkcja#backupy-3-2-1-i-testowane-odtwarzanie).
+`N8N_ENCRYPTION_KEY` - dokładnie tak, jak opisuję w [Module 7 - sekcja o backupach](/modul-7-produkcja#backupy-3-2-1-i-testowane-odtwarzanie).
 Traktuj te dwa mechanizmy jako uzupełniające się, nie zamienne.
 :::
 
@@ -209,6 +211,7 @@ const folder = 'SCIEZKA_W_REPO';
 
 const slug = workflow.name
   .toLowerCase()
+  .replace(/ł/g, 'l')
   .normalize('NFD')
   .replace(/\p{Diacritic}/gu, '')
   .replace(/[^a-z0-9]+/g, '-')
@@ -228,6 +231,8 @@ Czytając to krok po kroku:
 - `.normalize('NFD').replace(/\p{Diacritic}/gu, '')` - rozdziela polskie znaki na literę i
   "ogonek" (znak diakrytyczny), a potem usuwa sam ogonek (`ą` → `a`, `ć` → `c`), żeby ścieżka
   pliku nie zawierała znaków, które bywają kłopotliwe w adresach URL i niektórych systemach plików.
+- `.replace(/ł/g, 'l')` przed `normalize` - `ł` jest osobną literą, nie `l` z ogonkiem, więc NFD
+  jej nie rozkłada. Bez tej linii "Złoty" daje slug `z-oty`.
 - `.replace(/[^a-z0-9]+/g, '-')` - wszystko, co nie jest literą ani cyfrą (spacje, myślniki,
   znaki specjalne), zamienia na pojedynczy dywiz.
 - `${workflow.id}` w nazwie pliku gwarantuje unikalność, nawet gdy dwa workflow nazywają się tak
@@ -381,6 +386,7 @@ const folder = 'SCIEZKA_W_REPO';
 const files = $input.all().map(({ json: workflow }) => {
   const slug = workflow.name
     .toLowerCase()
+    .replace(/ł/g, 'l')
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .replace(/[^a-z0-9]+/g, '-')

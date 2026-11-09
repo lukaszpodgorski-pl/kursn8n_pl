@@ -155,10 +155,10 @@ kompatybilność.
 :::
 
 :::note[Pełny przewodnik bezpieczeństwa]
-n8n zbiera rekomendacje w jednym miejscu: [Securing n8n - overview](https://docs.n8n.io/hosting/securing/overview/)
-oraz konfigurację certyfikatu w [Set up SSL/TLS](https://docs.n8n.io/hosting/securing/set-up-ssl/).
+n8n zbiera rekomendacje w jednym miejscu: [Securing n8n - overview](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security)
+oraz konfigurację certyfikatu w [Set up SSL/TLS](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/set-up-ssl).
 Przykłady izolacji środowiska wykonawczego znajdziesz w
-[Isolation](https://docs.n8n.io/hosting/configuration/configuration-examples/isolation/).
+[Isolation](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/isolate-n8n).
 :::
 
 ## RODO / GDPR w automatyzacjach
@@ -344,7 +344,7 @@ Każdy worker (i ewentualne procesy webhook) **musi** mieć identyczny
 `N8N_ENCRYPTION_KEY` co proces główny - inaczej nie odszyfruje credentials z bazy i
 workflow padną. Wszystkie komponenty łączą się też do **tej samej bazy danych**
 (PostgreSQL - SQLite tu nie wystarczy) i do tego samego Redis. Szczegóły:
-[Configuring queue mode](https://docs.n8n.io/hosting/scaling/queue-mode/).
+[Configuring queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode).
 :::
 
 :::caution[Nie zaczynaj od queue mode "na zapas"]
@@ -451,6 +451,17 @@ OAuth jawnym tekstem - dokumentacja mówi wprost, że wszystkie wrażliwe dane s
 pliku. Ta flaga służy do jednorazowej migracji między instalacjami z **różnym**
 `N8N_ENCRYPTION_KEY`. Taki plik nigdy nie trafia do Gita, artefaktu CI ani maila - kopiujesz
 go bezpośrednio na nowy serwer, importujesz i od razu usuwasz.
+:::
+
+:::caution[Data Tables nie siedzą w JSON-ie workflow]
+Eksport workflow (z edytora, CLI czy API) zapisuje tylko odwołanie do tabeli, nie jej wiersze.
+Zawartość [Data Tables](/modul-2-interfejs-pierwszy-workflow#data-tables---wbudowane-tabele-danych)
+żyje w bazie n8n, więc chroni ją kopia bazy z sekcji o backupach. Pojedynczą tabelę zgrasz ręcznie
+jako CSV (menu z trzema kropkami → **Download CSV**), a całą bazę przeniesiesz między SQLite
+i Postgres komendą `n8n export:entities` / `import:entities`
+([Data tables](https://docs.n8n.io/build/work-with-data/data-tables),
+[Export entities](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line#export-entities),
+zweryfikowane 9 listopada 2026).
 :::
 
 Pełna lista flag: [Use the command line](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line)

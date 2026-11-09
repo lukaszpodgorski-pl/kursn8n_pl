@@ -1,4 +1,5 @@
 import {
+	COSTS_SLUG,
 	GLOSSARY_SLUG,
 	GUIDE_SLUG,
 	MODULE_SLUGS,
@@ -44,6 +45,7 @@ export function pageType(pathname: string): string {
 	if (QUICK_WIN_SLUGS.has(slug)) return 'workflow';
 	if (slug === TROUBLESHOOTING_SLUG) return 'troubleshooting';
 	if (slug === GLOSSARY_SLUG) return 'slownik';
+	if (slug === COSTS_SLUG) return 'koszty';
 	if (LEGAL_SLUGS.has(slug)) return 'prawne';
 	if (NEWSLETTER_SLUGS.has(slug)) return 'newsletter';
 	return 'inna';
