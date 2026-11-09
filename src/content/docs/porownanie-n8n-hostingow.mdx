@@ -1,6 +1,6 @@
 ---
 title: Porównanie hostingów n8n
-description: "Porównanie 7 ścieżek hostingu n8n: Raspberry Pi, mini PC, Mikrus, cyber_Folks, Hostinger, Hetzner i Railway. Bezpieczeństwo, RODO, ceny, backupy, łatwość obsługi i katalog testów do samodzielnego powtórzenia."
+description: "Porównanie 7 ścieżek hostingu n8n: Raspberry Pi, mini PC, Mikrus, cyber_Folks, Hostinger, Hetzner i Railway, z n8n Cloud jako punktem odniesienia i skrótem o Render, Fly.io i DigitalOcean. Bezpieczeństwo, RODO, ceny, backupy i katalog testów do samodzielnego powtórzenia."
 # Ten sam mechanizm head: co w modul-0-fundamenty.mdx (scalanie z domyślnym
 # head Starlight po kluczu `tag`). Poniżej <title> oraz og:title/og:description
 # przepisane 1:1 z public_html/content/porownanie-n8n-hostingow.head.php - bez
@@ -15,12 +15,14 @@ head:
   - tag: meta
     attrs:
       property: og:description
-      content: "7 realnych ścieżek wdrożenia n8n - od Raspberry Pi po PaaS. Bezpieczeństwo, RODO, ceny, backupy i katalog testów do samodzielnego powtórzenia."
+      content: "7 realnych ścieżek wdrożenia n8n - od Raspberry Pi po PaaS - i porównanie z n8n Cloud. Bezpieczeństwo, RODO, ceny, backupy i katalog testów do samodzielnego powtórzenia."
 # Data pierwszej publikacji na żywej stronie (head.php, LearningResource.datePublished).
 datePublished: 2026-05-21
 educationalLevel: Intermediate
 teaches:
   - Jak porównać 7 realnych ścieżek hostingu n8n - od Raspberry Pi po PaaS
+  - Kiedy n8n Cloud wygrywa z self-hostingiem, a kiedy przegrywa
+  - Na co uważać na Render, Fly.io i DigitalOcean (uśpienie instancji, trwałość wolumenu)
   - Obowiązki RODO i lokalizację danych u każdego z dostawców
   - Zasadę backupu 3-2-1 i dlaczego trzeba testować odtwarzanie
   - Jak dobrać hosting do własnego profilu (nauka, mała firma, sektor regulowany)
@@ -41,6 +43,12 @@ mentions:
     sameAs: https://en.wikipedia.org/wiki/Hostinger
   - name: Railway
     sameAs: https://railway.com/
+  - name: Render
+    sameAs: https://render.com/
+  - name: Fly.io
+    sameAs: https://fly.io/
+  - name: DigitalOcean
+    sameAs: https://en.wikipedia.org/wiki/DigitalOcean
   - name: cyber_Folks
     sameAs: https://cyberfolks.pl/
   - name: Mikrus
@@ -60,6 +68,8 @@ faq:
     a: "Najtaniej i z danymi w UE: self-hosting na własnym sprzęcie (Raspberry Pi, mini PC) albo polski VPS (Mikrus od ~75-197 zł/rok, cyber_Folks z DC w Polsce). Hetzner (DE/FI) po podwyżkach z 2026 roku nie jest już oczywistym liderem ceny, a jego najtańsze plany bywają niedostępne. Dla RODO kluczowe jest, gdzie fizycznie leżą dane (UE/EOG) oraz umowa powierzenia (DPA) z dostawcą."
   - q: "Hosting własny (VPS / Raspberry Pi) czy PaaS (np. Railway)?"
     a: 'PaaS (Railway) daje najszybsze wdrożenie "na klik" i zero administracji, ale płacisz więcej za tę samą moc, a dane są poza UE (USA). VPS lub własny sprzęt to niższy koszt długofalowy i pełna kontrola nad danymi, kosztem samodzielnej konfiguracji (Docker, HTTPS, backupy). Na naukę i prototyp - PaaS; na stałe, świadome wdrożenie - VPS/self-host.'
+  - q: "n8n Cloud czy self-hosting?"
+    a: "n8n Cloud wygrywa, gdy liczy się czas: instancja działa po kilku minutach, a aktualizacje, backupy i HTTPS są po stronie n8n. Przegrywa przy dużym wolumenie (Starter 20 EUR miesięcznie to 2 500 wykonań, Pro 50 EUR to 10 000, przy rozliczeniu rocznym - stan na listopad 2026), gdy potrzebujesz niezweryfikowanych community nodes albo pełnej kontroli nad lokalizacją danych. Self-hosting nie ma limitu wykonań - płacisz za serwer i własny czas."
   - q: "Czy do n8n wystarczy zwykły hosting WWW (shared)?"
     a: "Nie. n8n to długo działający proces Node.js, który potrzebuje dostępu do portów i kontroli nad środowiskiem. Klasyczny shared hosting tego nie zapewnia - potrzebujesz VPS, kontenera albo fizycznego komputera."
   - q: "Jak bezpiecznie backupować n8n?"
@@ -72,12 +82,14 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Materiał dodatkowy · Wersja 1.1 · listopad 2026"
-  readingTime="~45 min"
-  note="7 środowisk hostingowych · katalog 25 testów własnych"
+  readingTime="~50 min"
+  note="7 środowisk hostingowych · n8n Cloud jako punkt odniesienia · katalog 25 testów własnych"
 />
 
 Siedem realnych ścieżek wdrożenia n8n - od Raspberry Pi w piwnicy po PaaS-y z USA.
 Bezpieczeństwo, RODO, ceny, łatwość obsługi i to, co naprawdę boli, gdy coś pójdzie nie tak.
+Na końcu porównuję je z oficjalnym [n8n Cloud](#a-może-po-prostu-n8n-cloud) - nie jako ósmą
+ścieżką, tylko jako punktem odniesienia: tyle kosztuje "nie muszę niczego utrzymywać".
 
 ## Zanim zaczniesz - kilka słów ode mnie
 
@@ -177,6 +189,18 @@ JSON, operacjach na plikach binarnych.
   obciążeniem, lub kilka równoległych workflow.
 - **16 GB+ RAM:** gdy chcesz uruchomić lokalnie Ollamę albo inne modele LLM razem z n8n,
   albo gdy korzystasz z trybu kolejkowego (tryb kolejkowy) z osobnymi workerami.
+
+Skąd wiadomo, gdzie jest sufit? Zespół n8n opublikował 24 września 2025
+[benchmark skalowalności](https://blog.n8n.io/the-n8n-scalability-benchmark) na instancjach
+AWS C5. Na małej maszynie C5.large pojedyncza instancja n8n przy 200 równoczesnych
+użytkownikach wirtualnych odpowiadała na webhooki do 12 sekund, a ten sam sprzęt w trybie
+kolejkowym trzymał 72 żądania na sekundę bez ani jednego błędu. Na C5.4xlarge tryb kolejkowy
+doszedł do 162 żądań na sekundę. Wniosek dla Ciebie: zanim kupisz większy serwer, sprawdź,
+czy nie wystarczy tryb kolejkowy. Dokumentacja n8n podaje też ogólną liczbę - do 220 wykonań
+na sekundę dla prostego workflow na jednej instancji
+([Measure performance](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/measure-performance),
+stan na listopad 2026). To wynik dla workflow z dwoma node'ami (Webhook i Edit Fields),
+a nie dla agenta AI z dużymi payloadami - traktuj go jako górną granicę, nie obietnicę.
 
 :::caution[Co odpada w teorii, ale działa w praktyce]
 Shared hosting (klasyczny "hosting WWW") - nie nadaje się. n8n potrzebuje długo
@@ -1078,12 +1102,150 @@ najbardziej ryzykownym wyborem na liście**.
   </Panel>
 </TwoCol>
 
+## Inne platformy: Render, Fly.io, DigitalOcean
+
+Trzy nazwy, które często padają w zagranicznych poradnikach. Nie testowałem ich tak jak
+siedmiu środowisk wyżej, więc dostajesz skrót: cenę, model i pułapki, o które łatwo się
+potknąć przy n8n. Ceny w USD, bez VAT, stan na listopad 2026.
+
+| Platforma | Model | Sensowna konfiguracja pod n8n | Koszt / mc | Region w UE |
+| --- | --- | --- | --- | --- |
+| [Render](https://render.com/pricing) | PaaS, stała cena za instancję | 1 CPU, 2 GB RAM + Postgres | ~$31 ($25 + $6) | Frankfurt |
+| [Fly.io](https://docs.fly.io/about/pricing) | Maszyny wg zużycia | shared-cpu-2x, 2 GB RAM + wolumen 3 GB | ~$14 ($13,39 + $0,45) | Amsterdam, Sztokholm, Paryż, Frankfurt, Londyn |
+| [DigitalOcean](https://www.digitalocean.com/pricing/droplets) | VPS (Droplet) | 2 vCPU, 4 GB RAM, 80 GB SSD | $24 (+20-30% za backupy) | m.in. Frankfurt i Amsterdam |
+
+### Render - prosto, ale darmowy plan usypia
+
+Render rozlicza się za instancję: najmniejsza płatna (0,5 CPU, 512 MB RAM) kosztuje $7, a
+1 CPU i 2 GB RAM - $25 miesięcznie. Najtańszy płatny Postgres to $6, a dysk trwały $0,25 za
+GB ([cennik Render](https://render.com/pricing)). Plan workspace Hobby jest darmowy, ale
+ma tylko 5 GB transferu w cenie.
+
+:::caution[Darmowy plan Render nie nadaje się do n8n]
+Darmowa usługa webowa **usypia się po 15 minutach bez ruchu** i budzi się około minuty.
+Nie może mieć dysku trwałego, więc pliki lokalne (w tym baza SQLite n8n) znikają przy
+restarcie, ponownym wdrożeniu albo uśpieniu. Darmowy Postgres wygasa po 30 dniach
+([dokumentacja Render](https://render.com/docs/free)). Dla n8n oznacza to: harmonogramy się
+nie odpalają, a workflow i credentials giną. Na Render zaczynaj od płatnej instancji.
+:::
+
+### Fly.io - tanio i blisko, ale wolumen to jeden dysk
+
+Fly.io sprzedaje maszyny wg zużycia: 1 GB RAM (shared-cpu-1x) to $6,70, 2 GB RAM
+(shared-cpu-2x) to $13,39 miesięcznie, wolumen $0,15 za GB, dedykowany adres IPv4 $2, a
+transfer wychodzący z Europy $0,02 za GB. Darmowego planu dla nowych kont nie ma - jest
+tylko $1 kredytu na 7 dni. Zarządzany Postgres zaczyna się od $38 miesięcznie
+([cennik Fly.io](https://docs.fly.io/about/pricing)), więc przy małym n8n zostajesz zwykle
+przy SQLite na wolumenie.
+
+Dwie pułapki:
+
+- **Automatyczne zatrzymywanie maszyn.** Fly.io umie zatrzymać bezczynną maszynę i płacisz
+  wtedy tylko za dysk. Dla aplikacji WWW to oszczędność, dla n8n - wyłączone harmonogramy.
+  Maszyna z n8n musi działać cały czas.
+- **Wolumen nie jest replikowany.** Dokumentacja mówi wprost: wolumen istnieje na jednym
+  serwerze, a gdy ten dysk padnie, dane z jedynej kopii przepadają. Domyślne migawki trzymane
+  są 5 dni i Fly.io sam zaznacza, że nie powinny być Twoim głównym backupem
+  ([Fly Volumes](https://docs.fly.io/volumes/overview)). Backup off-site robisz sam.
+
+### DigitalOcean - klasyczny VPS z gotowym obrazem n8n
+
+Droplet to zwykły VPS, bliski Hetznerowi czy Hostingerowi: 2 GB RAM i 1 vCPU kosztują $12,
+4 GB RAM i 2 vCPU - $24 miesięcznie. Backupy to dopłata 20% ceny Dropleta (tygodniowe) albo
+30% (codzienne) ([cennik Droplet](https://www.digitalocean.com/pricing/droplets)).
+W Marketplace jest
+[obraz 1-Click z n8n](https://docs.digitalocean.com/products/marketplace/catalog/n8n/),
+który instaluje najnowszą stabilną wersję - dalsze aktualizacje robisz już sam.
+
+Pułapka jest jedna i ta sama co przy Railway: **DigitalOcean to firma z USA**. Dane możesz
+trzymać we Frankfurcie albo Amsterdamie, ale do oceny RODO dochodzi ryzyko dostępu z USA
+(SCC, DPA, analiza ryzyka - tak samo jak przy Railway). Za podobne pieniądze cyber_Folks daje
+polskie DC i polskie wsparcie.
+
+:::note[Mój werdykt w jednym zdaniu]
+Żadna z tych trzech platform nie wygrywa dla polskiego użytkownika z Mikrusem, cyber_Folks
+ani Hetznerem - Render jest drogi, Fly.io wymaga pilnowania wolumenu i maszyn, a
+DigitalOcean to droższy VPS z firmą z USA za plecami. Mają sens, jeśli już na nich
+pracujesz i chcesz trzymać n8n obok reszty projektu.
+:::
+
+## A może po prostu n8n Cloud?
+
+**n8n Cloud to oficjalna wersja hostowana przez n8n** - nie stawiasz serwera, nie
+aktualizujesz, nie konfigurujesz HTTPS ani backupów. Traktuję ją w tym poradniku jako punkt
+odniesienia, a nie ósmą ścieżkę: wszystkie siedem opcji wyżej to self-hosting tej samej
+edycji Community, a Cloud to inna umowa - płacisz za wykonania (executions, czyli
+pojedyncze uruchomienia workflow), a nie za serwer.
+
+Według [cennika n8n](https://n8n.io/pricing) (stan na listopad 2026, ceny przy rozliczeniu
+rocznym):
+
+| Plan | Cena | Wykonania / mies. | Równoległe wykonania | Maks. czas wykonania |
+| --- | --- | --- | --- | --- |
+| Starter | 20 EUR / mies. (~88 zł) | 2 500 | 5 | 5 min |
+| Pro | 50 EUR / mies. (~220 zł) | 10 000 | 20 / 50 (tak podaje cennik) | 40 min |
+| Enterprise | wycena indywidualna | indywidualnie | 200+ | 40 min |
+
+Limit w Starterze i Pro jest twardy (cennik opisuje go jako "Capped") - po wyczerpaniu puli
+nie dopłacasz automatycznie, tylko przechodzisz na wyższy plan. Pełny rachunek z licencjami
+Business/Enterprise i kosztami AI rozpisałem na stronie
+[Ile realnie kosztuje n8n](/ile-kosztuje-n8n), a zakładanie instancji krok po kroku
+w [Module 1](/modul-1-instalacja-hosting#n8n-cloud---najszybszy-start).
+
+### Kiedy Cloud wygrywa, a kiedy przegrywa
+
+<TwoCol>
+  <Panel variant="pros" title="Cloud wygrywa, gdy">
+    - Liczy się czas - instancja działa po kilku minutach, trial jest bez karty
+    - Nie chcesz utrzymywać serwera - aktualizacje, HTTPS i backupy są po stronie n8n
+    - Masz mały wolumen i niewiele workflow
+    - Wolisz fakturę od twórcy n8n niż od hostingu i własny czas na utrzymanie
+  </Panel>
+  <Panel variant="cons" title="Cloud przegrywa, gdy">
+    - Masz dużo wykonań - limit Startera skończy się szybciej, niż myślisz
+    - Potrzebujesz niezweryfikowanych community nodes albo własnych node'ów
+    - Chcesz wskazać konkretne DC albo trzymać dane w Polsce
+    - Workflow trwają dłużej niż 5 minut (Starter)
+  </Panel>
+</TwoCol>
+
+**Koszt przy wolumenie.** Jeden workflow z harmonogramem co 15 minut to 96 wykonań dziennie,
+czyli 2 880 w 30-dniowym miesiącu - już ponad limit Startera. Na self-hostingu nie ma
+limitu wykonań: Mikrus 3.5 za 197 zł rocznie albo cyber_Folks za kilkadziesiąt złotych
+miesięcznie przyjmą tyle uruchomień, ile udźwignie sprzęt. Za to płacisz własnym czasem -
+policz go uczciwie według wzoru z [kalkulacji kosztów](/ile-kosztuje-n8n#ile-kosztuje-twój-czas-na-utrzymanie).
+
+**RODO.** n8n Cloud działa na Microsoft Azure, a dane według
+[strony bezpieczeństwa n8n](https://n8n.io/legal/security/) są przechowywane w Unii
+Europejskiej. Codzienne backupy n8n replikuje do innego regionu w tym samym kraju. Na
+[stronie prawnej](https://n8n.io/legal) jest gotowa umowa powierzenia (DPA) do pobrania
+i podpisania. To lepsza pozycja niż Railway czy DigitalOcean, ale nie wybierasz
+konkretnego DC i nie masz danych w Polsce - jeśli tego wymaga Twój sektor, zostaje
+cyber_Folks albo własny sprzęt.
+
+**Community nodes.** Dokumentacja n8n mówi wprost, że niezweryfikowane community nodes nie są
+dostępne w n8n Cloud i wymagają self-hostingu
+([Community nodes - instalacja](https://docs.n8n.io/integrations/community-nodes/installation-and-management)).
+W Cloud zainstalujesz tylko node'y zweryfikowane przez n8n. Jeśli Twój workflow stoi na
+niszowym node'zie z npm albo na własnym, Cloud odpada.
+
+:::tip[Mój praktyczny sposób]
+Zacznij naukę na trialu Cloud - przejdziesz w nim
+[Moduł 2](/modul-2-interfejs-pierwszy-workflow) bez instalowania czegokolwiek. Gdy
+workflow zaczną działać na stałe, eksportujesz je jako JSON i przenosisz na self-hosting
+z tego poradnika. Pamiętaj, że credentials trzeba wtedy założyć od nowa.
+:::
+
 ## Porównanie skrótowe - wszystkie środowiska obok siebie
 
 Stan na listopad 2026. Ceny przeliczone na PLN po kursie średnim NBP z 6 listopada 2026:
 1 EUR ≈ 4,39 zł, 1 USD ≈ 3,93 zł
 ([tabela A nr 217/A/NBP/2026](https://nbp.pl/statystyka-i-sprawozdawczosc/kursy/tabela-a/)).
-Źródła poszczególnych cen są podlinkowane w sekcjach dostawców wyżej.
+Źródła poszczególnych cen są podlinkowane w sekcjach dostawców wyżej. Ostatni wiersz każdej
+tabeli to **n8n Cloud jako punkt odniesienia** - nie self-hosting, tylko odpowiedź na pytanie
+"ile kosztuje i co daje wersja, której nie utrzymuję sam". Render, Fly.io i DigitalOcean
+zostają w [osobnej sekcji](#inne-platformy-render-flyio-digitalocean), bo nie przeszły
+pełnego porównania.
 
 ### Cena i wartość
 
@@ -1099,6 +1261,7 @@ Stan na listopad 2026. Ceny przeliczone na PLN po kursie średnim NBP z 6 listop
 | **Hetzner CPX22** | 0 zł | ~€20 | ~€240 (~1 055 zł) | ~€432 (~1 895 zł, CPX32) |
 | **Hetzner CCX13 ded.** | 0 zł | ~€43,50 | ~€522 (~2 290 zł) | jw. |
 | **Railway Hobby** | $0 | $5 minimum | ~$60-90 (~235-355 zł) | ~$150 (~590 zł) |
+| _n8n Cloud (odniesienie)_ | 0 zł | €20 Starter / €50 Pro | ~€240 (~1 055 zł, Starter, 2 500 wykonań/mc) | ~€600 (~2 635 zł, Pro, 10 000 wykonań/mc) |
 
 Najważniejsza zmiana od maja: na dole tabeli kosztów nie ma już Hetznera, a własny sprzęt
 podrożał mniej więcej dwukrotnie. Najtańszy sensowny start to dziś Mikrus. Zakup malinki
@@ -1116,6 +1279,7 @@ kontroli i prywatności, nie dla oszczędności.
 | Hostinger z n8n | Bardzo łatwa | Łatwa | Średnia | Łatwa | Linux + Docker basics |
 | Hetzner czysty | Średnia | Łatwa | Średnia | Łatwa | Linux + Docker (mid) |
 | Railway | Najłatwiejsza | Łatwa | Łatwa | Lock-in | Git + dashboard |
+| _n8n Cloud (odniesienie)_ | Bez instalacji | Łatwa | Auto (n8n) | Po stronie n8n | Tylko obsługa n8n |
 
 ### RODO, lokalizacja, kontrola
 
@@ -1127,6 +1291,7 @@ kontroli i prywatności, nie dla oszczędności.
 | Hostinger | Wybór (najlepiej UE) | OK przy EU + DPA | Pełna (VPS Root) |
 | Hetzner | DE / FI / US / SG | Bardzo dobra (DE/FI) | Pełna (VPS Root) |
 | Railway | US / NL / SG | Ryzykowne (US HQ) | Ograniczona (PaaS) |
+| _n8n Cloud (odniesienie)_ | UE (Azure), bez wyboru DC | OK z DPA od n8n | Najmniejsza (tylko zweryfikowane community nodes) |
 
 ### Wsparcie i backupy
 
@@ -1138,6 +1303,7 @@ kontroli i prywatności, nie dla oszczędności.
 | Hostinger | Anglojęzyczny 24/7 + Kodee AI | Migawki / planowe | 99,9% |
 | Hetzner | Mail, godziny pracy DE | Płatne ~20% wart. serwera | 99,9% z C5 |
 | Railway | Discord + tickety Pro | Częściowe (Postgres) | Pro/Enterprise |
+| _n8n Cloud (odniesienie)_ | Forum (SLA tylko Enterprise) | Codzienne, replikowane | Enterprise |
 
 ### Zagrożenia - szybka ściąga
 
@@ -1150,6 +1316,7 @@ kontroli i prywatności, nie dla oszczędności.
 | **Hostinger** | Cena regularna 2-4× promo; faktura USD; uzależnienie od dostawcy lite; trzeba świadomie wybrać EU DC |
 | **Hetzner** | Brak gotowca; rygorystyczne anty-abuse; dwie podwyżki w 2026 i niedostępne plany CX/CAX; wsparcie tylko mail |
 | **Railway** | Usage-based potrafi zaskoczyć; lock-in; RODO ryzykowne; trial z ograniczonym ruchem wychodzącym bez weryfikacji konta |
+| _n8n Cloud (odniesienie)_ | Twardy limit wykonań; maks. 5 min na wykonanie w Starterze; brak niezweryfikowanych community nodes i własnych node'ów |
 
 ## Macierz decyzyjna - co wybrać kiedy
 
@@ -1160,7 +1327,8 @@ Skrótowe sugestie na podstawie typowych profili użytkowników.
 **→ Mikrus 2.1 lub 3.0** (75-130 zł/rok). Najmniej tarcia, jedno polecenie, działa.
 Polska faktura.
 
-_Alternatywa: Railway plan próbny przez 30 dni za $0, potem decyzja co dalej._
+_Alternatywa: trial n8n Cloud bez karty (1 000 wykonań) albo Railway plan próbny przez
+30 dni za $0, potem decyzja co dalej._
 
 ### "Mała firma, n8n 24/7 dla klientów (do 50 egzekucji/dzień)"
 
@@ -2011,6 +2179,8 @@ od programu partnerskiego.
 | [Hostinger Self-hosted n8n](https://www.hostinger.com/pl?REFERRALCODE=LUKASZ) | VPS · międzynarodowy | Wdrożenie jednym kliknięciem + Kodee AI. |
 | [Mikrus (mikr.us)](https://mikr.us/?r=lukasz) | VPS · roczna płatność | Polski mikrohosting z instalacją n8n jednym poleceniem. |
 | Railway (`railway.com/deploy/n8n`) | PaaS · USA | Najszybsze wdrożenie n8n. Bez linku partnerskiego - oryginalna strona dostawcy. |
+| n8n Cloud (`n8n.io/pricing`) | Hosting od twórców n8n · dane w UE | Punkt odniesienia: zero utrzymania, płatność za wykonania. Bez linku partnerskiego. |
+| Render, Fly.io, DigitalOcean | PaaS / VPS · USA | Opisane skrótowo w sekcji "Inne platformy". Bez linków partnerskich. |
 
 ### Hardware
 
@@ -2031,6 +2201,9 @@ od programu partnerskiego.
 - **Macierz decyzyjna:** dla średniej firmy pierwszym wyborem jest teraz cyber_Folks
   vroot_SPRINT, a Hetzner CCX13 spadł do roli alternatywy. W profilu "mała firma" CX23
   zostaje tylko z zastrzeżeniem dostępności.
+- **Nowe sekcje:** n8n Cloud jako punkt odniesienia w tabelach zbiorczych
+  ([A może po prostu n8n Cloud?](#a-może-po-prostu-n8n-cloud)), skrót o Render, Fly.io
+  i DigitalOcean oraz wyniki oficjalnego benchmarku skalowalności n8n.
 
 ---
 
