@@ -554,7 +554,7 @@ wpisane na sztywno w node'y. Masz trzy miejsca:
 | Gdzie | Dostępność (stan na listopad 2026) | Kiedy |
 | --- | --- | --- |
 | **Custom variables** (`$vars`) | Cloud Pro i Enterprise, self-hosted Business i Enterprise. Zmienne mogą być globalne albo przypisane do projektu (od n8n 1.118.0) | Jedna instancja z projektami - zmienna projektu klienta |
-| **Zmienne środowiskowe** (`$env`) | Każda edycja self-hosted, o ile administrator nie zablokował dostępu zmienną `N8N_BLOCK_ENV_ACCESS_IN_NODE` | Instancja per klient - konfiguracja w pliku `.env` tej instancji |
+| **Zmienne środowiskowe** (`$env`) | Każda edycja self-hosted, ale od n8n 2.0 dostęp z Code Node jest domyślnie zablokowany ([lista zmian 2.0](https://docs.n8n.io/changelog/v20-breaking-changes): `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`). Odblokowanie to `false` w konfiguracji instancji; tabela zmiennych w docs wciąż podaje stary domyślny `false`, więc sprawdź na swojej instancji | Instancja per klient - konfiguracja w pliku `.env` tej instancji |
 | **Data Table z konfiguracją** | Każda edycja | Gdy nie masz custom variables, a chcesz zmieniać wartości bez restartu |
 
 Źródła: [custom variables](https://docs.n8n.io/build/code-in-n8n/define-custom-variables),
