@@ -198,7 +198,7 @@ płatny model AI przestaje odpowiadać w środku dnia. Na takie sytuacje mam trz
 z inżynierii systemów rozproszonych, które w n8n złożysz z kilku zwykłych node'ów.
 
 Wszystkie trzy stoją na tych samych ustawieniach z zakładki **Settings** node'a i dwóch
-node'ach obsługi błędów (nazwy jak w [dokumentacji n8n](https://docs.n8n.io/workflows/components/nodes/),
+node'ach obsługi błędów (nazwy jak w [dokumentacji n8n](https://docs.n8n.io/build/understand-workflows/workflow-components/work-with-nodes),
 sprawdzone w listopadzie 2026):
 
 | Klocek | Rola we wzorcach |
@@ -255,7 +255,7 @@ W n8n wygląda to tak:
 />
 
 :::tip[Data Table czy zewnętrzna baza?]
-[Data Tables](https://docs.n8n.io/data/data-tables/) to wbudowane w n8n tabele, które działają
+[Data Tables](https://docs.n8n.io/build/work-with-data/data-tables) to wbudowane w n8n tabele, które działają
 także w ręcznych testach i nie wymagają Code Node. Mają jednak wspólny limit miejsca na całą
 instancję: domyślnie 200 MiB (stan na listopad 2026; na self-hostingu zmienisz go zmienną
 `N8N_DATA_TABLES_MAX_SIZE_BYTES`). Po przekroczeniu zapisy z workflow zaczynają się wywracać -
@@ -307,7 +307,7 @@ Licznik możesz trzymać też w danych statycznych workflow (`$getWorkflowStatic
 w Code Node, opisane w [Module 5](/modul-5-kod-sub-workflow#dane-statyczne-workflow-static-data)).
 To wygodne, gdy jeden workflow woła jedno API, ale ma trzy wady: static data zapisuje się tylko
 po udanym wykonaniu produkcyjnym (nie przetestujesz bezpiecznika ręcznie), widzi ją tylko ten
-jeden workflow, a [dokumentacja](https://docs.n8n.io/code/cookbook/builtin/get-workflow-static-data/)
+jeden workflow, a [dokumentacja](https://docs.n8n.io/build/code-in-n8n/cookbook/built-in-methods-and-variables-examples/getworkflowstaticdata)
 ostrzega, że przy częstych wykonaniach może działać niestabilnie. Jeśli to samo API woła kilka
 workflow albo ruch jest duży - wybierz Data Table.
 :::
