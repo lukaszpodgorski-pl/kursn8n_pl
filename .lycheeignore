@@ -9,3 +9,11 @@
 # mckinsey.com, co wyklucza błąd 404 na tej konkretnej podstronie. Raport
 # "The State of AI" jest cytowany jako źródło w trzech artykułach.
 https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai
+
+# Linki "Edytuj stronę" generowane przez Starlight na każdej podstronie
+# (editLink.baseUrl w astro.config.mjs + ścieżka pliku źródłowego). Powstają
+# z pliku, który właśnie przeszedł build, więc treść nie może ich zepsuć - jedyne
+# ryzyko to zmiana nazwy repo albo gałęzi, czyli jedna linijka konfiguracji.
+# Były to ~32 z ~40 żądań do github.com w każdym przebiegu; przy przejściowych
+# 504 GitHuba to one oblewały PR-y (2026-11-09).
+^https://github\.com/lukaszpodgorski-pl/kursn8n_pl/edit/main/

@@ -4,13 +4,26 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Jedna grupa na wszystko, osobno dla aktualizacji wersji i poprawek
+    # bezpieczenstwa. Powod: workflow "Audyt zaleznosci" blokuje PR, dopoki
+    # w drzewie zostaje jakakolwiek podatnosc high/critical. Przy osobnym PR na
+    # kazda paczke audyt oblewal kazdy z nich (reszta podatnosci wciaz byla),
+    # wiec zaden nie przechodzil, a zaleglosci rosly - jesien 2026: 8 PR-ow,
+    # 9 podatnosci. Jeden zbiorczy PR naprawia wszystko naraz i przechodzi.
     groups:
-      astro:
+      npm-wersje:
+        applies-to: version-updates
         patterns:
-          - 'astro'
-          - '@astrojs/*'
-          - 'starlight*'
+          - '*'
+      npm-bezpieczenstwo:
+        applies-to: security-updates
+        patterns:
+          - '*'
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - '*'

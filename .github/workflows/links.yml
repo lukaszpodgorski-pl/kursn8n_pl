@@ -35,8 +35,14 @@ jobs:
           # z `index.html` (mimo `trailingSlash: 'never'` w adresach źródłowych),
           # więc rozwiązują się poprawnie razem z zewnętrznymi.
           # Kod 999 to celowa blokada LinkedIn wobec botów - link jest sprawny.
+          # --max-retries/--retry-wait-time: GitHub i inne duże serwisy potrafią na
+          # kilkadziesiąt sekund odpowiadać 502/504. Domyślne 3 ponowienia co 1 s tego
+          # nie przeczekają - 2026-11-09 o 06:03 UTC trzy PR-y padły na 504 z github.com,
+          # a ponowione bez żadnej zmiany przeszły. Odstęp rośnie wykładniczo od 5 s.
           args: >-
             --no-progress
+            --max-retries 4
+            --retry-wait-time 5
             --accept 200,206,403,429,999
             --root-dir "${{ github.workspace }}/dist"
             'dist/**/*.html'
