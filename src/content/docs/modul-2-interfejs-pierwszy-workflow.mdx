@@ -22,6 +22,7 @@ teaches:
   - Najprzydatniejsze skróty klawiszowe edytora n8n na Windows, Linux i macOS
   - Data Tables - wbudowane tabele danych n8n, ich limity i wybór między Data Tables a Google Sheets
   - Organizacja pracy - projekty, foldery, tagi, grupy node'ów i sticky notes
+  - "Ćwiczenie praktyczne: pobranie pogody z wttr.in node'em HTTP Request i złożenie wyniku w Edit Fields"
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -61,7 +62,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 2 · Poziom: początkujący"
-  readingTime="~25 min"
+  readingTime="~30 min"
   note="Z praktyką - budujesz pierwszy workflow"
 />
 
@@ -466,6 +467,91 @@ WooCommerce" zamiast "HTTP Request1"). Czytelne nazwy node'ów sprawiają, że w
 odwołujące się do nich (`{{ $('Pobierz zamówienia').item.json... }}`) same się dokumentują.
 :::
 
+## Ćwiczenie: pogoda z wttr.in
+
+Czas na pierwsze ćwiczenie, które robisz sam, od pustej kanwy. To "Hello World" automatyzacji:
+trzy node'y, zero credentials, a na końcu zdanie zbudowane z danych z prawdziwego API.
+
+- **Cel:** zbudować workflow **Manual Trigger → HTTP Request → Edit Fields**, który pobiera
+  bieżącą pogodę dla wybranego miasta z darmowego serwisu [wttr.in](https://wttr.in/) i składa
+  z niej jedno zdanie.
+- **Czas:** 15-20 minut.
+- **Potrzebujesz:** dowolnej instancji n8n (Cloud albo self-hosted z
+  [Modułu 1](/modul-1-instalacja-hosting)). Konto ani klucz API do wttr.in nie są potrzebne.
+
+<Flow
+  title="cwiczenie-pogoda"
+  alt="Schemat ćwiczenia: Manual Trigger uruchamia HTTP Request, który pobiera pogodę z wttr.in, a Edit Fields składa z odpowiedzi jedno zdanie"
+  caption="Trzy node'y: ręczny start, pobranie JSON-a z wttr.in i złożenie zdania z wybranych pól."
+  spec={`
+    Manual Trigger (start ręczny):hand-pointer @green -> HTTP Request (GET wttr.in):globe @blue
+    HTTP Request -> Edit Fields (zdanie o pogodzie):pen-to-square @amber
+  `}
+/>
+
+### Kroki
+
+1. **Nowy workflow i trigger.** Utwórz nowy workflow, kliknij **Add first step** i wybierz
+   _Trigger manually_. Na kanwie pojawi się Manual Trigger (podpisany "When clicking
+   'Execute workflow'").
+2. **HTTP Request.** Dodaj za triggerem node **HTTP Request**: metoda `GET`, URL
+   `https://wttr.in/Warszawa?format=j1&lang=pl`. Miasto wpisz bez polskich znaków (`Krakow`,
+   `Gdansk`, `Jelenia+Gora`) - spację zastępujesz plusem.
+3. **Wymuś format JSON.** W tym samym node'zie kliknij **Add Option → Response** i ustaw
+   _Response Format_ na **JSON**. To ważne: wttr.in odsyła JSON z nagłówkiem
+   `Content-Type: text/plain`, więc domyślne _Autodetect_ potraktuje odpowiedź jak zwykły
+   tekst i dostaniesz jeden długi napis zamiast drzewa pól (nagłówek sprawdziłem `curl`-em
+   w listopadzie 2026, opcje _Response Format_ opisuje
+   [dokumentacja HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/)).
+4. **Uruchom tylko ten krok.** Kliknij **Execute step** w HTTP Request i obejrzyj Output
+   w widoku _Schema_. Znajdziesz tam m.in. `current_condition` (pomiar teraz), `nearest_area`
+   (najbliższy punkt pomiarowy) i `weather` (prognoza na trzy dni). Przypnij ten wynik
+   klawiszem `P` - kolejne testy nie będą już odpytywać serwisu.
+5. **Edit Fields.** Dodaj node **Edit Fields (Set)** w trybie _Manual Mapping_ i utwórz dwa
+   pola:
+   - `temperatura` typu _Number_ z wartością `{{ $json.current_condition[0].temp_C }}`,
+   - `podsumowanie` typu _String_ z wartością
+     `{{ $json.nearest_area[0].areaName[0].value }}: {{ $json.current_condition[0].temp_C }}°C, odczuwalna {{ $json.current_condition[0].FeelsLikeC }}°C, {{ $json.current_condition[0].lang_pl[0].value }}`.
+
+   Pole wartości musi być w trybie wyrażeń (_Expression_) - wpisz `=` w pustym polu albo
+   po prostu przeciągnij pole z panelu Input, a n8n sam przełączy tryb i zbuduje wyrażenie.
+6. **Uruchom całość.** Kliknij **Execute workflow** (`Ctrl + Enter`). Ten workflow zostaje
+   testowy - z Manual Triggerem nie ma czego publikować.
+
+<details>
+<summary>Sprawdź, czy działa</summary>
+
+- Wszystkie trzy node'y mają zielony znacznik, a na połączeniach widać "1 item".
+- Output node'a Edit Fields zawiera dwa pola: `temperatura` jako liczbę (bez cudzysłowu
+  w widoku JSON) i `podsumowanie` w stylu `Powisle: 6°C, odczuwalna 4°C, Słonecznie`.
+- Gdy podmienisz w URL-u miasto i uruchomisz workflow ponownie (po zdjęciu pinu), zmienia się
+  tylko treść pól - reszty workflow nie ruszasz.
+- Nazwa w `nearest_area` to najbliższy punkt pomiarowy, nie zawsze nazwa miasta: dla
+  Warszawy wttr.in zwraca dzielnicę (Powisle). To nie błąd, tylko kształt danych - dokładnie
+  ten rodzaj niespodzianki, który wyłapujesz w panelu Output.
+
+</details>
+
+### Wariant dla zaawansowanych
+
+Dodaj za Edit Fields node **IF** z warunkiem _Number → is greater than_: `{{ $json.temperatura }}`
+większe od `15`. Na wyjście _true_ podepnij Edit Fields z polem `rada` = "Kurtka zostaje w domu",
+na _false_ - "Weź kurtkę". Logikę IF omawiam szerzej w
+[Module 3](/modul-3-praca-z-danymi#logika-if-switch-filter). Drugi krok: zamień Manual Trigger
+na Schedule Trigger (codziennie o 7:00) i opublikuj workflow przyciskiem **Publish** - od teraz
+prognoza liczy się sama, a wynik zobaczysz w zakładce Executions.
+
+### Typowe pułapki
+
+| Objaw | Przyczyna |
+| --- | --- |
+| Output HTTP Request to jedno pole `data` z długim tekstem | _Response Format_ zostało na _Autodetect_, a wttr.in wysyła `text/plain` - ustaw **JSON** (krok 3) |
+| W polu wyrażenia widać `[undefined]` albo czerwony komunikat | Literówka w ścieżce albo brak `[0]` - `current_condition`, `areaName` i `lang_pl` to tablice |
+| Pogoda jest dla zupełnie innego miejsca, np. Szkocji | Polskie znaki w nazwie miasta - wpisz `Gdansk` zamiast `Gdańsk` |
+| Opis pogody jest po angielsku | wttr.in nie ma tłumaczenia dla każdego opisu - przy `lang=pl` czasem zostaje angielski tekst, to normalne |
+| IF przepuszcza wszystko na złą gałąź | Porównujesz tekst `"6"` zamiast liczby - pole `temperatura` musi mieć typ _Number_ |
+| Wynik się nie zmienia po zmianie miasta | Wynik HTTP Request jest przypięty - zdejmij pin (**Unpin data**) |
+
 ## Sprawdź się
 
 Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na
@@ -494,6 +580,9 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 6. Masz zaznaczony node, który pobiera dane z płatnego API. Jakimi trzema klawiszami
    przypniesz jego dane, zmienisz mu nazwę na opisową i dodasz obok notatkę z wyjaśnieniem?
    Jeśli nie masz pewności - [Skróty klawiszowe](#skróty-klawiszowe).
+7. API zwraca poprawny JSON, a n8n pokazuje Ci jeden długi napis zamiast drzewa pól. Na który
+   nagłówek odpowiedzi spojrzysz i które ustawienie node'a HTTP Request zmienisz? Jeśli nie
+   masz pewności - [Ćwiczenie: pogoda z wttr.in](#ćwiczenie-pogoda-z-wttrin).
 
 <details>
 <summary>Mini-zadanie: zamień Schedule Trigger na Webhook</summary>
@@ -521,4 +610,5 @@ Bazujesz na workflow z tego modułu (Schedule Trigger → HTTP Request → Edit 
   - Kilka skrótów robi największą różnicę: `N` (panel node'ów), `Ctrl/Cmd + Enter` (uruchom), `Ctrl/Cmd + K` (Command Bar), `P` (pin), `Shift + S` (notatka).
   - Data Tables to wbudowana "pamięć" workflow - do stanu, deduplikacji i cache'u; dane dla ludzi spoza n8n trzymaj w Google Sheets, duże i relacyjne - w prawdziwej bazie.
   - Porządek od początku: projekty i foldery, opisowe nazwy, tagi, sticky notes i grupy node'ów.
+  - Gdy API odsyła JSON jako `text/plain`, ustaw w HTTP Request _Response Format_ na **JSON** - ćwiczenie z wttr.in pokazuje to w praktyce.
 </Takeaways>
