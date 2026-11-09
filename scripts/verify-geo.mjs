@@ -33,6 +33,7 @@ const EXTRA_ARTICLE_SLUGS = new Set([
 	'cos-nie-dziala',
 	'slownik-pojec',
 	'ile-kosztuje-n8n',
+	'czeste-pytania-n8n',
 ]);
 
 function isArticleSlug(slug) {
@@ -408,22 +409,33 @@ check('liczba stron z blokiem FAQPage odpowiada liczbie plików z polem faq: w f
 	return `${withFaq.length}/${sourceFaqCount}`;
 });
 
-// Uwaga: `faqHidden` (src/content.config.ts) to mechanizm ukrywania
-// wygenerowanej sekcji "Częste pytania" przy zachowaniu bloku FAQPage
-// (przydatny, gdy artykuł sam w sobie jest FAQ). Żaden plik w kursn8n
-// obecnie z niego nie korzysta (0 wystąpień - sprawdzone), więc test
-// poniżej nie potrzebuje żadnego wyjątku dla strony samej będącej FAQ.
-// Gdyby kiedyś jakiś artykuł kursu ustawił `faqHidden: true`, ta asercja
-// słusznie zacznie failować - trzeba będzie dopisać analogiczny wyjątek.
+// Sekcję FAQ rozpoznajemy po znaczniku komponentu `Faq.astro`
+// (`<h2 id="czeste-pytania">`), a nie po samej frazie "Częste pytania" -
+// ta fraza stoi też w etykiecie sidebara ("Częste pytania o n8n"), więc
+// występuje na każdej stronie serwisu.
+const FAQ_SECTION_MARKER = 'id="czeste-pytania"';
+
+// `faqHidden` (src/content.config.ts) ukrywa wygenerowaną sekcję "Częste
+// pytania" przy zachowaniu bloku FAQPage - dla strony, która sama w sobie jest
+// FAQ i ma pytania jako nagłówki w treści (dziś: `czeste-pytania-n8n`). Takie
+// strony są tu wyjątkiem; to, że ich pytania są widoczne w HTML, pilnuje
+// osobny test ("każde pytanie z faq: w źródle występuje w widocznej treści").
+const faqHiddenUrls = new Set(
+	sourceFiles
+		.filter((f) => /^faqHidden:\s*true\s*$/m.test(frontmatterOf(readFileSync(f, 'utf8'))))
+		.map((f) => `/${slugOfSourceRel(relative(SRC_DOCS, f).split(sep).join('/'))}`),
+);
 check('FAQPage zawsze towarzyszy widocznej sekcji "Częste pytania"', () => {
 	const withFaq = pageData.filter((p) => typesIn(p.html).has('FAQPage'));
-	const bad = withFaq.filter((p) => !p.html.includes('Częste pytania'));
+	const bad = withFaq.filter(
+		(p) => !faqHiddenUrls.has(p.url) && !p.html.includes(FAQ_SECTION_MARKER),
+	);
 	assert(bad.length === 0, `JSON-LD bez widocznej treści: ${bad.map((p) => p.url).join(', ')}`);
-	return `${withFaq.length}/${withFaq.length}`;
+	return `${withFaq.length - faqHiddenUrls.size}/${withFaq.length} z sekcją, ${faqHiddenUrls.size} z faqHidden`;
 });
 check('brak sekcji FAQ na stronach bez FAQPage', () => {
 	const bad = pageData.filter(
-		(p) => !typesIn(p.html).has('FAQPage') && p.html.includes('Częste pytania')
+		(p) => !typesIn(p.html).has('FAQPage') && p.html.includes(FAQ_SECTION_MARKER)
 	);
 	assert(bad.length === 0, `pusta sekcja FAQ: ${bad.map((p) => p.url).join(', ')}`);
 	return 'brak pustych sekcji';
