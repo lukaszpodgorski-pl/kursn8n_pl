@@ -19,6 +19,9 @@ teaches:
   - Budowa pierwszego workflow - Schedule Trigger, HTTP Request, Edit Fields (Set)
   - Różnice między triggerami Manual, Schedule i Webhook
   - Uruchamianie, debugowanie i pinning danych w edytorze
+  - Najprzydatniejsze skróty klawiszowe edytora n8n na Windows, Linux i macOS
+  - Data Tables - wbudowane tabele danych n8n, ich limity i wybór między Data Tables a Google Sheets
+  - Organizacja pracy - projekty, foldery, tagi, grupy node'ów i sticky notes
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -27,6 +30,10 @@ mentions:
     sameAs: https://en.wikipedia.org/wiki/GitHub
   - name: Cron
     sameAs: https://en.wikipedia.org/wiki/Cron
+  - name: Google Sheets
+    sameAs: https://en.wikipedia.org/wiki/Google_Sheets
+  - name: CSV
+    sameAs: https://en.wikipedia.org/wiki/Comma-separated_values
 faq:
   - q: "Czy workflow zadziała sam, jeśli go nie aktywuję?"
     a: "Nie. Bez aktywacji (przełącznik Active) workflow działa wyłącznie w edytorze - uruchamiany ręcznie przyciskiem \"Execute workflow\". Triggery Schedule i Webhook reagują samodzielnie dopiero po aktywacji. Manual Trigger nigdy nie działa \"produkcyjnie\" - służy tylko do testów."
@@ -38,6 +45,10 @@ faq:
     a: "Pinning \"zamraża\" wynik node'a, więc kolejne testy nie wywołują ponownie API - oszczędzasz czas i limity, a zarazem pracujesz na tym samym, stałym zestawie danych (łatwiej porównać efekty zmian). Pamiętaj jednak, że przypięte dane działają tylko w edytorze; produkcja zawsze pobiera dane na żywo."
   - q: "Który trigger wybrać dla swojego pierwszego prawdziwego workflow?"
     a: "Jeśli zadanie ma się dziać o określonych porach (raport, synchronizacja) - Schedule Trigger. Jeśli ma reagować na zdarzenie z innego systemu (formularz, płatność) - Webhook. Do nauki i ręcznych testów zostań przy Manual Triggerze. Więcej o przepływie samych danych pokażę w Module 3: Praca z danymi."
+  - q: "Czym są Data Tables w n8n i kiedy użyć ich zamiast Google Sheets?"
+    a: "Data Tables to tabele danych wbudowane w n8n - leżą w bazie Twojej instancji, w obrębie projektu, i obsługujesz je node'em Data Table bez żadnych credentials. Sprawdzają się do stanu workflow, deduplikacji, cache'u i małych tabel konfiguracyjnych. Google Sheets wybierz, gdy dane ma oglądać lub edytować człowiek spoza n8n. Domyślny limit to 200 MiB łącznie na wszystkie tabele w instancji (stan na listopad 2026)."
+  - q: "Jakim skrótem otworzyć panel node'ów i uruchomić workflow?"
+    a: "Panel node'ów otwiera klawisz N, a cały workflow uruchamiasz kombinacją Ctrl + Enter (na macOS Cmd + Enter). Pełną listę skrótów, łącznie z Command Barem pod Ctrl/Cmd + K, znajdziesz w oficjalnej dokumentacji n8n na stronie Keyboard shortcuts."
 ---
 
 import { CardGrid } from '@astrojs/starlight/components';
@@ -50,14 +61,15 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 2 · Poziom: początkujący"
-  readingTime="~18 min"
+  readingTime="~25 min"
   note="Z praktyką - budujesz pierwszy workflow"
 />
 
 Masz już działającą instancję - czas ją oswoić. W tym module poznasz kanwę i wszystkie
 panele edytora, zbudujesz pierwszy działający przepływ, zrozumiesz różnice między
 triggerami i nauczysz się uruchamiać oraz debugować workflow tak, by widzieć, którędy płyną
-dane.
+dane. Na koniec pokażę Ci wbudowane tabele danych (Data Tables) i to, jak od pierwszego dnia
+trzymać porządek w projektach.
 
 ## Przegląd interfejsu edytora
 
@@ -71,7 +83,7 @@ odwoływać przez cały kurs, a oficjalna dokumentacja używa tych samych nazw.
     ją myszką, przybliżasz scrollem i widzisz tu połączenia między krokami.
   </ConceptCard>
   <ConceptCard icon="fa-plus" title="Panel node'ów (nodes panel)">
-    Otwiera się przyciskiem **+** w prawym górnym rogu (lub klawiszem `Tab`). Wyszukujesz w
+    Otwiera się przyciskiem **+** w prawym górnym rogu (lub klawiszem `N`). Wyszukujesz w
     nim node'y po nazwie i dodajesz je na kanwę - triggery, akcje i node'y logiki.
   </ConceptCard>
   <ConceptCard icon="fa-sliders" title="Panel node'a (parametry)">
@@ -92,6 +104,8 @@ odwoływać przez cały kurs, a oficjalna dokumentacja używa tych samych nazw.
   </ConceptCard>
 </CardGrid>
 
+{/* TODO-MEDIA: zrzut całego edytora z pustym workflow i podpisanymi strefami - kanwa, panel node'ów, toolbar, przycisk Execute workflow */}
+
 ### Toolbar nad kanwą
 
 U góry edytora znajdziesz nazwę workflow (kliknij, by ją zmienić), przełącznik **Active /
@@ -99,13 +113,41 @@ Inactive** (aktywuje workflow dla produkcyjnych uruchomień), dostęp do tagów 
 **Save**. Workflow nieaktywny działa tylko w testach z edytora; dopiero aktywacja sprawia,
 że triggery typu Schedule czy Webhook reagują samodzielnie.
 
-:::note[Skróty, które warto znać od razu]
+### Skróty klawiszowe
 
-- `Tab` - otwórz panel node'ów
-- `Ctrl/Cmd + S` - zapisz workflow
-- `Ctrl/Cmd + A` - zaznacz wszystkie node'y
-- Przeciągnij za połączenie i upuść na puste miejsce - dodasz kolejny node w łańcuchu
+Myszką zrobisz w edytorze wszystko, ale kilkanaście skrótów skraca budowanie workflow
+o połowę klikania. Poniżej te, których używam najczęściej. Na macOS `Ctrl` zamieniasz na
+`Cmd`, a `Alt` na `Option`; skróty jednoklawiszowe (`N`, `P`, `D`, `1`) działają tak samo
+na obu systemach, o ile kursor nie stoi w polu tekstowym.
 
+| Windows / Linux | macOS | Co robi |
+| --- | --- | --- |
+| `N` | `N` | Otwiera panel node'ów - szukasz node'a po nazwie i wstawiasz go `Enter` |
+| `Ctrl + K` | `Cmd + K` | Otwiera Command Bar (paletę poleceń) - akcje edytora wpisywane z klawiatury |
+| `Ctrl + S` | `Cmd + S` | Zapisuje workflow |
+| `Ctrl + Enter` | `Cmd + Enter` | Uruchamia cały workflow (to samo co **Execute workflow**) |
+| `Ctrl + Z` / `Ctrl + Shift + Z` | `Cmd + Z` / `Cmd + Shift + Z` | Cofa / ponawia ostatnią zmianę |
+| `Ctrl + Alt + N` | `Cmd + Option + N` | Tworzy nowy workflow |
+| `Ctrl + C` / `Ctrl + V` | `Cmd + C` / `Cmd + V` | Kopiuje / wkleja zaznaczone node'y |
+| `Ctrl + A` | `Cmd + A` | Zaznacza wszystkie node'y na kanwie |
+| `Spacja` + przeciągnij | `Spacja` + przeciągnij | Przesuwa kanwę |
+| `1` / `0` | `1` / `0` | Dopasowuje widok do całego workflow / resetuje powiększenie |
+| `F2` | `F2` | Zmienia nazwę zaznaczonego node'a |
+| `P` | `P` | Przypina dane zaznaczonego node'a (pinning, o nim niżej) |
+| `D` | `D` | Dezaktywuje zaznaczony node - zostaje na kanwie, ale nie wykonuje swojej pracy |
+| `Shift + S` | `Shift + S` | Dodaje sticky note (notatkę na kanwie) |
+| `Ctrl + G` | `Cmd + G` | Grupuje zaznaczone node'y (szczegóły w sekcji o organizacji pracy) |
+
+Do tego jeden skrót wewnątrz node'a: wpisanie `=` w pustym polu parametru przełącza je
+w tryb wyrażeń (expressions), czyli w pole, w którym odwołujesz się do danych z wcześniejszych
+kroków.
+
+:::note[Źródło i aktualność]
+Skróty zweryfikowałem w oficjalnej dokumentacji -
+[Keyboard shortcuts (docs.n8n.io)](https://docs.n8n.io/build/keyboard-shortcuts/) - stan na
+listopad 2026. Tam znajdziesz też pełną listę, łącznie z nawigacją strzałkami między node'ami.
+n8n rozwija edytor szybko, więc jeśli w Twojej wersji któryś skrót nie reaguje, zajrzyj
+najpierw do dokumentacji dla swojej wersji.
 :::
 
 ## Twój pierwszy workflow - krok po kroku
@@ -230,6 +272,8 @@ Każde ma status - **Success**, **Error** lub **Running** - oraz tryb: _manual_,
 dokładnymi danymi z tamtego momentu - wręcz idealne do śledzenia, dlaczego coś poszło nie
 tak. Nieudane wykonania możesz też ponowić (**Retry**).
 
+{/* TODO-MEDIA: zrzut zakładki Executions w workflow - lista z wykonaniem Success i Error, otwarte nieudane wykonanie z podświetlonym node'em błędu */}
+
 ### Webhook: tryb testowy vs produkcyjny
 
 Webhook ma **dwa URL-e**. **Test URL** działa po kliknięciu **Listen for test event** - n8n
@@ -245,24 +289,151 @@ workflow jest aktywny. Do odsyłania własnej odpowiedzi na żądanie służy os
 **Respond to Webhook**.
 :::
 
+## Data Tables - wbudowane tabele danych
+
+Prędzej czy później workflow musi coś _zapamiętać_ między uruchomieniami: które zamówienia
+już obsłużył, jaki był ostatni kurs waluty, którym klientom wysłał przypomnienie. Kiedyś
+oznaczało to podpięcie zewnętrznego arkusza albo bazy. Dziś n8n ma do tego własne
+**Data Tables** - proste tabele (wiersze i kolumny) przechowywane w bazie Twojej instancji,
+bez żadnych credentials i bez zewnętrznego konta.
+
+Tabele żyją w obrębie **projektu**: znajdziesz je w zakładce **Data tables** obok listy
+workflow. Tworzysz je od zera (kolumny definiujesz ręcznie) albo importem pliku CSV, który
+sam ustawia strukturę kolumn. W tym samym widoku edytujesz wiersze jak w arkuszu, zmieniasz
+kolumny i pobierasz całą tabelę jako CSV.
+
+{/* TODO-MEDIA: zrzut zakładki Data tables w projekcie - lista tabel i otwarta tabela z kilkoma wierszami, widoczny przycisk tworzenia tabeli */}
+
+### Node Data Table - operacje
+
+W workflow z tabelami pracujesz node'em **Data Table**. Najważniejsze operacje na wierszach:
+
+- **Insert** - dopisuje nowe wiersze.
+- **Get** - pobiera wiersze pasujące do filtrów.
+- **Update** i **Delete** - zmieniają lub usuwają wiersze pasujące do filtrów.
+- **Upsert** - aktualizuje wiersz, jeśli istnieje, a w przeciwnym razie go tworzy.
+- **If Row Exists** / **If Row Does Not Exist** - przepuszczają dalej tylko te itemy, które
+  już są w tabeli (albo których jeszcze nie ma). To gotowy klocek do deduplikacji.
+
+Node ma też operacje na samych tabelach (utworzenie, lista, zmiana, usunięcie), przydatne,
+gdy tabele mają powstawać automatycznie. Pełny opis:
+[Data Table node (docs.n8n.io)](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.datatable/).
+
+<Flow
+  title="deduplikacja-z-data-table"
+  alt="Schemat przepływu: Schedule Trigger, HTTP Request pobiera nowe wpisy, Data Table sprawdza, czy wpisu jeszcze nie ma, Slack wysyła powiadomienie, Data Table zapisuje wpis jako obsłużony"
+  caption="Typowy wzorzec: powiadom tylko o nowych rzeczach, a obsłużone zapisz w tabeli, żeby przy następnym uruchomieniu ich nie powtarzać."
+  spec={`
+    Schedule Trigger (co godzinę):clock @green -> HTTP Request (pobierz wpisy):globe @blue
+    HTTP Request -> Data Table (If Row Does Not Exist):table @amber
+    Data Table -> Slack (powiadomienie):fab/slack @sky
+    Slack -> Zapis (Data Table Insert):table @amber
+  `}
+/>
+
+### Dostępność i limity
+
+- **Od kiedy:** Data Tables weszły w n8n 1.113 (wrzesień 2025) jako beta dla wszystkich
+  planów - n8n Cloud i self-hosted
+  ([ogłoszenie na forum n8n](https://community.n8n.io/t/data-tables-are-here/192256)).
+  Jeśli nie widzisz zakładki Data tables, najpierw zaktualizuj instancję.
+- **Limit miejsca:** domyślnie wszystkie tabele w instancji mają **łącznie 200 MiB**
+  (stan na listopad 2026). Przy 80% n8n ostrzega, a po dobiciu do limitu zapisy z workflow
+  zaczynają kończyć się błędem. Na starcie funkcji limit wynosił 50 MB, więc w starszych
+  materiałach spotkasz tę liczbę.
+- **Self-hosted:** limit zmienisz zmienną środowiskową `N8N_DATA_TABLES_MAX_SIZE_BYTES`
+  (zmienne środowiskowe omawiałem w [Module 1](/modul-1-instalacja-hosting)). Na n8n Cloud
+  tej zmiennej nie ustawisz.
+- **Widoczność:** tabele w projekcie widzą domyślnie wszyscy członkowie projektu, a Owner
+  i Admin instancji - wszystkie tabele.
+- **Code node:** nie ma wbudowanego dostępu do tabel. Odczyt i zapis robisz node'em
+  Data Table, a wynik przekazujesz do Code node'a jako zwykłe itemy.
+
+Źródło limitów i zasad widoczności:
+[Data tables (docs.n8n.io)](https://docs.n8n.io/build/work-with-data/data-tables/).
+
+### Data Tables czy Google Sheets?
+
+| Kryterium | Data Tables | Google Sheets |
+| --- | --- | --- |
+| Gdzie leżą dane | W bazie Twojej instancji n8n | Na koncie Google |
+| Credentials | Niepotrzebne | Konto Google podpięte przez OAuth2 |
+| Kto ma dostęp | Członkowie projektu w n8n | Każdy, komu udostępnisz arkusz |
+| Ograniczenia | Wspólny limit miejsca na instancję | [Limity zapytań Google Sheets API](https://developers.google.com/workspace/sheets/api/limits) |
+| Najlepsze do | Stanu workflow, deduplikacji, cache'u, tabel konfiguracyjnych | Danych, które ogląda lub edytuje człowiek spoza n8n |
+
+Moja zasada: jeśli tabela jest "wewnętrzną pamięcią" automatyzacji i nikt poza n8n do niej
+nie zagląda - Data Tables. Jeśli to raport dla szefa albo lista, którą handlowiec poprawia
+ręcznie - Google Sheets.
+
+:::caution[Kiedy Data Tables to za mało]
+Data Tables są do lekkiego i średniego przechowywania. Gdy danych przybywa w setkach
+tysięcy wierszy, potrzebujesz relacji między tabelami, złożonych zapytań SQL albo osobnego
+backupu krytycznych danych biznesowych - postaw prawdziwą bazę (np. PostgreSQL) i łącz się
+z nią node'em bazy danych. Jeśli Twój backup to eksport workflow do JSON (jak w gotowcu
+[Backup workflow do GitHuba](/workflow-backup-n8n-github)), zawartość tabel do niego nie
+trafia - ważne tabele co jakiś czas pobieraj jako CSV.
+:::
+
 ## Organizacja pracy - dobre praktyki od początku
 
 Jeden workflow ogarniesz z pamięci. Dwadzieścia - już nie. Im wcześniej wprowadzisz
 porządek, tym mniej czasu stracisz później na szukanie "tego przepływu, który coś robił z
 fakturami".
 
+### Projekty i foldery
+
+n8n porządkuje pracę na dwóch poziomach. **Projekt** grupuje workflow, credentials i Data
+Tables oraz decyduje, kto ma do nich dostęp i z jaką rolą. Wewnątrz projektu układasz
+workflow w **folderach**, także zagnieżdżonych - jak pliki w katalogach.
+
+- **Dostępność:** projekty i role (RBAC) są na wszystkich planach n8n Cloud, a na
+  self-hosted od wersji Registered Community (darmowa rejestracja instancji kluczem
+  licencyjnym) wzwyż. Liczba projektów zależy od planu
+  ([Projects, docs.n8n.io](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects/)).
+- **Foldery** weszły w n8n 1.85 (kwiecień 2025) i według ogłoszenia wymagają Registered
+  Community Edition lub planu płatnego
+  ([ogłoszenie na forum n8n](https://community.n8n.io/t/organize-your-workspace-with-folders/95887)).
+- **Przenoszenie** workflow do innego projektu usuwa jego dotychczasowe udostępnienia -
+  po przeniesieniu sprawdź, kto ma dostęp.
+
+Mój układ na start: jeden projekt na klienta lub obszar (np. "Marketing", "Finanse"),
+a w nim foldery według procesu. Workflow testowe trzymam w osobnym folderze "_sandbox", żeby
+nie mieszały się z produkcyjnymi.
+
+{/* TODO-MEDIA: zrzut listy workflow w projekcie z zagnieżdżonymi folderami, filtrem tagów i zakładką Data tables */}
+
+### Nazewnictwo, tagi i notatki
+
 <TwoCol>
   <Panel variant="pros" title="Nazewnictwo i tagi">
     - Nadawaj workflow **opisowe nazwy** (np. "Codzienny raport sprzedaży → Slack"), nie "My workflow 3".
-    - Używaj **tagów** do grupowania po kliencie, dziale lub statusie (np. `prod`, `test`, `finanse`).
-    - Jeśli Twoja wersja n8n ma **foldery** - układaj w nich workflow tematycznie, jak pliki w katalogach.
+    - Nazywaj też **credentials** tak, by było widać konto i cel (np. "Gmail - faktury"), a nie "gmail".
+    - Używaj **tagów** do przekrojów, których nie oddadzą foldery: status (`prod`, `test`), klient, dział. Na liście workflow filtrujesz po nich przez **Filters → Tags**.
+    - Tagi są **globalne** dla całej instancji - zmiana nazwy lub usunięcie tagu dotyka wszystkich użytkowników.
   </Panel>
   <Panel variant="neutral" title="Sticky notes na kanwie">
-    - Dodawaj **sticky note** (notatki), by opisać sekcje przepływu wprost na schemacie.
+    - Dodawaj **sticky note** (notatki) skrótem `Shift + S`, by opisać sekcje przepływu wprost na schemacie.
+    - Notatki obsługują **Markdown** (nagłówki, listy, linki) i kolory - np. żółty na objaśnienia, czerwony na ostrzeżenia.
     - Wyjaśniaj _dlaczego_, a nie tylko _co_ - przyszły Ty (lub kolega) podziękuje.
     - Zaznaczaj nimi miejsca wymagające uwagi: limity API, dane testowe, kruche założenia.
   </Panel>
 </TwoCol>
+
+Szczegóły: [tagi](https://docs.n8n.io/build/manage-workflows/tag-workflows/) i
+[sticky notes](https://docs.n8n.io/build/understand-workflows/workflow-components/add-notes-and-documentation/)
+w dokumentacji n8n.
+
+### Grupy node'ów na kanwie
+
+Gdy workflow rośnie do kilkudziesięciu node'ów, sticky notes przestają wystarczać. Wtedy
+zaznacz powiązane node'y i naciśnij `Ctrl + G` (`Cmd + G` na macOS) - powstanie nazwana
+**grupa** (canvas group), którą możesz zwinąć do jednego kafelka i opisać krótkim tekstem.
+Grupa zapisuje się razem z workflow. Do grupy nie wejdzie trigger, a minimum to dwa
+elementy. Funkcja jest dostępna na wszystkich instancjach od n8n 2.31
+([Canvas groups, docs.n8n.io](https://docs.n8n.io/build/understand-workflows/workflow-components/canvas-groups/)).
+
+{/* TODO-MEDIA: zrzut kanwy z dwiema grupami node'ów (jedna zwinięta, jedna rozwinięta) i sticky note z Markdownem */}
 
 :::tip[Higiena workflow]
 Nazywaj też **same node'y**, gdy ich rola nie jest oczywista (np. "Pobierz zamówienia z
@@ -290,6 +461,14 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 4. Wczorajsze, produkcyjne uruchomienie zakończyło się błędem, a Ciebie przy tym nie było.
    Jak teraz sprawdzisz, na którym dokładnie kroku i z jakimi danymi coś poszło nie tak?
    Jeśli nie masz pewności - [Lista i szczegóły executions](#lista-i-szczegóły-executions).
+5. Twój workflow co godzinę pobiera nowe zgłoszenia z API i ma powiadamiać na Slacku tylko
+   o tych, których jeszcze nie widział. Gdzie zapiszesz "już obsłużone" i jaką operacją
+   node'a odfiltrujesz powtórki? A gdyby tę listę miał na bieżąco przeglądać i poprawiać
+   handlowiec - co byś zmienił? Jeśli nie masz pewności -
+   [Data Tables - wbudowane tabele danych](#data-tables---wbudowane-tabele-danych).
+6. Masz zaznaczony node, który pobiera dane z płatnego API. Jakimi trzema klawiszami
+   przypniesz jego dane, zmienisz mu nazwę na opisową i dodasz obok notatkę z wyjaśnieniem?
+   Jeśli nie masz pewności - [Skróty klawiszowe](#skróty-klawiszowe).
 
 <details>
 <summary>Mini-zadanie: zamień Schedule Trigger na Webhook</summary>
@@ -307,11 +486,13 @@ Bazujesz na workflow z tego modułu (Schedule Trigger → HTTP Request → Edit 
 </details>
 
 <Takeaways>
-  - Edytor n8n to: kanwa, panel node'ów (Tab / +), panel parametrów i ustawień node'a, lista workflow i executions.
+  - Edytor n8n to: kanwa, panel node'ów (N / +), panel parametrów i ustawień node'a, lista workflow i executions.
   - Każdy workflow startuje od triggera; uniwersalny wzorzec to "kiedy → skąd → co z tym zrobić".
   - Manual = testy, Schedule = harmonogram/cron, Webhook = reakcja na zdarzenie z zewnątrz.
   - "Execute workflow" uruchamia całość, "Execute step" tylko jeden node - szybsze poprawki.
   - Pinning danych przyspiesza testy i oszczędza limity API, ale działa tylko w edytorze, nie na produkcji.
   - Webhook ma osobny Test URL i Production URL; produkcyjny wymaga aktywnego workflow.
-  - Porządek od początku: opisowe nazwy, tagi, foldery i sticky notes.
+  - Kilka skrótów robi największą różnicę: `N` (panel node'ów), `Ctrl/Cmd + Enter` (uruchom), `Ctrl/Cmd + K` (Command Bar), `P` (pin), `Shift + S` (notatka).
+  - Data Tables to wbudowana "pamięć" workflow - do stanu, deduplikacji i cache'u; dane dla ludzi spoza n8n trzymaj w Google Sheets, duże i relacyjne - w prawdziwej bazie.
+  - Porządek od początku: projekty i foldery, opisowe nazwy, tagi, sticky notes i grupy node'ów.
 </Takeaways>
