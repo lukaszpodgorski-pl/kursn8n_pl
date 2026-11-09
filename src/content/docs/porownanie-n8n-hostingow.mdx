@@ -57,7 +57,7 @@ faq:
   - q: "Czy n8n można hostować na Raspberry Pi do produkcji?"
     a: "Tak, do automatyzacji osobistych i domowych Raspberry Pi 5 (najlepiej 8 GB RAM i dysk SSD zamiast karty microSD) spokojnie udźwignie n8n w Dockerze. Do zastosowań firmowych z SLA i wieloma równoległymi wykonaniami lepiej sprawdzi się VPS - RPi nie daje gwarancji dostępności, a karta SD bywa zawodna."
   - q: "Jaki jest najtańszy hosting n8n zgodny z RODO?"
-    a: "Najtaniej i z danymi w UE: self-hosting na własnym sprzęcie (Raspberry Pi, mini PC) albo polski VPS (Mikrus od ~75-197 zł/rok, cyber_Folks z DC w Polsce). Hetzner (DE/FI) ma najlepszy stosunek ceny do mocy w UE. Dla RODO kluczowe jest, gdzie fizycznie leżą dane (UE/EOG) oraz umowa powierzenia (DPA) z dostawcą."
+    a: "Najtaniej i z danymi w UE: self-hosting na własnym sprzęcie (Raspberry Pi, mini PC) albo polski VPS (Mikrus od ~75-197 zł/rok, cyber_Folks z DC w Polsce). Hetzner (DE/FI) po podwyżkach z 2026 roku nie jest już oczywistym liderem ceny, a jego najtańsze plany bywają niedostępne. Dla RODO kluczowe jest, gdzie fizycznie leżą dane (UE/EOG) oraz umowa powierzenia (DPA) z dostawcą."
   - q: "Hosting własny (VPS / Raspberry Pi) czy PaaS (np. Railway)?"
     a: 'PaaS (Railway) daje najszybsze wdrożenie "na klik" i zero administracji, ale płacisz więcej za tę samą moc, a dane są poza UE (USA). VPS lub własny sprzęt to niższy koszt długofalowy i pełna kontrola nad danymi, kosztem samodzielnej konfiguracji (Docker, HTTPS, backupy). Na naukę i prototyp - PaaS; na stałe, świadome wdrożenie - VPS/self-host.'
   - q: "Czy do n8n wystarczy zwykły hosting WWW (shared)?"
@@ -71,7 +71,7 @@ import Panel from '../../components/Panel.astro';
 import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
-  tag="Materiał dodatkowy · Wersja 1.0 · maj 2026"
+  tag="Materiał dodatkowy · Wersja 1.1 · listopad 2026"
   readingTime="~45 min"
   note="7 środowisk hostingowych · katalog 25 testów własnych"
 />
@@ -353,7 +353,7 @@ i pracy.
 
 ## Raspberry Pi 5
 
-**Pełna kontrola · Idealne RODO · Wymaga umiejętności · ~650 zł zakupu · ~5 zł / mc
+**Pełna kontrola · Idealne RODO · Wymaga umiejętności · ~1 500 zł zakupu · ~4-9 zł / mc
 prądu**
 
 Mały komputer ARM64 (Cortex-A76, 2.4 GHz, 2/4/8/16 GB RAM), który stoi u ciebie w domu i
@@ -361,10 +361,10 @@ hostuje n8n 24/7.
 
 | Metryka | Wartość |
 | --- | --- |
-| Koszt zakupu | ~650-900 zł |
-| Stała miesięczna | ~5-10 zł (prąd) |
+| Koszt zakupu | ~1 500-1 700 zł |
+| Stała miesięczna | ~4-9 zł (prąd) |
 | Lokalizacja | U Ciebie |
-| TCO 3 lata | ~1000-1500 zł |
+| TCO 3 lata | ~1 700-2 000 zł |
 
 ### Czego potrzebujesz fizycznie
 
@@ -419,19 +419,33 @@ miejsce, w którym chcesz robić przeprowadzkę bazy - szczegóły w
   Migracja na SSD/NVMe to największy wzrost stabilności.
 - **Brak aktywnego chłodzenia** = spowolnienia i mikro-zawieszenia.
 - **Słaby zasilacz** → undervoltage warningi. Sprawdź `vcgencmd get_throttled`.
-- **Awaria zasilania** uszkadza SQLite. Mały UPS (PiSugar ~200 zł) eliminuje problem.
+- **Awaria zasilania** uszkadza SQLite. Mały UPS (np. nakładka PiSugar) eliminuje problem.
 - **N8N_ENCRYPTION_KEY na zagubionej karcie SD** = utrata wszystkich credentials.
 
 :::
 
 ### Cena szczegółowo
 
-- **Cena zakupu:** ~650-900 zł (Pi 5 8GB ~350 zł + zasilacz 80 zł + cooler 50 zł + NVMe
-  HAT 120 zł + NVMe 500 GB 200 zł + case 100 zł)
-- **Cena miesięczna:** 0 zł (tylko prąd ~5-10 W idle, 15 W pod obciążeniem ≈ 4-8 zł/mc w
-  PL)
-- **Cena utrzymania:** wymiana SD/SSD co 2-3 lata (~150 zł), opcjonalny UPS, domena (~50
-  zł/rok), B2 storage (~5 zł/mc)
+Stan na listopad 2026, ceny brutto w polskich sklepach:
+
+- **Cena zakupu:** ~1 500-1 700 zł. Składniki: Pi 5 8GB 867 zł w
+  [Botlandzie](https://botland.com.pl/moduly-i-zestawy-raspberry-pi-5/23905-raspberry-pi-5-8gb-5056561803326.html),
+  888 zł na Allegro i 929 zł w Conradzie
+  ([porównanie w Ceneo](https://www.ceneo.pl/162849793)) + oficjalny zasilacz 27 W 57,90 zł +
+  Active Cooler 23,90 zł + M.2 HAT+ 57,90 zł
+  ([Botland](https://botland.com.pl/szukaj?s=raspberry+pi+5)) + NVMe 500 GB od ~440 zł
+  ([Ceneo](https://www.ceneo.pl/;szukaj-kingston+nv3+500gb)) + obudowa. Oficjalny
+  Raspberry Pi SSD Kit 512 GB (dysk już na HAT-cie) kosztuje 659 zł.
+- **Dlaczego tak drogo?** W maju 2026 sama płytka 8 GB kosztowała ~350 zł, a cały
+  zestaw mieścił się w 650-900 zł. Od tego czasu mocno zdrożały pamięci RAM i dyski
+  NVMe - wzrostem kosztów zakupu sprzętu tłumaczy swoje podwyżki także Hetzner (niżej).
+  Wariant 4 GB kosztuje 514,90 zł (Botland, stan na listopad 2026).
+- **Cena miesięczna:** 0 zł abonamentu, tylko prąd: ~5-8 W w spoczynku, 15 W pod
+  obciążeniem, czyli ~4-9 zł/mc przy cenie ~1,10-1,30 zł/kWh brutto z dystrybucją
+  ([taryfy G11 na 2026](https://enerad.pl/ceny-pradu/)).
+- **Cena utrzymania:** wymiana nośnika co kilka lat, opcjonalny UPS, domena (kilkadziesiąt
+  zł/rok), off-site backup (Backblaze B2: pierwsze 10 GB gratis, potem $6,95 za TB/mc -
+  [cennik](https://www.backblaze.com/cloud-storage/pricing)).
 
 <TwoCol>
   <Panel variant="pros" title="Kiedy warto">
@@ -449,29 +463,31 @@ miejsce, w którym chcesz robić przeprowadzkę bazy - szczegóły w
 
 ## Mini PC (Intel N100/N150)
 
-**x86_64 bez ograniczeń · Idealne RODO · Bardziej wydajny niż RPi · ~700 zł zakupu**
+**x86_64 bez ograniczeń · Idealne RODO · Bardziej wydajny niż RPi · ~1 350-2 200 zł
+zakupu**
 
 Tania, energooszczędna alternatywa dla RPi z architekturą x86_64 - natywna
 kompatybilność z Dockerem, bez ograniczeń ARM, więcej RAM i szybsze NVMe.
 
 | Metryka | Wartość |
 | --- | --- |
-| Koszt zakupu | 600-900 zł |
-| Stała miesięczna | ~3-5 zł (prąd) |
-| TCO 3 lata | ~900-1300 zł |
+| Koszt zakupu | ~1 350-2 200 zł |
+| Stała miesięczna | ~5-9 zł (prąd) |
+| TCO 3 lata | ~1 550-2 500 zł |
 | Pobór w bezczynności | 6-10 W |
 
 ### Sprzęt
 
 Standardem rynku jest **Intel N100 lub N150** (4 rdzenie, TDP 6W). Modele: Beelink S12
 Pro, Beelink EQ14, GMKtec NucBox G3, MinisForum UN100. Typowa konfiguracja: N100/N150 +
-16 GB DDR4/DDR5 + 500 GB NVMe + dual GbE. Koszt nowego zestawu: 600-900 zł.
+16 GB DDR4/DDR5 + 500 GB NVMe + dual GbE. Koszt nowego zestawu w listopadzie 2026:
+~2 000-2 250 zł za 16 GB/512 GB i ~1 350 zł za 8 GB/256 GB (szczegóły niżej).
 
 ### Porównanie z RPi 5
 
 | Wymiar | RPi 5 8GB | Mini PC N100 16GB |
 | --- | --- | --- |
-| Cena startowa | ~650 zł | ~700 zł |
+| Cena startowa (XI 2026) | ~1 500 zł z NVMe | ~1 350 zł (8 GB), ~2 000 zł (16 GB) |
 | CPU | 4× ARM A76 @ 2.4 GHz | 4× x86 @ 3.4 GHz boost |
 | RAM | 8 GB standard (16 GB max) | 16 GB standard, do 32 GB |
 | Storage | NVMe przez HAT | NVMe natywnie |
@@ -481,7 +497,9 @@ Pro, Beelink EQ14, GMKtec NucBox G3, MinisForum UN100. Typowa konfiguracja: N100
 | Ekosystem GPIO/HAT | Bogaty | Brak |
 
 W praktyce dla n8n **mini PC z N100 jest lepszym wyborem w 90% przypadków:** więcej RAM,
-szybciej, mniej ograniczeń software'owych. RPi wygrywa tylko ekosystemem GPIO i gdy
+szybciej, mniej ograniczeń software'owych. Po podwyżkach z 2026 roku argument cenowy też
+przeszedł na stronę mini PC: kompletny zestaw 8 GB/256 GB kosztuje mniej niż malinka 8 GB
+z dyskiem NVMe, zasilaczem i chłodzeniem. RPi wygrywa tylko ekosystemem GPIO i gdy
 szukasz fizycznie najmniejszej rzeczy.
 
 ### Instalacja n8n
@@ -512,9 +530,19 @@ innych usług (Home Assistant, Pi-hole, NextCloud, Vaultwarden) na tej samej mas
 
 ### Cena szczegółowo
 
-- **Cena zakupu:** 600-900 zł komplet (np. Beelink S12 Pro 16GB/500GB ~700 zł)
-- **Cena miesięczna:** 0 zł, prąd 3-5 zł/mc
-- **Cena utrzymania:** opcjonalny UPS, opcjonalny B2/S3 storage, domena (~50 zł/rok)
+Stan na listopad 2026, ceny brutto w polskich sklepach:
+
+- **Cena zakupu:** ~1 350-2 250 zł za komplet (wersje bez Windowsa). Przykłady
+  z [x-kom](https://www.x-kom.pl/szukaj?q=mini%20pc%20n150): Acer Aspire Revo N150
+  8 GB/256 GB 1 349 zł, Beelink Mini S13 N150 16 GB/512 GB 1 999 zł (chwilowo niedostępny),
+  ASUS NUC 14 Essential N150 16 GB/512 GB 2 199 zł, Acer Aspire Revo N150 16 GB/512 GB
+  2 249 zł. W [Morele](https://www.morele.net/wyszukiwarka/?q=beelink+n150) ASUS NUC 14
+  Essential N150 8 GB/512 GB kosztuje 1 999 zł. W maju 2026 podobny Beelink 16 GB/500 GB
+  kosztował ~700 zł - mini PC zdrożały w podobnej skali co malinki.
+- **Cena miesięczna:** 0 zł abonamentu, prąd ~5-9 zł/mc (6-10 W w spoczynku, ~1,10-1,30
+  zł/kWh)
+- **Cena utrzymania:** opcjonalny UPS, opcjonalny B2/S3 storage, domena (kilkadziesiąt
+  zł/rok)
 
 ## Mikrus (mikr.us)
 
@@ -528,8 +556,12 @@ n8n z instalacją jednym poleceniem.
 | Plan | RAM | Dysk SSD | Cena roczna brutto | Cena miesięczna (pro rata) |
 | --- | --- | --- | --- | --- |
 | Mikrus 2.1 | 1 GB | 10 GB | 75 zł | ~6,25 zł |
-| Mikrus 3.0 | 2 GB | 25 GB | 130 zł | ~10,80 zł |
-| Mikrus 3.5 | 4 GB | 40 GB | 197 zł | ~16,40 zł |
+| Mikrus 3.0 | 2 GB | 25 GB | 130 zł | ~10,83 zł |
+| Mikrus 3.5 | 4 GB | 40 GB | 197 zł | ~16,41 zł |
+
+Stan na listopad 2026, [cennik Mikrusa](https://mikr.us/) - ceny bez zmian od maja.
+W ofercie są też Mikrus 4.1 (8 GB, 395 zł/rok) i 4.2 (16 GB, 790 zł/rok), ale w chwili
+sprawdzania oba były wyprzedane.
 
 W każdym pakiecie: darmowa subdomena z automatycznym SSL, dostęp root, instalacja n8n
 jednym poleceniem (`n8n_install`), automatyczne codzienne kopie zapasowe scenariuszy,
@@ -613,7 +645,9 @@ Cztery plany VPS Root z gwarantowanymi zasobami (AMD Epyc, NVMe, KVM):
 W każdym: szybkie NVMe, AMD Epyc, KVM, rozszerzony antyDDoS, backup do 28 dni wstecz,
 transfer bez limitu. **Ceny promocyjne obowiązują tylko w pierwszym okresie
 rozliczeniowym.** Aktywacja serwera ~5 min od zaksięgowania wpłaty. AlmaLinux 10 + n8n
-preinstalowane.
+preinstalowane. Stan na listopad 2026,
+[cennik VPS z n8n](https://cyberfolks.pl/serwery-vps-z-n8n/) - ceny bez zmian od maja
+(brutto z 23% VAT: np. RUN 84,87 zł, SPRINT 134,07 zł miesięcznie po promocji).
 
 ### Lokalizacja i RODO
 
@@ -662,7 +696,8 @@ własny dump n8n + Postgres + tar `.n8n` raz na dobę do zewnętrznego storage (
 - **Cena zakupu:** 0 zł
 - **Cena miesięczna (promo / regularna):** od ~25/34 zł netto (START) do ~90/179 zł
   netto (JUMP)
-- **TCO rocznie:** 300-1300 zł netto zależnie od planu i okresu
+- **TCO rocznie:** ~300-2 150 zł netto zależnie od planu i okresu (START w promocji to
+  ~300 zł, RUN po promocji ~830 zł, SPRINT ~1 310 zł, JUMP ~2 150 zł)
 
 <TwoCol>
   <Panel variant="pros" title="Kiedy warto">
@@ -672,7 +707,7 @@ własny dump n8n + Postgres + tar `.n8n` raz na dobę do zewnętrznego storage (
     - RODO i dane fizycznie w Polsce mają dla Ciebie znaczenie
   </Panel>
   <Panel variant="cons" title="Kiedy nie">
-    - Najniższa cena jest priorytetem - Hetzner CX22/CPX11 daje porównywalne zasoby taniej (ale bez polskiego DC i wsparcia po polsku)
+    - Najniższa cena jest priorytetem - Mikrus 3.5 albo Hetzner CX23 (o ile akurat jest dostępny) dają 4 GB RAM taniej (ale bez polskiego DC i wsparcia 24/7 po polsku)
     - Chcesz pełnej kontroli od bare-OS
   </Panel>
 </TwoCol>
@@ -692,14 +727,18 @@ Cztery plany VPS KVM z n8n preinstalowanym:
 | Plan | vCPU | RAM | NVMe | Transfer | Promo/mc | Regularna/mc |
 | --- | --- | --- | --- | --- | --- | --- |
 | KVM 1 | 1 | 4 GB | 50 GB | 4 TB | $6,49 | $11,99 |
-| **KVM 2** (najczęściej wybierany) | 2 | 8 GB | 100 GB | 8 TB | $8,99 | $14,99 |
+| **KVM 2** (najczęściej wybierany) | 2 | 8 GB | 100 GB | 8 TB | $8,79 | $14,99 |
 | KVM 4 | 4 | 16 GB | 200 GB | 16 TB | $12,99 | $28,99 |
 | KVM 8 | 8 | 32 GB | 400 GB | 32 TB | $25,99 | $49,99 |
 
-Ceny netto, USD. Promocje opierają się na płatności z góry za **24+ miesięcy**. W każdym
-planie: nielimitowane scenariusze, unlimited równoczesne wykonania, nody
-społecznościowe, szablon trybu kolejkowego, **asystent AI Kodee (MCP)**, darmowa domena
-na rok.
+Ceny netto, USD, stan na listopad 2026 -
+[strona oferty n8n](https://www.hostinger.com/self-hosted-n8n). Promocje opierają się na
+płatności z góry za **24 miesiące** (np. KVM 2: $210,96 jednorazowo), po tym okresie plan
+odnawia się po cenie regularnej. Od maja zmieniła się tylko cena promocyjna KVM 2
+($8,99 → $8,79). W każdym planie: nielimitowane scenariusze, nielimitowane równoczesne
+wykonania, nody społecznościowe, szablon trybu kolejkowego (jako dodatek), **asystent AI
+do zarządzania VPS** (Kodee - na stronie oferty n8n opisany dziś jako Hostinger Agent),
+darmowa domena na rok.
 
 ### Instalacja
 
@@ -750,7 +789,7 @@ unijna firma, DPA i SCC dostępne na żądanie.
 
 - **Cena zakupu:** 0 zł
 - **Cena miesięczna (promo / regularna):** $6,49/$11,99 (KVM 1) do $25,99/$49,99 (KVM 8)
-- **TCO rocznie:** ~$78-311 promo, ~$144-600 po promo (~310-2400 zł)
+- **TCO rocznie:** ~$78-312 promo (~305-1 225 zł), ~$144-600 po promo (~565-2 360 zł)
 
 <TwoCol>
   <Panel variant="pros" title="Kiedy warto">
@@ -761,36 +800,62 @@ unijna firma, DPA i SCC dostępne na żądanie.
   </Panel>
   <Panel variant="cons" title="Kiedy nie">
     - Firmy z PL preferujące polskiego dostawcę
-    - Budżet skupiony na stabilnych cenach (Hetzner/Mikrus tańsze)
+    - Budżet skupiony na stabilnych cenach (Mikrus ma jedną cenę bez promocji, Hetzner nie wymaga długiej umowy)
     - Nie chcesz lockowania się na 2-letnie umowy
   </Panel>
 </TwoCol>
 
 ## Hetzner Cloud - VPS bez nakładek
 
-**Najlepszy €/moc w UE · DC w DE/FI · SLA 99,9% + C5 · Wymaga umiejętności**
+**DC w DE/FI · SLA 99,9% + C5 · Wymaga umiejętności · Mocne podwyżki w 2026**
 
-Niemiecki dostawca, lider rynku europejskiego pod kątem stosunku ceny do mocy. Bez
-preinstalowanego n8n - stawiasz Dockerem sam. Wybór dla osób, którym zależy na kontroli
-i optymalnej cenie.
+Niemiecki dostawca, przez lata lider rynku europejskiego pod kątem stosunku ceny do mocy.
+Bez preinstalowanego n8n - stawiasz Dockerem sam. Wybór dla osób, którym zależy na
+kontroli, API i przewidywalnej infrastrukturze. Po dwóch rundach podwyżek w 2026 roku
+przestał być automatycznie najtańszą opcją - patrz ramka niżej.
 
 ### Co dostajesz
 
-Cztery linie produktowe Cloud: **CX** (shared Intel), **CPX** (shared AMD), **CAX**
-(ARM Ampere), **CCX** (dedykowane vCPU). Aktualny cennik na maj 2026:
+Cztery linie produktowe Cloud: **CX** (shared x86, Intel/AMD) i **CAX** (ARM Ampere) -
+razem jako "Cost-Optimized", **CPX** (shared AMD, "Regular Performance") oraz **CCX**
+(dedykowane vCPU, "General Purpose"). Cennik na listopad 2026, lokalizacje w UE, ceny
+netto:
+[Cost-Optimized](https://www.hetzner.com/cloud/cost-optimized),
+[Regular Performance](https://www.hetzner.com/cloud/regular-performance),
+[General Purpose](https://www.hetzner.com/cloud/general-purpose).
 
-| Plan | vCPU | RAM | NVMe | Cena netto/mc |
-| --- | --- | --- | --- | --- |
-| CX23 | 2 (Intel shared) | 4 GB | 40 GB | €3,99 |
-| CX33 | 4 (Intel shared) | 8 GB | 80 GB | ~€7,00 |
-| CPX11 | 2 (AMD shared) | 2 GB | 40 GB | €5,99 |
-| CPX21 | 3 (AMD shared) | 4 GB | 80 GB | ~€9,00 |
-| CAX11 (ARM) | 2 | 4 GB | 40 GB | €4,49 |
-| CAX21 (ARM) | 4 | 8 GB | 80 GB | ~€8,00 |
-| **CCX13** | 2 (dedykowane) | 8 GB | 80 GB | €16,99 |
+| Plan | vCPU | RAM | NVMe | Cena netto/mc | Maj 2026 |
+| --- | --- | --- | --- | --- | --- |
+| CX23 | 2 (x86 shared) | 4 GB | 40 GB | €5,99 | €3,99 |
+| CX33 | 4 (x86 shared) | 8 GB | 80 GB | €8,99 | ~€7,00 |
+| CAX11 (ARM) | 2 | 4 GB | 40 GB | €6,49 | €4,49 |
+| CAX21 (ARM) | 4 | 8 GB | 80 GB | €10,99 | ~€8,00 |
+| CPX22 | 2 (AMD shared) | 4 GB | 80 GB | €19,99 | - |
+| CPX32 | 4 (AMD shared) | 8 GB | 160 GB | €35,99 | - |
+| **CCX13** | 2 (dedykowane) | 8 GB | 80 GB | €43,49 | €16,99 |
 
-Wszystkie z 20 TB transferu i 1 IPv4 w cenie. Płatne miesięcznie (max cap) lub
-godzinowo. **Brak długoterminowych zobowiązań.**
+Plany CPX11 i CPX21 z poprzedniej wersji poradnika są dziś w cenniku tylko dla lokalizacji
+w USA - w UE ich następcami są CPX02, CPX12 i CPX22. W UE wszystkie plany mają co najmniej
+20 TB transferu i IPv4 w cenie. Płatne godzinowo z miesięcznym limitem kwoty. **Brak
+długoterminowych zobowiązań.**
+
+:::caution[Hetzner w 2026: dwie podwyżki i brak najtańszych planów]
+Od 15 czerwca 2026 Hetzner podniósł ceny wszystkich serwerów chmurowych i dedykowanych
+dla nowych zamówień, tłumacząc to gwałtownym wzrostem kosztów zakupu sprzętu
+([komunikat Hetznera](https://www.hetzner.com/pressroom/standardization-and-price-adjustment-of-our-server-products/)).
+Już działające serwery zachowują starą cenę, ale zmiana rozmiaru (rescale) liczy się jak
+nowe zamówienie - po nowym cenniku.
+
+Druga sprawa jest ważniejsza niż sama cena: **plany CX i CAX są od września 2026
+niedostępne do zamówienia** ("This product is currently unavailable" na
+[stronie Cost-Optimized](https://www.hetzner.com/cloud/cost-optimized), opis sytuacji:
+[Vincent Schmalbach](https://www.vincentschmalbach.com/hetzner-cheap-cloud-unavailable-price-increases/)).
+9 listopada 2026 niezależny tracker dostępności
+([hetzner.thegoated.dev](https://hetzner.thegoated.dev/)) pokazywał CX23, CX33 i CAX11
+jako wyprzedane we wszystkich lokalizacjach UE, a CPX22 i CCX13 jako dostępne. Realnie
+najtańszy Hetzner, który dziś kupisz, to więc CPX22 za €19,99/mc - a to już wyraźnie
+drożej niż Mikrus 3.5 czy cyber_Folks RUN z tą samą ilością RAM.
+:::
 
 ### Instalacja n8n
 
@@ -824,12 +889,14 @@ europejski dostawca pod kątem RODO. **C5 (BSI) certyfikat**.
 
 ### Backupy
 
-Backupy automatyczne (cotygodniowe migawki) jako opcja płatna ~20% kosztu serwera. Dla
-CX23 = ~€0,80/mc. Standardowo dorzucasz własny skrypt:
+Backupy automatyczne (siedem slotów kopii, najstarsza nadpisywana) jako opcja płatna
+20% ceny serwera ([FAQ rozliczeń](https://docs.hetzner.com/cloud/billing/faq/)). Dla
+CX23 to ~€1,20/mc, dla CCX13 ~€8,70/mc. Standardowo dorzucasz własny skrypt:
 
 - `pg_dump` z PostgreSQL + `tar` z wolumenu `.n8n`
-- `rclone` do **Hetzner Storage Box** (od €3,29/mc za 1 TB) lub Object Storage (S3, od
-  €6,49/mc), lub Backblaze B2
+- `rclone` do **Hetzner Storage Box** (od €3,20/mc za 1 TB -
+  [cennik](https://www.hetzner.com/storage/storage-box), stan na listopad 2026; produkty
+  storage nie były objęte czerwcową podwyżką) lub Object Storage (S3), lub Backblaze B2
 
 Off-site (poza Hetzner) ważne: jeśli Hetzner ma poważny problem, nie chcesz mieć tam
 wszystkich kopii.
@@ -848,7 +915,9 @@ wszystkich kopii.
 - **Brak gotowca** - krzywa wejścia większa niż Mikrus/Hostinger/cyber_Folks.
 - **Hetzner ma rygorystyczne polityki anty-abuse.** Masowe maile, skanowanie sieci =
   łatwo wylądować z blokadą.
-- **Hetzner od kwietnia 2026 podniósł ceny o 25-40%** dla niektórych planów.
+- **Ceny w 2026 rosły dwa razy** (kwiecień i 15 czerwca), a najtańsze plany CX/CAX od
+  września są niedostępne do zamówienia. Zanim zaplanujesz budżet na CX23, sprawdź, czy
+  w ogóle da się go kupić.
 - **Wsparcie tylko mailowo, w godzinach pracy DE** - niemiecki support potrafi być
   suchy, ale rzeczowy.
 - **Faktura w EUR** - przewalutowanie. NIP UE wystarczy do faktury bez VAT (reverse
@@ -859,16 +928,21 @@ wszystkich kopii.
 ### Cena szczegółowo
 
 - **Cena zakupu:** 0 zł
-- **Cena miesięczna:** €3,99 (CX23) - €17 (CCX13) netto. Plus €0,80-3,40 za backupy.
-- **TCO rocznie:** €60-250 (~250-1050 zł) plus VAT (lub bez VAT przy reverse charge)
+- **Cena miesięczna:** €5,99 (CX23, jeśli dostępny) / €19,99 (CPX22) - €43,49 (CCX13)
+  netto. Plus 20% ceny serwera za backupy (€1,20-8,70).
+- **TCO rocznie:** ~€72 (CX23, ~315 zł) / ~€240 (CPX22, ~1 055 zł) - ~€522 (CCX13,
+  ~2 290 zł) plus VAT (lub bez VAT przy reverse charge)
 
-To **najtańszy realnie produkcyjny VPS na liście**. CX23 lub CAX11 z 4 GB RAM za
-€3,99-4,49/mc to wartość praktycznie nie do pobicia w Europie.
+W maju 2026 pisałem tu, że to **najtańszy realnie produkcyjny VPS na liście**. Dziś to
+zdanie broni się tylko dla CX23 za €5,99 - i tylko wtedy, gdy uda Ci się go kupić. To, co
+jest dostępne od ręki (CPX22, CCX13), przegrywa ceną z Mikrusem, cyber_Folks i promocjami
+Hostingera. Hetzner nadal wygrywa jakością API, Terraformem, certyfikatem C5 i
+brakiem długich umów.
 
 <TwoCol>
   <Panel variant="pros" title="Kiedy warto">
     - Firmy techniczne, doświadczenie Docker/Linux
-    - Optymalizujesz koszty, najlepszy €/moc w UE
+    - Masz już serwery Hetznera w starej cenie albo trafisz na dostępny CX23
     - Niemieckie/fińskie DC bez kompromisów RODO
     - Wdrażasz wielu klientów - łatwe automatyzowanie przez API/Terraform
   </Panel>
@@ -897,18 +971,23 @@ minuty.
 
 | Plan | Cena bazowa | Co wchodzi |
 | --- | --- | --- |
-| Próbny | $0 (jednorazowo $5 saldo, 30 dni) | Do 2 vCPU, 1 GB RAM, max 5 projektów |
-| Free | $0 | $1/mc kredytu, 0,5 GB RAM, 1 vCPU |
-| **Hobby** | $5/mc | $5 kredytu na zużycie wliczone |
-| Pro | $20/mc per seat | $20 kredytu/seat, funkcje zespołowe |
-| Enterprise | od $2000/mc | Dedykowana infra, SSO, audit, HIPAA |
+| Próbny | $0 (jednorazowo $5 saldo, 30 dni, bez karty) | Do 2 vCPU i 1 GB RAM na serwis, wolumen 500 MB |
+| Free | $0 | $1/mc kredytu, 1 vCPU i 0,5 GB RAM na serwis, wolumen 500 MB |
+| **Hobby** | $5/mc | $5 kredytu na zużycie wliczone, wolumen do 5 GB |
+| Pro | $20/mc za workspace | $20 kredytu/mc, nielimitowane miejsca w zespole |
+| Enterprise | Wycena indywidualna | Dedykowana infra, SSO, audit, HIPAA |
 
 **Billing:** opłata abonamentowa + zużycie (rozliczane per sekunda):
 
-- ~$0,000463 per vCPU-minuta (≈ $0,028/vCPU-godzina)
-- ~$0,014 per GB-godzina RAM
-- ~$0,25 per GB-miesiąc storage
-- $0,10 per GB egress
+- ~$0,000463 per vCPU-minuta (≈ $20 za vCPU miesięcznie)
+- ~$0,014 per GB-godzina RAM (≈ $10 za GB miesięcznie)
+- ~$0,15 per GB-miesiąc storage wolumenu
+- $0,05 per GB egress
+
+Stan na listopad 2026, [cennik Railway](https://railway.com/pricing). Od maja zmieniło się
+rozliczanie planu Pro (opłata za workspace zamiast za osobę), staniały storage
+($0,25 → $0,15 za GB) i transfer wychodzący ($0,10 → $0,05 za GB), a Enterprise nie ma
+już publicznej ceny startowej.
 
 **Realny koszt n8n na Hobby:** ~$5/mc przy normalnym użyciu (wpada w wliczone saldo), do
 ~$14/mc pod większym obciążeniem.
@@ -963,12 +1042,17 @@ najbardziej ryzykownym wyborem na liście**.
 
 - **Rozliczanie wg zużycia potrafi zaskoczyć.** Jeden workflow z pętlą może zżerać CPU i
   wygenerować rachunek $50+ za noc. **Ustaw alerty kosztowe!**
-- **Brak permanentnego darmowego planu** - po wykorzystaniu salda próbnego $5 (1-2
-  tygodnie) musisz przejść na Hobby.
+- **Darmowy plan nie udźwignie n8n** - Free daje $1 kredytu i 0,5 GB RAM na serwis, więc
+  po wykorzystaniu salda próbnego $5 (1-2 tygodnie) realnie musisz przejść na Hobby.
+  Wolumeny z konta próbnego Railway kasuje 30 dni po wygaśnięciu kredytów
+  ([zasady trialu](https://docs.railway.com/reference/pricing/free-trial)).
 - **Lock-in:** migracja n8n z Railway na VPS nie jest trywialna.
 - **Faktura w USD**, faktury Railway nie są "polish-friendly".
 - **Polityka RODO** - największa wątpliwość dla firm UE.
-- **Railway od marca 2025 wymaga karty kredytowej** nawet do trialu.
+- **Trial bez karty, ale z haczykiem.** Railway weryfikuje konto po historii konta GitHub.
+  Konto niezweryfikowane dostaje "Limited Trial" z ograniczonym ruchem wychodzącym - a n8n
+  bez swobodnego wyjścia do zewnętrznych API jest mało przydatny. Pełny dostęp bez
+  weryfikacji daje dopiero Hobby.
 
 :::
 
@@ -977,7 +1061,7 @@ najbardziej ryzykownym wyborem na liście**.
 - **Cena zakupu:** $0
 - **Cena miesięczna:** od $5 (Hobby) do $20+/mc (Pro) plus zużycie. Realnie $5-14 na
   małym n8n.
-- **TCO rocznie:** ~$60-170 (~240-675 zł) dla małej-średniej instancji
+- **TCO rocznie:** ~$60-170 (~235-670 zł) dla małej-średniej instancji
 
 <TwoCol>
   <Panel variant="pros" title="Kiedy warto">
@@ -989,29 +1073,37 @@ najbardziej ryzykownym wyborem na liście**.
   <Panel variant="cons" title="Kiedy nie">
     - Polska firma dla polskich klientów - RODO
     - Sektor regulowany (finanse, zdrowie, publiczny)
-    - Duży wolumen - Hetzner CX23 daje więcej za $4
+    - Duży wolumen - stała cena VPS-a (Mikrus, cyber_Folks, Hostinger) wychodzi taniej niż zużycie
     - Awersja na usage-based i niespodziewane rachunki
   </Panel>
 </TwoCol>
 
 ## Porównanie skrótowe - wszystkie środowiska obok siebie
 
-Ceny przeliczone na PLN przy roboczym kursie 1 EUR ≈ 4,30 zł, 1 USD ≈ 3,95 zł (kurs maj
-2026).
+Stan na listopad 2026. Ceny przeliczone na PLN po kursie średnim NBP z 6 listopada 2026:
+1 EUR ≈ 4,39 zł, 1 USD ≈ 3,93 zł
+([tabela A nr 217/A/NBP/2026](https://nbp.pl/statystyka-i-sprawozdawczosc/kursy/tabela-a/)).
+Źródła poszczególnych cen są podlinkowane w sekcjach dostawców wyżej.
 
 ### Cena i wartość
 
 | Rozwiązanie | Koszt zakupu | Stała / mc | TCO/rok (małe użycie) | TCO/rok (średnie) |
 | --- | --- | --- | --- | --- |
-| **RPi 5 (8GB)** | ~700 zł | ~5 zł (prąd) | ~760 zł (1. rok) → ~60 zł | jw. |
-| **Mini PC N100** | ~700 zł | ~4 zł (prąd) | ~750 zł (1. rok) → ~50 zł | jw. |
+| **RPi 5 (8GB)** | ~1 500 zł | ~6 zł (prąd) | ~1 570 zł (1. rok) → ~70 zł | jw. |
+| **Mini PC N150** | ~1 350-2 200 zł | ~7 zł (prąd) | ~1 430-2 300 zł (1. rok) → ~85 zł | jw. |
 | **Mikrus 3.0** | 0 zł | ~11 zł | **~130 zł** | ~200 zł (Mikrus 3.5) |
 | **Mikrus 3.5** | 0 zł | ~16 zł | ~200 zł | ~200 zł |
-| **cyber_Folks vroot_RUN** | 0 zł | ~50 / ~69 zł netto | ~600 promo, ~850 reg. | ~1300 zł (SPRINT reg.) |
-| **Hostinger KVM 2** | 0 zł | ~$9 / ~$15 | ~$108 promo (~430 zł) | ~$180 reg (~710 zł) |
-| **Hetzner CX23** | 0 zł | ~€4 | **~€60 (~260 zł)** | ~€90 (~380 zł, CX33) |
-| **Hetzner CCX13 ded.** | 0 zł | ~€17 | ~€205 (~880 zł) | jw. |
-| **Railway Hobby** | $0 | $5 minimum | ~$60-90 (~240-360 zł) | ~$150 (~600 zł) |
+| **cyber_Folks vroot_RUN** | 0 zł | ~50 / ~69 zł netto | ~600 promo, ~830 reg. | ~1 310 zł (SPRINT reg.) |
+| **Hostinger KVM 2** | 0 zł | ~$8,79 / ~$15 | ~$105 promo (~415 zł) | ~$180 reg (~705 zł) |
+| **Hetzner CX23** (gdy dostępny) | 0 zł | ~€6 | ~€72 (~315 zł) | ~€108 (~475 zł, CX33) |
+| **Hetzner CPX22** | 0 zł | ~€20 | ~€240 (~1 055 zł) | ~€432 (~1 895 zł, CPX32) |
+| **Hetzner CCX13 ded.** | 0 zł | ~€43,50 | ~€522 (~2 290 zł) | jw. |
+| **Railway Hobby** | $0 | $5 minimum | ~$60-90 (~235-355 zł) | ~$150 (~590 zł) |
+
+Najważniejsza zmiana od maja: na dole tabeli kosztów nie ma już Hetznera, a własny sprzęt
+podrożał mniej więcej dwukrotnie. Najtańszy sensowny start to dziś Mikrus. Zakup malinki
+albo mini PC to w pierwszym roku równowartość kilku lat Mikrusa 3.5 - wybierasz go dla
+kontroli i prywatności, nie dla oszczędności.
 
 ### Łatwość i wymagane umiejętności
 
@@ -1056,8 +1148,8 @@ Ceny przeliczone na PLN przy roboczym kursie 1 EUR ≈ 4,30 zł, 1 USD ≈ 3,95 
 | **Mikrus** | 1 GB RAM (2.1) za mało dla produkcji; hałaśliwi sąsiedzi; brak SLA; IPv6 w niższych planach |
 | **cyber_Folks** | Wyższa półka cenowa (cena regularna po promo); restore z backupu płatny; wsparcie tylko na infrastrukturę (standard VPS Root) |
 | **Hostinger** | Cena regularna 2-4× promo; faktura USD; uzależnienie od dostawcy lite; trzeba świadomie wybrać EU DC |
-| **Hetzner** | Brak gotowca; rygorystyczne anty-abuse; podwyżki w 2026; wsparcie tylko mail |
-| **Railway** | Usage-based potrafi zaskoczyć; lock-in; RODO ryzykowne; wymóg karty kredytowej |
+| **Hetzner** | Brak gotowca; rygorystyczne anty-abuse; dwie podwyżki w 2026 i niedostępne plany CX/CAX; wsparcie tylko mail |
+| **Railway** | Usage-based potrafi zaskoczyć; lock-in; RODO ryzykowne; trial z ograniczonym ruchem wychodzącym bez weryfikacji konta |
 
 ## Macierz decyzyjna - co wybrać kiedy
 
@@ -1073,17 +1165,25 @@ _Alternatywa: Railway plan próbny przez 30 dni za $0, potem decyzja co dalej._
 ### "Mała firma, n8n 24/7 dla klientów (do 50 egzekucji/dzień)"
 
 - **→ Mikrus 3.5** (197 zł/rok, 4 GB) - jeśli prywatność i polska faktura są priorytetem
-- **→ Hetzner CX23/CAX11** (€4-4,50/mc) - jeśli chcesz najlepszego stosunku jakości do
-  ceny w UE
-- **→ cyber_Folks vroot_RUN** (~600 zł/rok promo) - jeśli stawiasz na jakość, polskie DC
-  i wsparcie 24/7 po polsku
+- **→ cyber_Folks vroot_RUN** (~600 zł/rok promo, ~830 zł/rok regularnie) - jeśli
+  stawiasz na jakość, polskie DC i wsparcie 24/7 po polsku
+- **→ Hetzner CX23** (€5,99/mc) - tylko jeśli akurat da się go zamówić. Dostępny od ręki
+  CPX22 (€19,99/mc) przy tej samej ilości RAM kosztuje więcej niż cyber_Folks RUN po
+  promocji.
 
 ### "Firma średnia, kilkudziesięciu klientów, klucz biznesowy"
 
-**→ Hetzner CCX13** (€17/mc, dedykowane vCPU, 8 GB RAM, SLA 99,9% z C5)
+**→ cyber_Folks vroot_SPRINT** (109 zł netto/mc po promocji, 4 vCPU, 8 GB RAM,
+gwarantowane zasoby, polskie DC i wsparcie 24/7 po polsku)
 
-_Alternatywa: cyber_Folks vroot_SPRINT (8 GB) za 109 zł/mc - drożej, ale bardzo dobra
-jakość, polskie DC i wsparcie 24/7 po polsku._
+_Alternatywa: Hetzner CCX13 (€43,49/mc ≈ 191 zł netto, dedykowane vCPU, 8 GB RAM, SLA
+99,9% z C5) - wyraźnie drożej, ale z API/Terraformem i bez długich umów._
+
+:::note[Co się zmieniło w tej rekomendacji]
+W wersji 1.0 (maj 2026) pierwszym wyborem był tu Hetzner CCX13 za €16,99, a cyber_Folks
+SPRINT był droższą alternatywą. Po czerwcowej podwyżce CCX13 kosztuje €43,49, czyli
+prawie dwa razy więcej niż SPRINT po promocji - kolejność się odwróciła.
+:::
 
 Backup off-site obowiązkowy. Cloudflare Tunnel + Access przed loginem n8n dla podwójnej
 autoryzacji.
@@ -1111,8 +1211,13 @@ lock-in i RODO; gdy pomysł chwyta - migrujesz.
 
 ### "Budżet zero, chcę spróbować bez karty kredytowej"
 
-**→ Raspberry Pi z piwnicy / stary mini PC z OLX** (300-500 zł za używany Beelink) +
-Cloudflare Tunnel + domena `.xyz` za 50 zł/rok.
+**→ Sprzęt, który już masz** (Raspberry Pi z szuflady, stary laptop albo mini PC) +
+Cloudflare Tunnel + tania domena za kilkadziesiąt zł rocznie. Nowy mini PC kosztuje
+w listopadzie 2026 od ~1 350 zł, a malinka z dyskiem NVMe ~1 500 zł, więc przy zerowym
+budżecie zakup odpada.
+
+_Alternatywa: trial Railway - bez karty, $5 salda na 30 dni (szczegóły i haczyk z
+weryfikacją konta w sekcji Railway)._
 
 ## Testy do samodzielnego powtórzenia
 
@@ -1902,7 +2007,7 @@ od programu partnerskiego.
 | Dostawca | Typ | Opis |
 | --- | --- | --- |
 | [cyber_Folks VPS z n8n](https://cyberfolks.pl/serwery-vps-z-n8n/?ref=LUKASZPODGORSKI) | VPS · DC w Polsce · kod ref: LUKASZPODGORSKI | Polski dostawca z preinstalowanym n8n na AlmaLinux - wyższa półka, ale bardzo dobra jakość usług i polskie wsparcie 24/7. Po przejściu na stronę użyj kodu polecającego **LUKASZPODGORSKI**, jeśli link się nie zachowa. |
-| Hetzner Cloud (`hetzner.com/cloud`) | VPS · DC w DE/FI | Najlepszy stosunek ceny do mocy w Europie. Bez linku partnerskiego - oryginalna strona dostawcy. |
+| Hetzner Cloud (`hetzner.com/cloud`) | VPS · DC w DE/FI | Solidna infrastruktura z API i certyfikatem C5; po podwyżkach z 2026 sprawdź dostępność i cenę planu przed zakupem. Bez linku partnerskiego - oryginalna strona dostawcy. |
 | [Hostinger Self-hosted n8n](https://www.hostinger.com/pl?REFERRALCODE=LUKASZ) | VPS · międzynarodowy | Wdrożenie jednym kliknięciem + Kodee AI. |
 | [Mikrus (mikr.us)](https://mikr.us/?r=lukasz) | VPS · roczna płatność | Polski mikrohosting z instalacją n8n jednym poleceniem. |
 | Railway (`railway.com/deploy/n8n`) | PaaS · USA | Najszybsze wdrożenie n8n. Bez linku partnerskiego - oryginalna strona dostawcy. |
@@ -1914,9 +2019,22 @@ od programu partnerskiego.
 | Raspberry Pi 5 | Sprzęt · zakup jednorazowy | Oficjalna strona Raspberry Pi Foundation oraz polscy dystrybutorzy (Botland, KAMAMI, RoboCraft). |
 | Mini PC (Beelink / GMKtec) | Sprzęt · zakup jednorazowy | Beelink S12 Pro, GMKtec NucBox G3, MinisForum UN100 - najczęściej kupowane modele z N100/N150. Allegro, Amazon, oficjalne sklepy. |
 
+## Co się zmieniło w wersji 1.1
+
+- **Ceny sprawdzone ponownie w listopadzie 2026**, każda z linkiem do cennika lub sklepu.
+  Mikrus i cyber_Folks bez zmian, Hostinger KVM 2 w promocji o $0,20 taniej, Railway
+  z tańszym storage i transferem oraz Pro rozliczanym za workspace.
+- **Hetzner po dwóch podwyżkach:** CX23 €3,99 → €5,99, CCX13 €16,99 → €43,49, a plany
+  CX/CAX są od września niedostępne do zamówienia.
+- **Własny sprzęt zdrożał mniej więcej dwukrotnie:** Raspberry Pi 5 8GB z ~350 zł do
+  ~870 zł, mini PC z N100/N150 z 600-900 zł do ~1 350-2 250 zł.
+- **Macierz decyzyjna:** dla średniej firmy pierwszym wyborem jest teraz cyber_Folks
+  vroot_SPRINT, a Hetzner CCX13 spadł do roli alternatywy. W profilu "mała firma" CX23
+  zostaje tylko z zastrzeżeniem dostępności.
+
 ---
 
-_Wersja dokumentu: 1.0 - maj 2026. Ceny i parametry weryfikuj przed zakupem u
+_Wersja dokumentu: 1.1 - listopad 2026. Ceny i parametry weryfikuj przed zakupem u
 dostawców._
 
 _Kolejne wersje: rozszerzone wyniki testów wydajnościowych, benchmarki wybranych
