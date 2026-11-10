@@ -35,7 +35,7 @@ mentions:
 faq:
   - q: "Czy muszę już umieć wyrażenia (expressions), żeby złożyć ten workflow?"
     a: "Nie - cały workflow używa jednego, bardzo prostego wyrażenia, które tylko wstawia trzy liczby z odpowiedzi API do tekstu wiadomości. Pełne wprowadzenie do wyrażeń, danych i pętli znajdziesz w Module 3: Praca z danymi."
-  - q: "Dlaczego mój bot nie wysyła wiadomości, mimo że workflow zakończył się bez błędu?"
+  - q: "Dlaczego node Telegram zwraca błąd Forbidden i nic nie przychodzi?"
     a: "Najczęściej dlatego, że bot nigdy nie \"poznał\" Twojego czatu - Telegram nie pozwala botom pisać pierwszym do użytkownika. Otwórz w Telegramie rozmowę ze swoim botem, wyślij /start, a dopiero potem uruchom workflow ponownie."
   - q: "Czy Open-Meteo jest naprawdę darmowe i nie wymaga klucza API?"
     a: "Tak, do użytku niekomercyjnego (m.in. osobistych automatyzacji) Open-Meteo nie wymaga rejestracji ani klucza API - wystarczy zwykłe zapytanie GET ze współrzędnymi. Klucz i osobny adres API są potrzebne dopiero przy zastosowaniach komercyjnych."
@@ -111,9 +111,10 @@ w przeglądarce jako tekst zamiast się pobrać, zapisz go skrótem Ctrl+S (Cmd+
    znajdziesz w
    [dokumentacji eksportu i importu](https://docs.n8n.io/build/manage-workflows/export-and-import).
 3. Uzupełnij trzy placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
-4. Ustaw strefę czasową workflow: **...** → **Settings** → **Timezone** → `Europe/Warsaw`.
-   Bez tego Schedule Trigger odlicza godziny według strefy instancji, a nie Twojej - szczegóły
-   w kroku 1 niżej.
+4. Sprawdź strefę czasową workflow: **...** → **Settings** → **Timezone** → `Europe/Warsaw`.
+   Plik ma ją już zapisaną w ustawieniach workflow (`settings.timezone`), ale po imporcie
+   upewnij się, że pole pokazuje Twoją strefę. Bez niej Schedule Trigger odlicza godziny według
+   strefy instancji, a nie Twojej - szczegóły w kroku 1 niżej.
 
 </Steps>
 
@@ -240,12 +241,36 @@ ujemna dla grup). Metoda `getUpdates` to standardowa część
 [Telegram Bot API](https://core.telegram.org/bots/api#getupdates), nie coś specyficznego
 dla n8n.
 
+:::caution[getUpdates nie działa przy botcie z Telegram Triggerem]
+Jeśli ten sam bot obsługuje już w n8n node **Telegram Trigger** (np. w gotowcu
+[Notatka głosowa do Notion](/workflow-notatka-glosowa-notion)), n8n ustawił mu webhook, a wtedy
+[`getUpdates` nie zadziała](https://core.telegram.org/bots/api#getupdates) - dostaniesz błąd
+`409 Conflict` albo pustą listę. Odczytaj wtedy `message.chat.id` z danych wykonania node'a
+Telegram Trigger po wysłaniu wiadomości do bota albo załóż osobnego bota do powiadomień.
+:::
+
 ### 6. Telegram - wyślij wiadomość
 
 Dodaj node **Telegram**, podłącz credentials z tokenem z kroku 4 (Access Token), ustaw
 `Resource` na _Message_ i `Operation` na _Send Message_. W polu `Chat ID` wklej numer z
 kroku 5, a w polu `Text` wpisz wyrażenie `{{ $json.wiadomosc }}` - to pole złożone w
 poprzednim node.
+
+Na koniec rozwiń **Additional Fields** i dodaj dwie opcje:
+
+- **Append n8n Attribution** - wyłącz. Domyślnie node dokleja do każdej wiadomości stopkę
+  "This message was sent automatically with n8n".
+- **Parse Mode** - ustaw _HTML_. Gdy tej opcji w ogóle nie dodasz, node wysyła wiadomość
+  w trybie _Markdown (Legacy)_ i wtedy pojedynczy znak `_` albo `*` w treści (adres
+  `jan_kowalski@...`, link z podkreślnikiem) kończy się błędem Telegrama `can't parse entities`.
+  W trybie HTML zwykły tekst przechodzi bez zmian, uważać trzeba tylko na znaki `<`, `>` i `&`,
+  które [Telegram każe zapisać jako encje](https://core.telegram.org/bots/api#html-style)
+  (`&lt;`, `&gt;`, `&amp;`).
+
+Obie opcje są już ustawione w pliku JSON tego i pozostałych gotowców z Telegramem
+([opcje Send Message w dokumentacji n8n](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/message-operations),
+[domyślne Markdown i stopka w kodzie node'a](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Telegram/GenericFunctions.ts),
+stan na listopad 2026).
 
 ### 7. Opublikuj workflow
 
@@ -258,7 +283,7 @@ ostatniej opublikowanej wersji.
 
 ## Co może pójść nie tak
 
-### Bot milczy, mimo że workflow zakończył się bez błędu
+### Node Telegram zwraca błąd Forbidden
 
 - **Objaw:** node Telegram kończy się błędem, a na Telegramie nic nie przychodzi.
 - **Przyczyna:** bot nigdy nie dostał od Ciebie wiadomości - [Telegram wprost zastrzega, że
@@ -266,6 +291,17 @@ ostatniej opublikowanej wersji.
   (błąd wygląda np. tak: `Forbidden: bot can't initiate conversation with a user`).
 - **Naprawa:** otwórz w Telegramie czat z botem i wyślij `/start`, dopiero potem uruchom
   workflow ponownie.
+
+### Node Telegram zwraca błąd "can't parse entities"
+
+- **Objaw:** node Telegram kończy się błędem `Bad Request: can't parse entities`, zwykle tylko
+  dla niektórych wiadomości.
+- **Przyczyna:** w **Additional Fields** nie ma opcji **Parse Mode**, więc node wysyła treść
+  w trybie _Markdown (Legacy)_, a w tekście trafił się pojedynczy `_` albo `*`. Przy Parse Mode
+  _HTML_ ten sam błąd daje niezamieniony znak `<`, `>` albo `&`.
+- **Naprawa:** ustaw **Parse Mode** na _HTML_ (patrz krok 6 wyżej), a dane z zewnątrz, które
+  mogą zawierać `<`, `>` lub `&`, zamieniaj na encje, np.
+  `{{ $json.tekst.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}`.
 
 ### Brief nie przychodzi wcale, mimo że test ręczny działa
 

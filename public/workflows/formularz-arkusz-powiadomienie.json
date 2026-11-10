@@ -134,7 +134,11 @@
         "resource": "message",
         "operation": "sendMessage",
         "chatId": "TWOJ_CHAT_ID",
-        "text": "=Nowe zgłoszenie z formularza!\n\nImię: {{ $json.imie }}\nE-mail: {{ $json.email }}\nWiadomość: {{ $json.wiadomosc || '(brak)' }}"
+        "text": "=Nowe zgłoszenie z formularza!\n\nImię: {{ $('Waliduj i oczyść dane').item.json.imie.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}\nE-mail: {{ $('Waliduj i oczyść dane').item.json.email.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}\nWiadomość: {{ ($('Waliduj i oczyść dane').item.json.wiadomosc || '(brak)').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,

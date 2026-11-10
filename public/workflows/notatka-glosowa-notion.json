@@ -4,7 +4,9 @@
     {
       "parameters": {
         "updates": ["message"],
-        "additionalFields": {}
+        "additionalFields": {
+          "userIds": "TWOJ_USER_ID"
+        }
       },
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,

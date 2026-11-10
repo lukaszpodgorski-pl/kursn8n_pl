@@ -63,7 +63,7 @@ faq:
   - q: "n8n Cloud czy self-hosting - co wybrać?"
     a: "n8n Cloud, jeśli chcesz zacząć w kilka minut i nie zajmować się aktualizacjami, backupami ani HTTPS - płacisz abonament, a dane leżą u dostawcy. Self-hosting, jeśli zależy Ci na pełnej kontroli nad danymi i braku opłat za wykonania - w zamian aktualizacje, backupy i bezpieczeństwo są po Twojej stronie. Do nauki nadaje się jedno i drugie: trial n8n Cloud albo Docker na własnym komputerze."
   - q: "Jaki serwer jest potrzebny do n8n?"
-    a: "Do nauki wystarczy około 512 MB - 1 GB RAM i 1-2 rdzenie, do produkcji planuj od 2 GB RAM w górę. Zapotrzebowanie na pamięć rośnie z liczbą równoległych wykonań, rozmiarem przetwarzanych danych i node'ami AI. Na start wystarczy mały VPS, Raspberry Pi albo mini PC, a do poważnej produkcji warto od razu zaplanować bazę PostgreSQL zamiast domyślnego SQLite."
+    a: "Do nauki wystarczy około 512 MB - 1 GB RAM i 1-2 rdzenie, do produkcji minimum 2 GB RAM, komfortowo 4 GB przy AI agentach i dużych payloadach. Zapotrzebowanie na pamięć rośnie z liczbą równoległych wykonań, rozmiarem przetwarzanych danych i node'ami AI. Na start wystarczy mały VPS, Raspberry Pi albo mini PC, a do poważnej produkcji warto od razu zaplanować bazę PostgreSQL zamiast domyślnego SQLite."
   - q: "Czy n8n można zainstalować przez npm?"
     a: "W linii 2.x jeszcze tak (z Node.js od 20.19 do 24.x), ale n8n 3.0 kończy z instalacją przez npm i npx - self-hosting będzie działał tylko w Dockerze. Wersja 3.0 jest dostępna jako beta od 27 października 2026, a wydanie stabilne n8n zapowiada na początek grudnia 2026. Nową instalację stawiaj więc od razu w Dockerze, a istniejącą z npm przenieś, zanim zaktualizujesz do 3.0."
   - q: "Co zmienia n8n 3.0?"
@@ -219,8 +219,9 @@ Więcej: [Moduł 0 - n8n Cloud vs self-hosted](/modul-0-fundamenty#n8n-cloud-vs-
 
 ### Jaki serwer jest potrzebny do n8n?
 
-Do nauki wystarczy około 512 MB - 1 GB RAM i 1-2 rdzenie, do produkcji planuj od 2 GB RAM
-w górę. Zapotrzebowanie na pamięć rośnie z liczbą równoległych wykonań, rozmiarem
+Do nauki wystarczy około 512 MB - 1 GB RAM i 1-2 rdzenie, do produkcji minimum 2 GB RAM,
+komfortowo 4 GB przy AI agentach i dużych payloadach. Zapotrzebowanie na pamięć rośnie
+z liczbą równoległych wykonań, rozmiarem
 przetwarzanych danych i node'ami AI. Na start wystarczy mały VPS, Raspberry Pi albo mini PC,
 a do poważnej produkcji warto od razu zaplanować bazę PostgreSQL zamiast domyślnego SQLite.
 

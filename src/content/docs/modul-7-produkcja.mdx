@@ -94,9 +94,11 @@ ustawienie, lecz kilka warstw - od logowania, przez sieć, po aktualizacje.
 
 Nigdy nie wystawiaj n8n bez uwierzytelniania. Od pierwszego startu skonfiguruj
 **właściciela instancji** (owner) i odrębne konta dla każdej osoby - wspólne hasło to
-proszenie się o kłopoty. W planach Enterprise dostępne są **RBAC** (role, projekty, role
-własne), **SSO** (SAML, OIDC) oraz **LDAP** do centralnego zarządzania kontami zgodnie
-z zasadą najmniejszych uprawnień.
+proszenie się o kłopoty. Do centralnego zarządzania kontami zgodnie z zasadą najmniejszych
+uprawnień n8n daje kilka warstw, rozłożonych na plany (stan na listopad 2026,
+[cennik](https://n8n.io/pricing/)): **projekty** współdzielone od Cloud Starter, **SSO**
+(SAML, OIDC) i **LDAP** od Business, a **role własne** i wymuszanie 2FA na całej instancji
+tylko w Enterprise.
 
 ### 2FA (uwierzytelnianie dwuskładnikowe)
 
@@ -134,7 +136,7 @@ Ustaw też zmienne, by n8n wiedział, że stoi za proxy i pod jakim adresem:
 N8N_HOST=n8n.twojadomena.pl
 N8N_PROTOCOL=https
 N8N_PORT=5678
-WEBHOOK_URL=https://n8n.twojadomena.pl/
+N8N_WEBHOOK_URL=https://n8n.twojadomena.pl/
 N8N_SECURE_COOKIE=true
 ```
 
@@ -349,7 +351,14 @@ N8N_CONCURRENCY_PRODUCTION_LIMIT=10
 Każdy worker (i ewentualne procesy webhook) **musi** mieć identyczny
 `N8N_ENCRYPTION_KEY` co proces główny - inaczej nie odszyfruje credentials z bazy i
 workflow padną. Wszystkie komponenty łączą się też do **tej samej bazy danych**
-(PostgreSQL - SQLite tu nie wystarczy) i do tego samego Redis. Szczegóły:
+(PostgreSQL - SQLite tu nie wystarczy) i do tego samego Redis.
+
+Uważaj też na **dane binarne** (pliki w workflow). Queue mode nie obsługuje trybu
+`filesystem`, a dokumentacja jako trwałe przechowywanie wskazuje S3, czyli funkcję planów
+Business i Enterprise. Przy przejściu na n8n 3.0 domyślny tryb w pamięci (`default`) znika
+i instancja przełącza się na `filesystem` - w queue mode ustaw jawnie
+`N8N_DEFAULT_BINARY_DATA_MODE` ([dane binarne](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/binary-data),
+[zmiany 3.0](https://docs.n8n.io/changelog/v30-breaking-changes)). Szczegóły:
 [Configuring queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode).
 :::
 
@@ -438,7 +447,7 @@ docker exec -u node n8n n8n publish:workflow --id=<ID>
 Cztery rzeczy, na które musisz uważać przy imporcie:
 
 - **Import nadpisuje po ID.** Eksport zawiera ID workflow - jeśli na instancji docelowej istnieje workflow o tym samym ID, zostanie nadpisany. Na prod to zwykle dokładnie to, czego chcesz; na instancji z innymi workflow sprawdź ID przed importem.
-- **Wszystko wchodzi jako nieopublikowane.** Domyślnie `import:workflow` wyłącza każdy importowany workflow. Flaga `--activeState=fromJson` zachowuje stan z pliku, ale działa tylko w trybie multi-main i kolejkowym.
+- **Wszystko wchodzi jako nieopublikowane.** Domyślnie `import:workflow` wyłącza każdy importowany workflow. Flaga `--activeState=fromJson` zachowuje stan z pliku, ale według tabeli flag w [dokumentacji CLI](https://docs.n8n.io/deploy/host-n8n/configure-n8n/use-the-command-line) wymaga trybu multi-main.
 - **Publikujesz po ID, bez `--all`.** `publish:workflow` celowo nie ma flagi `--all` - żeby nikt przypadkiem nie opublikował hurtem wszystkiego na produkcji. Stara komenda `update:workflow --active=true` jest od n8n 2.0 przestarzała (w 2.0 przełącznik active/inactive zastąpił model publish/unpublish).
 - **Znany błąd z cronem.** Na instancji bez multi-main poprzednio aktywny workflow po imporcie zostawia działające triggery czasowe aż do restartu n8n. Po imporcie na prod zrób restart albo sprawdź, czy nic nie odpala się podwójnie.
 
@@ -670,7 +679,7 @@ listopad 2026 to dwie wersje tej funkcji:
 | Plan | Business i Enterprise | tylko Enterprise (Cloud i self-hosted) |
 | Status | stabilne | Preview - może się zmienić |
 | Model | push do gałęzi i pull z gałęzi | promote do środowiska i apply na instancji docelowej |
-| Co przenosi | workflow, tagi, "zaślepki" credentials i zmiennych (bez wartości) | workflow z zależnościami: credentials (bez sekretów), zmienne z wartościami, tabele danych (bez wierszy), tagi |
+| Co przenosi | workflow, tabele danych, tagi, "zaślepki" credentials i zmiennych (bez wartości) | workflow z zależnościami: credentials (bez sekretów), zmienne z wartościami, tabele danych (bez wierszy), tagi |
 | Przegląd zmian | ręcznie na hostingu Git | przegląd promocji w n8n (merge requesty na GitLabie) |
 
 Uprawnienia są w obu wersjach podobne: konfiguruje owner albo admin instancji. Jeśli masz
@@ -735,7 +744,8 @@ przed publikacją ważniejsza jest druga połowa tej funkcji: **edycja przypięt
 W widoku JSON wyniku klikasz **Edit**, zmieniasz dane i zapisujesz - zapis od razu je
 przypina. Tak w minutę robisz przypadek brzegowy: usuwasz pole, wstawiasz pustą tablicę,
 wpisujesz polskie znaki albo bardzo długi tekst. Dane możesz też skopiować z dawnego wykonania
-z zakładki Executions, czyli przetestować workflow na tym, co naprawdę przyszło z produkcji.
+z zakładki Executions (funkcja Debug in editor - w Community wymaga darmowej rejestracji,
+[Registered Community](https://docs.n8n.io/deploy/host-n8n/community-edition-features)), czyli przetestować workflow na tym, co naprawdę przyszło z produkcji.
 
 Trzy ograniczenia według [dokumentacji pinningu](https://docs.n8n.io/build/work-with-data/pin-and-mock-data)
 (zweryfikowane 9 listopada 2026): nie przypniesz danych z plikami binarnymi, przypinasz tylko

@@ -66,7 +66,32 @@
       "typeVersion": 1.1,
       "position": [900, 300],
       "id": "github-zapisz-plik",
-      "name": "Zapisz w repozytorium GitHub"
+      "name": "Zapisz w repozytorium GitHub",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "create",
+        "owner": {
+          "__rl": true,
+          "value": "WLASCICIEL",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "REPO",
+          "mode": "name"
+        },
+        "filePath": "={{ $('Przygotuj plik backupu').item.json.sciezka }}",
+        "fileContent": "={{ $('Przygotuj plik backupu').item.json.tresc }}",
+        "commitMessage": "={{ $('Przygotuj plik backupu').item.json.wiadomoscCommit }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [1120, 400],
+      "id": "github-utworz-plik",
+      "name": "Utwórz nowy plik w repozytorium"
     }
   ],
   "connections": {
@@ -102,10 +127,23 @@
           }
         ]
       ]
+    },
+    "Zapisz w repozytorium GitHub": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Utwórz nowy plik w repozytorium",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "Europe/Warsaw"
   }
 }

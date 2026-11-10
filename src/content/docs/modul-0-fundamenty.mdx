@@ -68,7 +68,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 0 · Poziom: początkujący"
-  readingTime="~15 min"
+  readingTime="~11 min"
   note="Bez instalacji - sama teoria"
 />
 
@@ -165,7 +165,7 @@ gdzie n8n jest mocny.
 | --- | --- | --- | --- | --- |
 | Self-hosting | Tak (fair-code) | Nie (tylko SaaS) | Nie (tylko SaaS) | Nie (chmura MS) |
 | Dostęp do kodu | Tak - Code Node (JS/Python) | Ograniczony | Ograniczony | Wyrażenia / Office Scripts |
-| Model cenowy | Wg wykonań / darmowy self-host | Wg "tasków" | Wg operacji | Wg licencji/użytkownika |
+| Model cenowy | Wg wykonań / darmowy self-host | Wg "tasków" | [Wg kredytów](https://help.make.com/introducing-credits-new-billing-unit-live-in-make) (dawniej operacji) | Wg licencji/użytkownika |
 | Próg wejścia | Niski-średni | Bardzo niski | Niski | Średni |
 | Kontrola nad danymi | Pełna (self-host) | U dostawcy | U dostawcy | W ekosystemie MS |
 | AI / agenci | Wbudowane (LangChain) | Tak (AI actions) | Tak | Copilot |
@@ -203,10 +203,10 @@ materiały w sieci mogą więc opisywać poprzednie, luźniejsze zasady. Źród�
     - Automatyzować wewnętrzne procesy swojej organizacji
   </Panel>
   <Panel variant="cons" title="Co jest ograniczone">
-    - Oferowanie n8n jako **hostowanej usługi** dla klientów zewnętrznych
-    - Wbudowywanie n8n jako silnika w komercyjny produkt (SaaS)
-    - Budowa produktu konkurencyjnego wobec n8n
-    - Usuwanie brandingu w komercyjnych dystrybucjach
+    - Oferowanie n8n jako **hostowanej usługi**, w której klienci sami budują workflow
+    - Produkt, w którym zewnętrzni użytkownicy sami budują lub konfigurują workflow (przez własny UI, API, MCP albo agenta AI)
+    - Fork kodu n8n jako własny produkt do automatyzacji
+    - White-label, czyli n8n bez brandingu oferowane jako własne
   </Panel>
 </TwoCol>
 
@@ -216,7 +216,9 @@ klientów na swojej instancji albo instalujesz n8n na ich serwerze i bierzesz za
 Warunek z [FAQ licencji](https://docs.n8n.io/n8n-community-license/community-license/license-faq): n8n zostaje Twoim
 narzędziem, a klienci dostają efekty, nie dostęp (_"clients receive outputs, not access"_).
 Licencji **Enterprise** lub **Embed** potrzebujesz, gdy klienci mają sami budować workflow
-w Twojej instancji, gdy chcesz usunąć branding albo osadzić n8n we własnym produkcie.
+w Twojej instancji, gdy chcesz usunąć branding albo pozwolić użytkownikom swojego produktu budować workflow.
+Samo użycie n8n "pod spodem" produktu, w którym użytkownicy tylko uruchamiają gotowe
+automatyzacje, FAQ dopuszcza.
 Stan na listopad 2026. W razie wątpliwości zapytaj n8n bezpośrednio (license@n8n.io). Pełny tekst:
 [docs.n8n.io - Sustainable use license](https://docs.n8n.io/n8n-community-license).
 :::
@@ -310,7 +312,7 @@ z sekcji o automatyzacji.
   - n8n to platforma low-code do automatyzacji: niski próg wejścia, wysoki sufit (kod, gdy potrzeba).
   - Automatyzuj rzeczy powtarzalne i regułowe - nie jednorazowe lub wymagające ciągłego osądu.
   - Największe atuty n8n vs konkurencja: self-hosting, dostęp do kodu, kontrola nad danymi.
-  - Licencja to fair-code (Sustainable Use License): własny użytek wolny, "n8n jako usługa dla klientów" wymaga licencji.
+  - Licencja to fair-code (Sustainable Use License): własny użytek i usługi budowania workflow dla klientów są wolne, klienci z dostępem do edytora wymagają licencji.
   - Kluczowe pojęcia: workflow, node, trigger, execution, credentials, item, expression.
   - Cloud = wygoda na naukę; self-hosted = kontrola i koszty pod własnym dachem.
 </Takeaways>

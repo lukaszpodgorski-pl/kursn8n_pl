@@ -92,7 +92,7 @@ odwoływać przez cały kurs, a oficjalna dokumentacja używa tych samych nazw.
     wybierasz credentials. Po lewej widzisz dane wejściowe (Input), po prawej wynik (Output).
   </ConceptCard>
   <ConceptCard icon="fa-gear" title="Ustawienia node'a (Settings)">
-    Zakładka obok parametrów. Tu zmienisz m.in. notatki, obsługę błędów (_Continue On Fail_),
+    Zakładka obok parametrów. Tu zmienisz m.in. notatki, obsługę błędów (_On Error_),
     zachowanie przy braku danych czy timeouty - przydaje się przy debugowaniu.
   </ConceptCard>
   <ConceptCard icon="fa-list" title="Lista workflow (Overview)">
@@ -413,10 +413,14 @@ n8n porządkuje pracę na dwóch poziomach. **Projekt** grupuje workflow, creden
 Tables oraz decyduje, kto ma do nich dostęp i z jaką rolą. Wewnątrz projektu układasz
 workflow w **folderach**, także zagnieżdżonych - jak pliki w katalogach.
 
-- **Dostępność:** projekty i role (RBAC) są na wszystkich planach n8n Cloud, a na
-  self-hosted od wersji Registered Community (darmowa rejestracja instancji kluczem
-  licencyjnym) wzwyż. Liczba projektów zależy od planu
-  ([Projects, docs.n8n.io](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects/)).
+- **Dostępność:** projekty i role (RBAC) są na wszystkich planach n8n Cloud, a liczba
+  projektów zależy od planu. Na self-hostingu dokumentacja n8n sama sobie przeczy: strona
+  [Projects](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects/)
+  podaje Registered Community (darmowa rejestracja instancji kluczem licencyjnym) wzwyż, a
+  [porównanie edycji](https://docs.n8n.io/deploy/host-n8n/community-edition-features)
+  wymienia projekty wśród funkcji Business i Enterprise - rejestracja odblokowuje według niego
+  foldery, debug in editor i custom execution data (stan na listopad 2026). Co masz u siebie,
+  sprawdzisz w **Settings → Plan & usage**.
 - **Foldery** weszły w n8n 1.85 (kwiecień 2025) i według ogłoszenia wymagają Registered
   Community Edition lub planu płatnego
   ([ogłoszenie na forum n8n](https://community.n8n.io/t/organize-your-workspace-with-folders/95887)).

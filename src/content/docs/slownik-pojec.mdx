@@ -1,6 +1,6 @@
 ---
 title: Słownik pojęć n8n - od workflow po RAG
-description: "Słownik pojęć n8n po polsku: workflow, node, trigger, execution, credentials, webhook, wyrażenia, AI Agent i RAG - zwięzłe definicje z linkami do kursu."
+description: "Słownik pojęć n8n po polsku: workflow, node, trigger, credentials, webhook, wyrażenia, AI Agent, RAG, MCP, Data Tables, Evaluations i CI/CD - zwięzłe definicje z linkami do kursu."
 head:
   - tag: title
     content: "Słownik pojęć n8n po polsku | KursN8N.pl"
@@ -11,15 +11,17 @@ head:
   - tag: meta
     attrs:
       property: og:description
-      content: "Ponad 40 pojęć n8n wyjaśnionych po polsku - od workflow po RAG - z linkami do modułów kursu."
+      content: "Ponad 70 pojęć n8n wyjaśnionych po polsku - od workflow po RAG i MCP - z linkami do modułów kursu."
 datePublished: 2026-07-24
 educationalLevel: Beginner
 teaches:
   - Podstawowe pojęcia n8n - workflow, node, trigger, execution
   - Słownictwo pracy z danymi - item, JSON, wyrażenie, pętla
   - Terminologię integracji - credentials, API, webhook, OAuth2
-  - Pojęcia AI w n8n - AI Agent, RAG, embedding
-  - Słownictwo produkcyjne - self-hosting, queue mode, RODO
+  - Pojęcia AI w n8n - AI Agent, RAG, embedding, MCP, Evaluations
+  - Słownictwo produkcyjne - self-hosting, queue mode, RODO, staging, CI/CD
+  - Wzorce odporności i pracy z klientami - Dead Letter Queue, Circuit Breaker, multi-tenancy
+  - Pojęcia licencyjne - Sustainable Use License, Registered Community, DPA
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -34,6 +36,12 @@ mentions:
     sameAs: https://en.wikipedia.org/wiki/LangChain
   - name: Docker
     sameAs: https://en.wikipedia.org/wiki/Docker_(software)
+  - name: Model Context Protocol
+    sameAs: https://en.wikipedia.org/wiki/Model_Context_Protocol
+  - name: HMAC
+    sameAs: https://en.wikipedia.org/wiki/HMAC
+  - name: CI/CD
+    sameAs: https://en.wikipedia.org/wiki/CI/CD
 faq:
   - q: "Czym różni się workflow od node'a w n8n?"
     a: "Workflow to cały zautomatyzowany proces - zbiór node'ów połączonych w logiczną sekwencję, który zapisujesz jako jedną całość. Node to pojedynczy \"klocek\" w tym procesie: jedno konkretne zadanie, np. wywołanie API albo warunek. Innymi słowy, workflow składa się z wielu node'ów, nie odwrotnie."
@@ -54,7 +62,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Słownik · wszystkie poziomy"
-  readingTime="~10 min"
+  readingTime="~18 min"
   note="Wracaj tu, gdy jakieś pojęcie brzmi obco"
 />
 
@@ -88,6 +96,11 @@ konkretnym przykładzie.
   edycje automatycznie, ale produkcja zawsze używa ostatniej opublikowanej wersji - zmiany
   wprowadzone później działają dopiero po ponownej publikacji. W n8n 1.x tę rolę pełnił
   przełącznik Active / Inactive ("aktywacja workflow"). Szczegóły - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#toolbar-nad-kanwą).
+- **Szkic (draft) i wersja opublikowana** - każda zmiana w edytorze zapisuje się sama jako
+  szkic, a wykonania produkcyjne (trigger, harmonogram, Production URL) zawsze używają
+  wersji opublikowanej. Dzięki temu przebudowujesz i testujesz workflow, a produkcja jedzie
+  dalej na poprzedniej wersji. Uwaga: credentials, zmienne i Data Tables są wspólne dla obu.
+  Szczegóły - [Moduł 7](/modul-7-produkcja#szkic-i-wersja-opublikowana-testujesz-produkcja-działa-dalej).
 - **Execution (wykonanie)** - pojedyncze uruchomienie workflow, ręczne albo produkcyjne.
   n8n zapisuje historię wykonań ze statusem (Success, Error, Running) - to pierwsze
   miejsce, w którym szukasz przyczyny błędu. Szczegóły - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#lista-i-szczegóły-executions).
@@ -97,6 +110,19 @@ konkretnym przykładzie.
 - **Sticky note** - notatka przyklejana wprost na kanwę, którą dokumentujesz sekcje
   workflow - co robi dany fragment i dlaczego, nie tylko co. Dobra praktyka od pierwszego
   dnia - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#organizacja-pracy---dobre-praktyki-od-początku).
+- **Projekt (project) i RBAC** - projekt grupuje workflow, credentials i Data Tables oraz
+  decyduje, kto ma do nich dostęp i z jaką rolą. To mechanizm RBAC (_role-based access
+  control_, uprawnienia oparte na rolach). Dostępność i liczba projektów zależą od edycji
+  i planu. Szczegóły - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#projekty-i-foldery),
+  a projekty w pracy z klientami - [Moduł 8](/modul-8-wzorce-wdrozenia#instancja-per-klient-czy-projekty-w-jednej-instancji).
+- **Data Table** - wbudowana w n8n prosta tabela (wiersze i kolumny) trzymana w bazie Twojej
+  instancji, bez credentials i zewnętrznego konta. Node Data Table dopisuje, pobiera,
+  aktualizuje i deduplikuje wiersze - świetny na stan workflow, cache i konfigurację.
+  Wszystkie tabele instancji dzielą wspólny limit miejsca. Szczegóły - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#data-tables---wbudowane-tabele-danych).
+- **Insights** - statystyki wykonań na stronie Overview: liczba wykonań produkcyjnych,
+  odsetek nieudanych, średni czas i zaoszczędzony czas. Pasek podsumowania z ostatnich 7 dni
+  jest w każdej edycji, pełny dashboard per workflow - w płatnych planach. Jak rozliczać nim
+  klientów - [Moduł 8](/modul-8-wzorce-wdrozenia#rozliczanie-ile-wykonań-zjada-klient).
 
 ## Dane i wyrażenia
 
@@ -125,6 +151,15 @@ konkretnym przykładzie.
 - **IF / Switch / Filter** - trzy node'y logiki: IF rozgałęzia dane na dwie ścieżki
   (true/false), Switch na wiele ścieżek według wartości, a Filter po prostu odsiewa
   itemy niespełniające warunku bez tworzenia gałęzi. Porównanie - [Moduł 3](/modul-3-praca-z-danymi#logika-if-switch-filter).
+- **Always Output Data** - ustawienie node'a, które każe mu oddać pusty item, gdy nie ma
+  wyniku. Bez niego node bez itemów nie uruchamia kolejnych i workflow kończy się po cichu.
+  Przydaje się, gdy dalsza część musi ruszyć mimo pustej listy (np. raport "brak nowych
+  zamówień"). Kontekst - [Moduł 7](/modul-7-produkcja#przypadki-brzegowe-które-warto-przejść).
+- **Custom variables (`$vars`)** - zmienne zdefiniowane w n8n, dostępne w wyrażeniach jako
+  `$vars.NAZWA`, globalne albo przypisane do projektu. Trzymasz w nich wartości, które różnią
+  się między środowiskami lub klientami (adres API, ID arkusza), ale nie sekrety. Wymagają
+  płatnego planu; w Community zostają zmienne środowiskowe (`$env`) albo Data Table
+  z konfiguracją. Porównanie - [Moduł 8](/modul-8-wzorce-wdrozenia#rozdział-credentiali-i-konfiguracji).
 
 ## Integracje
 
@@ -150,6 +185,19 @@ konkretnym przykładzie.
 - **Paginacja i rate limit** - paginacja to pobieranie wyników API po kawałkach
   (stronach), aż skończą się dane; rate limit to narzucony przez API limit zapytań,
   którego przekroczenie zwraca błąd HTTP 429. Obsługa obu - [Moduł 4](/modul-4-integracje-api#paginacja-limity-zapytań-i-ponawianie).
+- **Response Format** - opcja node'a HTTP Request, która mówi, jak odczytać odpowiedź (np.
+  JSON, tekst, plik). Domyślne Autodetect kieruje się nagłówkiem odpowiedzi, więc gdy API
+  odsyła JSON jako `text/plain`, dostajesz jedno pole z długim tekstem - wtedy ustaw **JSON**
+  ręcznie. Na przykładzie - [Moduł 2](/modul-2-interfejs-pierwszy-workflow#ćwiczenie-pogoda-z-wttrin).
+- **HMAC (podpis webhooka)** - skrót kryptograficzny liczony z treści żądania i wspólnego
+  sekretu. Stripe, GitHub czy Shopify podpisują nim każde wywołanie webhooka, a Ty liczysz
+  ten sam podpis z surowego body i porównujesz - zgodność potwierdza nadawcę i to, że treść
+  nie została zmieniona. To co innego niż pole Authentication w node Webhook. Realizacja
+  w n8n - [Moduł 4](/modul-4-integracje-api#czy-to-naprawdę-stripe-weryfikacja-podpisu-hmac).
+- **Public API (n8n API)** - interfejs REST samego n8n: listujesz, tworzysz, aktualizujesz
+  i publikujesz workflow zwykłymi zapytaniami HTTP z kluczem w nagłówku `X-N8N-API-KEY`.
+  Działa z dowolnej maszyny, więc nadaje się do pipeline'u CI. Dostępność i endpointy -
+  [Moduł 7](/modul-7-produkcja#public-api-jako-alternatywa-dla-cli).
 
 ## Kod i struktura
 
@@ -169,6 +217,14 @@ konkretnym przykładzie.
 - **Stop And Error** - node do świadomego przerwania workflow, gdy dane nie spełniają
   warunku - rzuca własny komunikat błędu zamiast cicho przepuszczać złe dane dalej.
   Kontekst - [Moduł 5](/modul-5-kod-sub-workflow#stop-and-error---świadome-przerwanie).
+- **Community node (node społeczności)** - paczka npm z dodatkowymi node'ami, napisana
+  poza zespołem n8n i instalowana na Twojej instancji jak wtyczka. _Zweryfikowane_ (verified)
+  przeszły przegląd n8n i działają także na n8n Cloud; _niezweryfikowane_ to dowolna paczka
+  z npm, tylko na self-hostingu, od n8n 3.0 domyślnie wyłączona. Każda ma pełny dostęp do
+  serwera. Instalacja i wybór paczki - [Moduł 5](/modul-5-kod-sub-workflow#community-nodes-i-własne-nodey).
+- **Task runner** - środowisko, w którym n8n wykonuje kod z Code Node. W n8n 3.0 jego domyślny
+  limit czasu spada z 300 do 60 sekund, więc dłuższe obliczenia wymagają jawnego ustawienia
+  `N8N_RUNNERS_TASK_TIMEOUT`. Kontekst - [Moduł 1](/modul-1-instalacja-hosting#aktualizacja-do-n8n-30).
 
 ## AI
 
@@ -196,6 +252,39 @@ konkretnym przykładzie.
 - **Halucynacja** - sytuacja, w której model pewnie generuje nieprawdziwą informację,
   bo nie zna faktów (np. Twoich dokumentów), a i tak musi coś odpowiedzieć. RAG
   i ograniczone narzędzia zmniejszają to ryzyko. Kontekst - [Moduł 6](/modul-6-ai-agenci#rag-bazy-wektorowe-i-embeddingi).
+- **Tool calling (wywoływanie narzędzi)** - natywny mechanizm nowoczesnych modeli, w którym
+  model sam zwraca, które narzędzie wywołać i z jakimi parametrami. Na nim opiera się
+  Tools Agent - od n8n 1.82 jedyny tryb node'a AI Agent
+  ([dokumentacja](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/)),
+  a lokalny model bez obsługi narzędzi nie użyje żadnego toola.
+  Wyjaśnienie - [Moduł 6](/modul-6-ai-agenci#tools-agent---domyślny-typ).
+- **Simple Memory (pamięć okna)** - najprostszy sub-node pamięci agenta: trzyma ostatnie N
+  wiadomości rozmowy w pamięci instancji i dokleja je do kolejnych zapytań. Znika po
+  restarcie - trwałą historię dają pamięci w Postgresie, Redisie czy MongoDB. Typy pamięci -
+  [Moduł 6](/modul-6-ai-agenci#pamięć-memory).
+- **Ollama i Base URL** - Ollama uruchamia model językowy na Twoim komputerze lub serwerze,
+  więc dane nie wychodzą na zewnątrz, a za tokeny nie płacisz. W credentialu podajesz
+  _Base URL_ serwera: `http://127.0.0.1:11434` bez Dockera, a z n8n w kontenerze
+  `http://host.docker.internal:11434` albo nazwę kontenera Ollamy - bo `localhost`
+  w kontenerze to sam kontener. Ćwiczenie krok po kroku - [Moduł 6](/modul-6-ai-agenci#ćwiczenie-lokalny-chatbot-z-ollamą).
+- **MCP (Model Context Protocol)** - otwarty standard łączenia aplikacji AI z zewnętrznymi
+  narzędziami i danymi: serwer MCP wystawia listę narzędzi, a klient (np. Claude, Cursor) ją
+  pobiera i pozwala modelowi je wywoływać. n8n działa po obu stronach: jako klient (sub-node
+  MCP Client Tool przy AI Agencie) i jako serwer (MCP Server Trigger albo serwer MCP całej
+  instancji). Porównanie trzech wariantów - [Moduł 6](/modul-6-ai-agenci#mcp---n8n-jako-klient-i-jako-serwer).
+- **MCP Server Trigger** - trigger, który wystawia Twój workflow jako serwer MCP. Nie
+  przekazuje danych dalej - podpinasz do niego wyłącznie narzędzia (np. własny sub-workflow
+  przez Custom n8n Workflow Tool), a zewnętrzny klient AI sam decyduje, które wywołać. Zawsze
+  z uwierzytelnianiem, bo każde narzędzie to akcja wykonywana Twoimi credentials. Konfiguracja -
+  [Moduł 6](/modul-6-ai-agenci#mcp-server-trigger---twój-workflow-jako-serwer-mcp).
+- **Evaluations** - testy workflow AI: uruchamiasz workflow na zestawie przypadków testowych
+  (_dataset_ w Data Table albo arkuszu) i porównujesz wyniki z oczekiwanymi, wzrokiem albo
+  liczbowymi metrykami. Składasz je z node'ów Evaluation Trigger i Evaluation. Poziomy
+  i dostępność - [Moduł 7](/modul-7-produkcja#evaluations-testy-workflow-ai).
+- **n8n Assistant i sandbox** - Assistant to wbudowany asystent, który buduje i poprawia
+  workflow za Ciebie (nie mylić z node'em AI Agent). Kod, który pisze, uruchamia w _sandboxie_,
+  czyli osobnym, odciętym środowisku wykonawczym - bez sandboxa Assistant nie zadziała.
+  Na n8n Cloud sandbox jest po stronie n8n. Szczegóły - [Moduł 9](/modul-9-n8n-assistant#jeden-warunek-sandbox).
 
 ## Produkcja i hosting
 
@@ -213,6 +302,11 @@ konkretnym przykładzie.
   ruch po HTTPS z internetu i przekazuje go do ukrytego w środku n8n - niezbędny do
   poprawnego działania OAuth i webhooków na własnym serwerze. Pełne wyjaśnienie -
   [Moduł 1](/modul-1-instalacja-hosting#https-domena-reverse-proxy-i-cloudflare-tunnel).
+- **PaaS (Platform as a Service)** - platforma, która bierze na siebie część administracji
+  serwerem (np. Railway, Render): wdrażasz n8n "na klik", ale zwykle płacisz więcej za tę samą
+  moc. Uważaj na usypianie bezczynnej instancji (darmowy plan Render) i automatyczne
+  zatrzymywanie maszyn (Fly.io) - dla n8n oznacza to nieodpalone harmonogramy. Porównanie z VPS - [Moduł 1](/modul-1-instalacja-hosting#vps-i-paas---gdzie-postawić-n8n-w-sieci),
+  pułapka uśpienia - [poradnik hostingowy](/porownanie-n8n-hostingow#render---prosto-ale-darmowy-plan-usypia).
 - **N8N_ENCRYPTION_KEY** - klucz, którym n8n szyfruje zapisane poświadczenia w bazie.
   Utrata klucza (np. przy odtwarzaniu backupu bez niego) oznacza utratę dostępu do
   wszystkich zapisanych credentials - dlatego backupujesz go osobno, razem z bazą. Pełny
@@ -226,6 +320,64 @@ konkretnym przykładzie.
 - **RODO (GDPR)** - jeśli przez n8n przepływają dane osobowe, podlegasz RODO; przy
   self-hostingu zwykle jesteś administratorem tych danych, nie tylko procesorem. Cztery
   pytania, które warto sobie zadać - [Moduł 7](/modul-7-produkcja#cztery-pytania-które-musisz-sobie-zadać).
+- **DPA (umowa powierzenia)** - umowa powierzenia przetwarzania danych osobowych, którą
+  podpisujesz z dostawcą hostingu i z każdą usługą, której przekazujesz dane (np. dostawcą
+  modelu AI). Pytanie "czy masz DPA?" to jedno z czterech pytań RODO w automatyzacjach.
+  Kontekst - [Moduł 7](/modul-7-produkcja#cztery-pytania-które-musisz-sobie-zadać).
+- **Migration Report** - raport w **Settings → Migration Report** (od n8n 2.39), który
+  pokazuje workflow i ustawienia, których dotkną zmiany łamiące w n8n 3.0. Poprawiasz je
+  jeszcze na 2.x, robisz backup i testujesz 3.0 na kopii - przejście jest jednokierunkowe.
+  Kolejność kroków - [Moduł 1](/modul-1-instalacja-hosting#aktualizacja-do-n8n-30).
+
+## Testowanie i wdrażanie zmian
+
+- **Mock API (atrapa usługi)** - osobny workflow z node'ami Webhook i Respond to Webhook,
+  który udaje prawdziwe API i odsyła przygotowany JSON i kod statusu (np. pustą listę albo
+  429). Testowany workflow woła mocka zamiast prawdziwej usługi. Jak go poukładać -
+  [Moduł 7](/modul-7-produkcja#mockowanie-api-workflow-udający-usługę).
+- **Staging** - środowisko pośrednie między dev a produkcją: ta sama promocja workflow
+  uruchomiona najpierw na staging, potem na prod. Na każdej instancji credentials mają tę
+  samą nazwę, ale inne wartości. Promocja i pułapki z ID - [Moduł 7](/modul-7-produkcja#promocja-dev--staging--prod-id-credentials-zmienne).
+- **CI/CD** - automatyczne sprawdzanie i wdrażanie zmian po każdym zatwierdzeniu
+  w repozytorium. W n8n to np. pipeline GitHub Actions, który eksportuje workflow z dev,
+  otwiera pull request do przeglądu, a po merge wgrywa je na produkcję przez Public API.
+  Szkic pipeline'u - [Moduł 7](/modul-7-produkcja#pipeline-github-actions-dev--pull-request--prod).
+- **Workflow reviews** - przegląd zmian przed publikacją: zamiast Publish wybierasz
+  _Submit for review_, a recenzent porównuje zmiany na wizualnym diffie i zatwierdza wersję.
+  Tylko plan Enterprise, status Preview. Bez Enterprise ten sam efekt daje pull request
+  z eksportem JSON. Szczegóły - [Moduł 7](/modul-7-produkcja#przegląd-przed-publikacją-workflow-reviews).
+
+## Wzorce i praca z klientami
+
+- **Dead Letter Queue (DLQ)** - "kolejka martwych listów": miejsce (np. Data Table), do
+  którego odkładasz elementy, które nie przeszły mimo ponowień, żeby nie zginęły i nie
+  blokowały reszty. Osobny workflow ponawia je cyklicznie, a po przekroczeniu limitu prób
+  woła człowieka. Budowa w n8n - [Moduł 8](/modul-8-wzorce-wdrozenia#dead-letter-queue---odkładaj-to-co-nie-przeszło).
+- **Circuit Breaker (bezpiecznik)** - wzorzec, który po serii porażek zewnętrznego API
+  przestaje je wołać na ustalony czas, a potem puszcza jedno próbne wywołanie. Chroni przed
+  marnowaniem wykonań i lawiną identycznych alertów. Stan bezpiecznika trzymasz w Data Table.
+  Krok po kroku - [Moduł 8](/modul-8-wzorce-wdrozenia#circuit-breaker---przestań-walić-w-leżące-api).
+- **Multi-tenancy (wielu klientów)** - obsługa wielu klientów w jednym systemie. W n8n
+  wybierasz między instancją per klient (pełna izolacja, większy koszt utrzymania) a jedną
+  instancją z projektem per klient (taniej, ale wspólna baza i klucz szyfrowania). Porównanie
+  obu architektur - [Moduł 8](/modul-8-wzorce-wdrozenia#instancja-per-klient-czy-projekty-w-jednej-instancji).
+- **Pakiet n8n (`.n8np`)** - plik, do którego n8n CLI eksportuje workflow, foldery albo cały
+  projekt, np. przy przekazaniu części instancji klientowi. Nie zawiera danych credentiali -
+  na instancji docelowej podpinasz je od nowa. Funkcja w wersji Preview. Kontekst -
+  [Moduł 8](/modul-8-wzorce-wdrozenia#przekazanie-instancji-klientowi).
+
+## Licencja i edycje n8n
+
+- **Sustainable Use License (fair-code)** - licencja self-hosted n8n: kod jest dostępny i możesz
+  go modyfikować, ale używasz n8n do celów wewnętrznych firmy albo niekomercyjnie. Budowanie
+  workflow dla klientów jest dozwolone, o ile dostają efekty, a nie dostęp do edytora;
+  white-label (usunięcie brandingu n8n) i hostowanie n8n jako usługi, w której klienci sami
+  budują workflow - nie. Historia
+  i zakres - [Moduł 0](/modul-0-fundamenty#licencja-sustainable-use-license-fair-code),
+  scenariusze dla agencji - [Moduł 8](/modul-8-wzorce-wdrozenia#licencja-klient-dostaje-wyniki-nie-edytor).
+- **Registered Community** - darmowa edycja Community z kluczem licencyjnym, który dostajesz
+  po podaniu adresu e-mail w ustawieniach instancji. Odblokowuje część funkcji, m.in. foldery
+  i light evaluations (podstawowy wariant Evaluations). Kontekst - [Moduł 7](/modul-7-produkcja#evaluations-testy-workflow-ai).
 
 <Takeaways title="Co warto zapamiętać">
   - n8n ma swój żargon, ale to zamknięty, powtarzalny zestaw pojęć - poznaj je raz, a będą wracać w każdym module.

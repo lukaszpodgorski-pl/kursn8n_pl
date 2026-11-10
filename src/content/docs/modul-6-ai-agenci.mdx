@@ -161,7 +161,10 @@ jego podstawie napisze odpowiedź. Model bez narzędzi po prostu zmyśliłby pog
 ### Tools Agent - domyślny typ
 
 AI Agent node historycznie oferował kilka typów (Conversational, ReAct, OpenAI Functions, Plan
-and Execute, SQL). Dziś rekomendowany i domyślny jest **Tools Agent** - korzysta z natywnego
+and Execute, SQL). Od n8n 1.82 wybór typu jest przestarzały i każdy AI Agent działa jako
+**Tools Agent**, a n8n 3.0 usuwa starą wersję node'a razem z dawnymi typami
+([docs](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent),
+[zmiany 3.0](https://docs.n8n.io/changelog/v30-breaking-changes)). Tools Agent korzysta z natywnego
 mechanizmu "function/tool calling" nowoczesnych modeli, dzięki czemu wybór narzędzi jest
 bardziej niezawodny niż w starszym podejściu ReAct opartym na parsowaniu tekstu.
 
@@ -240,9 +243,11 @@ tym więcej kontekstu, ale i wyższy koszt.
 
 ### Narzędzia (tools)
 
-Narzędzia to zdolności, które agent może wywołać samodzielnie. Przykłady: `Calculator`, `HTTP
-Request Tool`, `Wikipedia`, `Vector Store QA Tool`, `Code Tool`, a także **inny workflow jako
-narzędzie** (Call n8n Workflow Tool).
+Narzędzia to zdolności, które agent może wywołać samodzielnie. Przykłady: `Calculator`, node `HTTP
+Request` podpięty do portu Tool (nie legacy `HTTP Request Tool`, który n8n 3.0 usuwa -
+[zmiany 3.0](https://docs.n8n.io/changelog/v30-breaking-changes)), `Wikipedia`, `Vector Store QA Tool`,
+`Code Tool`, a także **inny workflow jako narzędzie** (Call n8n Workflow Tool, dawniej Custom n8n
+Workflow Tool).
 
 :::tip[Workflow jako tool - najmocniejszy wzorzec]
 To spina ten moduł z [Modułem 5](/modul-5-kod-sub-workflow): dowolny Twój sub-workflow (np.
@@ -335,7 +340,7 @@ zamówienia" i "dodaj zadanie do CRM", zbudowane w n8n.
 Ten trigger działa inaczej niż wszystkie poznane do tej pory. Nie przekazuje danych do
 następnego node'a - podpinasz do niego **wyłącznie narzędzia**, a klient MCP pobiera ich listę
 i wywołuje je, kiedy uzna za stosowne. Własny workflow wystawisz jako narzędzie przez
-**Custom n8n Workflow Tool** (ten sam wzorzec "workflow jako tool" co wyżej).
+**Call n8n Workflow Tool** (ten sam wzorzec "workflow jako tool" co wyżej).
 
 <Flow
   title="mcp-server-trigger"
@@ -351,7 +356,7 @@ i wywołuje je, kiedy uzna za stosowne. Własny workflow wystawisz jako narzędz
 />
 
 1. Utwórz nowy workflow i dodaj **MCP Server Trigger**.
-2. Podepnij narzędzia: **Custom n8n Workflow Tool** wskazujący Twój sub-workflow, HTTP Request,
+2. Podepnij narzędzia: **Call n8n Workflow Tool** wskazujący Twój sub-workflow, HTTP Request,
    Calculator - cokolwiek ma być dostępne dla klienta. Każdemu narzędziu daj jasny opis, bo to
    on decyduje, czy model go użyje.
 3. **Authentication:** `Bearer Auth` albo `Header Auth`; od wersji 2 node'a także
@@ -640,7 +645,7 @@ i ustaw limit wydatków w panelu dostawcy.
 
 ### Wariant dla zaawansowanych
 
-- **Narzędzie z prawdziwymi danymi.** Dodaj drugie narzędzie, **HTTP Request Tool**, z URL-em
+- **Narzędzie z prawdziwymi danymi.** Dodaj drugie narzędzie, node **HTTP Request** podpięty do portu Tool, z URL-em
   `https://wttr.in/Warszawa?format=j1` i opisem "Pobiera aktualną pogodę dla Warszawy". Zapytaj
   bota, czy wziąć parasol. To ten sam serwis co w
   [ćwiczeniu z Modułu 2](/modul-2-interfejs-pierwszy-workflow#ćwiczenie-pogoda-z-wttrin), tyle że
@@ -721,7 +726,7 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
   - Węzły AI w n8n bazują na LangChain i działają jako cluster nodes: root node + sub-node'y (model, memory, tools).
   - Sub-node to "zdolność" podpinana do roota od spodu - wymieniasz dostawcę modelu bez przebudowy workflow.
   - Chain = jednokrokowe, przewidywalne, tańsze. Agent = sam decyduje o użyciu narzędzi, wieloetapowy, droższy.
-  - Tools Agent to dziś domyślny, najbardziej niezawodny typ agenta.
+  - Od n8n 1.82 AI Agent ma jeden tryb, Tools Agent - starsze typy (Conversational, ReAct...) znikają całkiem w 3.0.
   - Modele podpinasz jako Chat Model + credentials; Ollama (lokalnie) = prywatność i stały koszt vs jakość chmury.
   - MCP w n8n w trzech kierunkach: MCP Client Tool (agent korzysta z cudzego serwera), MCP Server Trigger (Twój workflow jako serwer), serwer instancji (klient AI widzi wybrane workflow) - zawsze z uwierzytelnianiem i najmniejszym zestawem narzędzi.
   - RAG = embeddings + vector store + retrieval; przepływ: ingest → embed → store → retrieve → answer.

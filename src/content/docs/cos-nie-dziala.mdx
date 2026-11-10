@@ -44,7 +44,7 @@ faq:
   - q: "Ile pamięci RAM potrzebuje n8n, żeby nie zwalniać?"
     a: "Nie ma jednej uniwersalnej liczby - zależy od liczby i wielkości executions oraz obciążenia workflow. Na słabszym sprzęcie, jak Raspberry Pi, najbardziej pomaga włączony pruning historii wykonań i pilnowanie rozmiaru danych przechodzących przez workflow."
   - q: "Nie znalazłem swojego problemu na tej liście - co teraz?"
-    a: "Ta strona rośnie razem z kursem. Opisz dokładny objaw i to, co już sprawdziłeś, przez sekcję kontaktu na stronie głównej - dopiszę tu rozwiązanie."
+    a: "Ta strona rośnie razem z kursem. Opisz dokładny objaw i to, co już sprawdziłeś, mailem na kontakt@lukaszpodgorski.pl (adres jest też w sekcji O autorze na stronie głównej) - dopiszę tu rozwiązanie."
 ---
 
 import ModuleHero from '../../components/ModuleHero.astro';
@@ -149,7 +149,8 @@ rekordów).
    naprawdę tam jest i jak dokładnie się nazywa.
 2. Zamiast wpisywać nazwę pola ręcznie, przeciągnij je z panelu danych wprost do pola - n8n
    samo wstawi poprawną składnię.
-3. Jeśli odwołujesz się do konkretnego node'a po nazwie (`$node["..."]`), sprawdź, czy nie
+3. Jeśli odwołujesz się do konkretnego node'a po nazwie (`$('Nazwa')`, zalecana składnia według
+   [dokumentacji n8n](https://docs.n8n.io/build/work-with-data/reference-data/reference-previous-nodes)), sprawdź, czy nie
    zmienił się jego tytuł po ostatniej edycji.
 4. Zabezpiecz się na wypadek brakującego pola, np. `{{ $json.pole || 'brak' }}`, żeby
    kolejne node'y nie dostawały undefined.
@@ -202,7 +203,7 @@ konfiguracji, opisanej w
 **Naprawa:**
 1. Sprawdź w logach proxy, czy ruch w ogóle dobija do n8n - docelowy host/port zgodny z
    tym, na czym faktycznie nasłuchuje n8n.
-2. Ustaw w n8n zmienną `WEBHOOK_URL` na pełny publiczny adres (np.
+2. Ustaw w n8n zmienną `N8N_WEBHOOK_URL` na pełny publiczny adres (np.
    `https://n8n.twojadomena.pl/`) oraz `N8N_PROXY_HOPS=1`, gdy stoisz za jednym reverse
    proxy.
 3. Upewnij się, że proxy przekazuje nagłówki `X-Forwarded-For`, `X-Forwarded-Host` i
@@ -301,13 +302,13 @@ większości przypadków sam znajdziesz odpowiedź szybciej, niż ktoś zdąży 
 - Produkcja działa na ostatniej opublikowanej wersji - każdą poprawkę trzeba opublikować
   ponownie, inaczej zostaje szkicem w edytorze.
 - OAuth i webhooki potrzebują publicznego adresu zgodnego co do znaku (redirect URI,
-  `WEBHOOK_URL`) - literówka albo brak HTTPS wystarczą, żeby wszystko się posypało.
+  `N8N_WEBHOOK_URL`) - literówka albo brak HTTPS wystarczą, żeby wszystko się posypało.
 - `undefined` w wyrażeniu prawie zawsze znaczy: sprawdź prawdziwą strukturę danych w panelu
   Input, zamiast zgadywać nazwę pola z pamięci.
 - `N8N_ENCRYPTION_KEY` to jak hasło do wszystkich Twoich poświadczeń - zgubiony klucz
   oznacza utratę dostępu do nich na zawsze.
 - Reverse proxy i słaby sprzęt (Raspberry Pi) najczęściej psują się przez brakującą
-  konfigurację (`WEBHOOK_URL`, `N8N_PROXY_HOPS`, pruning executions), nie przez samego n8n.
+  konfigurację (`N8N_WEBHOOK_URL`, `N8N_PROXY_HOPS`, pruning executions), nie przez samego n8n.
 - Zanim zgłosisz błąd - zajrzyj w Executions, wyizoluj node przez Execute step i zobacz dane
   na własne oczy.
 </Takeaways>
