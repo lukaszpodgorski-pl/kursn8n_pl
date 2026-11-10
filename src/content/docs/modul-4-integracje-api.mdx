@@ -46,7 +46,7 @@ faq:
   - q: "Co zrobić, gdy usługa nie ma gotowego node'a w n8n?"
     a: "Użyj node'a HTTP Request. Jeśli usługa ma dokumentację API, niemal zawsze obsłużysz ją ręcznie: ustawiasz metodę, URL, nagłówki i body, a autoryzację podpinasz przez \"Generic Credential Type\". Najszybciej zacząć od opcji \"Import cURL\" i wklejenia gotowego polecenia z dokumentacji."
   - q: "API key czy OAuth2 - co wybrać?"
-    a: "Jeśli usługa daje wybór: OAuth2 jest bezpieczniejszy, bo ma ograniczony zakres i łatwo cofnąć dostęp, ale wymaga publicznego HTTPS i callbacku. API key jest prostszy do skonfigurowania i dobry do własnych/wewnętrznych API oraz szybkich testów. Często usługa narzuca jeden typ - wtedy decyzji nie ma."
+    a: "Jeśli usługa daje wybór: OAuth2 jest bezpieczniejszy, bo ma ograniczony zakres i łatwo cofnąć dostęp, ale wymaga adresu callback (część dostawców chce HTTPS, Google dopuszcza http://localhost). API key jest prostszy do skonfigurowania i dobry do własnych/wewnętrznych API oraz szybkich testów. Często usługa narzuca jeden typ - wtedy decyzji nie ma."
   - q: "Mój webhook nie reaguje - dlaczego?"
     a: "Najczęstsze przyczyny: użyłeś Test URL zamiast Production URL, workflow nie jest opublikowany (przycisk \"Publish\"; w n8n 1.x przełącznik \"Active\") albo nie opublikowałeś ponownie ostatnich zmian, niezgodna metoda HTTP (np. wysyłasz GET, a node nasłuchuje POST) albo blokuje Cię uwierzytelnianie webhooka. Przy self-hostingu sprawdź też, czy instancja jest publicznie dostępna pod HTTPS."
   - q: "Jak sprawdzić, że webhook naprawdę przyszedł od Stripe albo GitHuba?"
@@ -175,7 +175,7 @@ _scope'ów_ i można go cofnąć po stronie usługi.
 | Konfiguracja | Wklej klucz - szybko | Klik "Connect", zgoda w przeglądarce |
 | Zakres uprawnień | Zwykle pełny (jak konto) | Ograniczony do wybranych scope'ów |
 | Wygasanie | Działa do odwołania | Access token krótkożyciowy, odświeżany refresh tokenem |
-| Callback / HTTPS | Niepotrzebny | Wymaga publicznego adresu callback (HTTPS) |
+| Callback / HTTPS | Niepotrzebny | Wymaga adresu callback; część dostawców chce HTTPS, Google dopuszcza `http://localhost` |
 | Wycofanie dostępu | Trzeba unieważnić klucz w usłudze | Cofasz zgodę w panelu usługi |
 | Typowo używane przez | Notion, Airtable, wiele prostych API | Google, Microsoft, Slack, GitHub |
 | Najlepsze do… | Szybki start, własne / wewnętrzne API | Konta użytkowników, ograniczony i odwoływalny dostęp |
@@ -188,11 +188,15 @@ Poświadczenia są przechowywane w bazie n8n w postaci **zaszyfrowanej**. Do szy
 self-hostingu musisz go zachować i mieć w backupie - inaczej po migracji stracisz dostęp do
 wszystkich połączeń.
 
-:::caution[OAuth2 wymaga publicznego HTTPS]
-Przepływ OAuth2 odsyła użytkownika na adres callback Twojej instancji n8n, a usługi (Google,
-Microsoft, Slack) akceptują tylko publiczne adresy `https://`. Na `localhost` bez tunelu OAuth
-zwykle nie zadziała. Jeśli self-hostujesz, zadbaj o domenę, certyfikat i poprawnie ustawiony
-`WEBHOOK_URL` - zasady konfiguracji rozkładam w
+:::caution[OAuth2 a publiczny adres]
+Przepływ OAuth2 odsyła Twoją przeglądarkę na adres callback instancji n8n. Skoro przekierowanie
+idzie przez przeglądarkę, `localhost` często wystarczy: Google wymaga `https://` w callbacku, ale
+adresy `localhost` są z tej zasady wyłączone
+([Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2/web-server), stan na
+listopad 2026). Część dostawców wymaga jednak HTTPS bez wyjątków - sprawdź w ich dokumentacji.
+Publiczny adres HTTPS jest konieczny dla webhooków i triggerów (usługa musi do Ciebie
+zadzwonić) oraz dla dostępu z innych urządzeń. Jeśli self-hostujesz, zadbaj o domenę,
+certyfikat i poprawnie ustawiony `WEBHOOK_URL` - zasady konfiguracji rozkładam w
 [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
 :::
 
@@ -469,8 +473,13 @@ return { json: { ...$json, signatureValid: podpisOk && wiek <= 300 } };
 W n8n Cloud moduł `crypto` jest dostępny w Code node od ręki
 ([dokumentacja Code node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/),
 stan na listopad 2026). Na self-hostingu import modułów jest domyślnie wyłączony - dopuść go
-zmienną `NODE_FUNCTION_ALLOW_BUILTIN=crypto`, a przy task runnerach ustaw ją na runnerach, nie na
-głównym procesie n8n ([włączanie modułów w Code node](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/enable-modules-in-code-node)).
+zmienną `NODE_FUNCTION_ALLOW_BUILTIN=crypto`
+([włączanie modułów w Code node](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/enable-modules-in-code-node)).
+Gdzie ją wpisać, zależy od trybu task runnerów. W trybie internal ustawiasz ją jako zmienną
+środowiskową kontenera n8n. W trybie external (osobny kontener `n8nio/runners`) wpisujesz ją
+jako `env-override` w pliku `/etc/n8n-task-runners.json` - dopisana do `environment:` kontenera
+nie zadziała i `require('crypto')` dalej będzie odrzucany
+([Task runners environment variables](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/task-runners)).
 Więcej o modułach w [Module 5: Kod i sub-workflow](/modul-5-kod-sub-workflow).
 :::
 
@@ -663,9 +672,10 @@ Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdan
 kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 
 1. Twoje self-hostowane n8n działa na `localhost` bez żadnego publicznego adresu. Dlaczego
-   uwierzytelnianie API key skonfigurujesz bez problemu, a OAuth2 do Google czy Slacka - nie?
-   Jeśli nie masz pewności -
-   [Uwierzytelnianie: API key vs OAuth2](#uwierzytelnianie-api-key-vs-oauth2).
+   zapytanie HTTP Request z API key wyślesz bez problemu, a webhook ze Stripe czy GitHuba do
+   Ciebie nie dotrze? Jeśli nie masz pewności -
+   [Uwierzytelnianie: API key vs OAuth2](#uwierzytelnianie-api-key-vs-oauth2) i
+   [Odbieranie: node Webhook](#odbieranie-node-webhook).
 2. Jaka jest różnica między "n8n odbiera webhook" a "n8n wysyła dane do cudzego webhooka" -
    jakiego node'a użyjesz w każdym z tych dwóch kierunków? Jeśli nie masz pewności -
    [Webhooki: odbieranie i wysyłanie](#webhooki-odbieranie-i-wysyłanie).
@@ -705,7 +715,7 @@ Potrzebujesz działającej instancji n8n i kilkunastu minut.
 <Takeaways>
   - Node'y aplikacji działają według schematu **Resource → Operation** - opanuj go raz i obsłużysz każdy nowy node.
   - Credentials tworzysz raz i podpinasz wielokrotnie; n8n trzyma je zaszyfrowane (encryption key).
-  - **API key** = szybki sekret o pełnym zakresie; **OAuth2** = ograniczona, odwoływalna zgoda wymagająca publicznego HTTPS i callbacku.
+  - **API key** = szybki sekret o pełnym zakresie; **OAuth2** = ograniczona, odwoływalna zgoda przez adres callback. Publiczny HTTPS jest konieczny dla webhooków i triggerów.
   - **HTTP Request** obsłuży każde API, gdy brakuje gotowego node'a - z metodami, nagłówkami, body i autoryzacją przez credentials.
   - Webhook node odbiera zdarzenia (test vs production URL, odpowiedź przez Respond to Webhook); HTTP Request wysyła zdarzenia do cudzych webhooków.
   - Webhook od zewnętrznego dostawcy weryfikuj **podpisem HMAC**: Raw Body, node Crypto z sekretem w credentialu i porównanie przez `crypto.timingSafeEqual` z kontrolą długości; przed powtórkami chroni znacznik czasu i odsiewanie ID zdarzeń.

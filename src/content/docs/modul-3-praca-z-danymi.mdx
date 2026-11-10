@@ -1,6 +1,6 @@
 ---
 title: Praca z danymi w n8n
-description: "Praca z danymi w n8n po polsku: struktura items (json/binary), wyrażenia {{ }} i zmienne $json/$node/$input, node Edit Fields (Set), logika IF/Switch/Filter, pętle Loop Over Items, Merge oraz pliki binarne (PDF, obrazy, CSV)."
+description: "Praca z danymi w n8n po polsku: struktura items (json/binary), wyrażenia {{ }} i zmienne $json/$('Nazwa')/$input, node Edit Fields (Set), logika IF/Switch/Filter, pętle Loop Over Items, Merge oraz pliki binarne (PDF, obrazy, CSV)."
 head:
   - tag: title
     content: "Moduł 3: Praca z danymi w n8n - items, wyrażenia, IF/Switch, Merge, pliki binarne | KursN8N.pl"
@@ -16,7 +16,7 @@ datePublished: 2026-05-21
 educationalLevel: Intermediate
 teaches:
   - Jak n8n przechowuje dane - strukturę items z kluczami json i binary
-  - Jak pisać wyrażenia {{ }} i korzystać ze zmiennych $json, $node, $input, $now
+  - Jak pisać wyrażenia {{ }} i korzystać ze zmiennych $json, $('Nazwa'), $input, $now
   - Do czego służy Edit Fields (Set) i jak mapować dane pod inny system
   - Różnicę między IF, Switch i Filter
   - Kiedy n8n iteruje samo, a kiedy potrzebna jest jawna pętla (Loop Over Items)
@@ -35,8 +35,8 @@ mentions:
 faq:
   - q: "Dlaczego mój node przetwarza tylko jeden rekord, a nie wszystkie?"
     a: "Najczęstsze przyczyny: w ustawieniach node'a włączona jest opcja Execute Once, albo na wejściu masz jeden item z tablicą w środku zamiast wielu itemów. W drugim przypadku użyj node'a Split Out, by rozbić tablicę na osobne itemy."
-  - q: "Czym różni się $json od $node?"
-    a: "$json odwołuje się do danych itemu pochodzących z bezpośrednio poprzedniego node'a. $node[\"Nazwa\"] pozwala sięgnąć do danych dowolnego wcześniejszego, nazwanego node'a - przydatne, gdy potrzebujesz wartości sprzed kilku kroków."
+  - q: "Czym różni się $json od $('Nazwa')?"
+    a: "$json odwołuje się do danych itemu pochodzących z bezpośrednio poprzedniego node'a. $('Nazwa') pozwala sięgnąć do danych dowolnego wcześniejszego, nazwanego node'a, np. $('Webhook').item.json.id - przydatne, gdy potrzebujesz wartości sprzed kilku kroków. Starsza składnia $node[\"Nazwa\"].json nie jest już opisana w dokumentacji n8n."
   - q: "Kiedy użyć Filter, a kiedy IF?"
     a: "Jeśli chcesz tylko usunąć z przepływu itemy, które nie spełniają warunku, i jechać dalej jednym torem - użyj Filter. Jeśli potrzebujesz obsłużyć osobno itemy spełniające i niespełniające warunek (dwie różne ścieżki) - użyj IF i podłącz obie gałęzie."
   - q: "Jak połączyć dane z dwóch list po wspólnym polu?"
@@ -55,7 +55,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 3 · Poziom: średnio zaawansowany"
-  readingTime="~22 min"
+  readingTime="~16 min"
   note="Items, wyrażenia, logika, pliki"
 />
 
@@ -91,7 +91,7 @@ następująco:
     },
     "binary": {
       "faktura": {
-        "data": "JVBERi0xLjQ...",  // zawartość pliku zakodowana w base64
+        "data": "JVBERi0xLjQ...",
         "mimeType": "application/pdf",
         "fileName": "faktura.pdf"
       }
@@ -109,7 +109,7 @@ następująco:
 
 Powyżej widać **dwa itemy**. Pierwszy ma zarówno dane `json`, jak i plik w `binary`; drugi ma
 tylko `json`. To normalne - klucz `binary` pojawia się tylko wtedy, gdy item niesie ze sobą plik.
-Treść pliku w polu `data` zapisana jest w _base64_ - to sposób przedstawienia dowolnego pliku
+Treść pliku w polu `data` (w przykładzie skrócona) zapisana jest w _base64_ - to sposób przedstawienia dowolnego pliku
 (np. PDF) jako jednego długiego ciągu zwykłych znaków tekstowych.
 
 <CardGrid>
@@ -165,7 +165,7 @@ używać najczęściej:
 | --- | --- | --- |
 | `$json` | Dane `json` bieżącego itemu z poprzedniego node'a | `{{ $json.email }}` |
 | `$binary` | Dane binarne bieżącego itemu | `{{ $binary.faktura.fileName }}` |
-| `$node` | Dostęp do danych konkretnego, nazwanego node'a (po nazwie) | `{{ $node["Webhook"].json.id }}` |
+| `$('Nazwa')` | Dostęp do danych konkretnego, nazwanego node'a (po nazwie), z metodami `.item`, `.first()`, `.all()` | `{{ $('Webhook').item.json.id }}` |
 | `$input` | Wejście bieżącego node'a - z metodami `.item`, `.all()`, `.first()`, `.last()` | `{{ $input.first().json.imie }}` |
 | `$now` | Aktualna data i czas (obiekt DateTime / Luxon) | `{{ $now.toISO() }}` |
 | `$workflow` / `$execution` | Metadane bieżącego workflow i wykonania (id, nazwa) | `{{ $workflow.name }}` |
@@ -183,7 +183,7 @@ używać najczęściej:
 Cześć {{ $json.imie }}, dziękujemy za zamówienie!
 
 // Odwołanie do konkretnego, nazwanego node'a
-{{ $node["HTTP Request"].json.results[0].id }}
+{{ $('HTTP Request').item.json.results[0].id }}
 
 // Metody JavaScript działają wewnątrz klamer
 {{ $json.email.toLowerCase() }}
@@ -305,6 +305,9 @@ przerobi wszystkie. Używasz go w konkretnych sytuacjach:
 - **Batchowanie** - gdy API ma limit (np. maks. 100 rekordów na żądanie albo rate limit),
   przetwarzasz dane partiami.
 - **Paginacja** - pobieranie kolejnych stron wyników (strona 1, 2, 3…) aż do wyczerpania danych.
+  W node HTTP Request zrobi to za Ciebie wbudowana opcja **Pagination**
+  ([Moduł 4](/modul-4-integracje-api#paginacja---pobieranie-wielu-stron)). Pętla przydaje się
+  tam, gdzie takiej opcji nie ma, albo gdy po każdej stronie musisz coś zrobić.
 - **Operacje krok po kroku** - gdy każda iteracja zależy od wyniku poprzedniej i musisz je
   rozdzielić w czasie.
 
@@ -438,8 +441,9 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
    inne miejsce workflow. Lepiej użyć kilku node'ów IF z rzędu, czy jednego Switcha?
    Dlaczego? Jeśli nie masz pewności - [Logika: IF, Switch, Filter](#logika-if-switch-filter).
 4. Pobierasz z API 10 000 rekordów, a usługa ogranicza jedno zapytanie do maksymalnie 100
-   rekordów. Które narzędzie z tego modułu pozwoli Ci to sensownie obsłużyć i na czym
-   dokładnie polega jego działanie? Jeśli nie masz pewności -
+   rekordów. Pobierasz je opcją Pagination w HTTP Request (Moduł 4), ale docelowy system
+   przyjmuje maksymalnie 100 rekordów w jednym zapisie. Które narzędzie z tego modułu pozwoli
+   Ci to sensownie obsłużyć i na czym dokładnie polega jego działanie? Jeśli nie masz pewności -
    [Loop Over Items (Split in Batches)](#loop-over-items-split-in-batches).
 
 <details>
@@ -448,8 +452,11 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 Potrzebujesz działającej instancji n8n i kilkunastu minut.
 
 1. Dodaj **Manual Trigger**, a po nim **Edit Fields** - utwórz w nim 3-4 testowe pola, np.
-   `imie`, `kwota`, `kraj` (wpisz wartości na stałe, tryb Fixed).
-2. Dodaj node **IF** z warunkiem `{{ $json.kwota }} > 100`.
+   `imie`, `kwota`, `kraj` (wpisz wartości na stałe, tryb Fixed). Polu `kwota` ustaw typ
+   **Number** - z domyślnym typem String porównanie liczbowe w IF może zgłosić błąd typu.
+2. Dodaj node **IF**: w lewym polu warunku wpisz `{{ $json.kwota }}`, z listy wybierz operator
+   **Number → is greater than**, w prawym polu wpisz `100`
+   ([If node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if)).
 3. Na gałęzi **true** dodaj kolejny Edit Fields, który ustawia pole `komunikat` na
    "Rabat 10%".
 4. Na gałęzi **false** dodaj analogiczny Edit Fields z polem `komunikat` ustawionym na
@@ -462,7 +469,7 @@ Potrzebujesz działającej instancji n8n i kilkunastu minut.
 
 <Takeaways>
   - Dane w n8n to lista itemów; każdy item ma klucz `json` i opcjonalnie `binary`.
-  - Wyrażenia w `{{ }}` sięgają po dane: `$json`, `$node`, `$input`, `$now` - przełącz pole z Fixed na Expression.
+  - Wyrażenia w `{{ }}` sięgają po dane: `$json`, `$('Nazwa')`, `$input`, `$now` - przełącz pole z Fixed na Expression.
   - Edit Fields (Set) to główne narzędzie do dodawania, zmiany i mapowania pól.
   - IF = 2 gałęzie, Switch = wiele gałęzi, Filter = odsiewa itemy bez rozgałęziania.
   - Node domyślnie iteruje po itemach sam - jawna pętla (Loop Over Items) potrzebna głównie przy paginacji i batchowaniu.
