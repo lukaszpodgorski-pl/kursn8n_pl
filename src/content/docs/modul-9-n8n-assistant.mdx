@@ -44,7 +44,7 @@ faq:
   - q: "Czy Assistant może działać na modelu lokalnym, bez płacenia za tokeny?"
     a: "Tak. Assistant przyjmuje dowolny endpoint zgodny z OpenAI, więc może chodzić na modelu postawionym u Ciebie - Ollama, LM Studio czy vLLM. Adres wskazujesz zmienną `N8N_INSTANCE_AI_MODEL_URL`, a część lokalnych serwerów nie wymaga nawet klucza API. Haczyk jest jeden: ta droga prowadzi przez zmienne środowiskowe, więc wybór modelu w interfejsie zostaje zablokowany. Płacisz wtedy prądem i sprzętem zamiast tokenami, a dane z workflow nie opuszczają Twojej maszyny."
   - q: "Kto płaci za tokeny zużywane przez Assistanta?"
-    a: "Ty - przez klucz API dostawcy modelu, który podpinasz przy konfiguracji. Assistant nie ma własnego, wliczonego w licencję budżetu na tokeny w wariancie self-hosted: każda rozmowa idzie do Twojego dostawcy (OpenAI, Anthropic, OpenRouter) i obciąża Twój rachunek. Uważaj przy tym na model: kreator podpowiada Opusa od Anthropic, czyli najdroższą opcję, a do budowania workflow Sonnet i mniejsze modele radzą sobie spokojnie. Dla skali: prosty workflow na trzy węzły (webhook, przetworzenie, wysyłka na Telegram) kosztował mnie prawie 50 centów. Dlatego ma sens ten sam nawyk, co przy agentach z Modułu 6: świadomy wybór modelu oraz limity i alerty zużycia po stronie dostawcy."
+    a: "W self-hostingu Ty - przez klucz API dostawcy modelu, który podpinasz przy konfiguracji (na n8n Cloud Assistant zużywa kredyty wliczone w plan i kluczy się nie podpina). Assistant nie ma własnego, wliczonego w licencję budżetu na tokeny w wariancie self-hosted: każda rozmowa idzie do Twojego dostawcy (OpenAI, Anthropic, OpenRouter) i obciąża Twój rachunek. Uważaj przy tym na model: kreator podpowiada Opusa od Anthropic, czyli najdroższą opcję, a do budowania workflow Sonnet i mniejsze modele radzą sobie spokojnie. Dla skali: prosty workflow na trzy węzły (webhook, przetworzenie, wysyłka na Telegram) kosztował mnie prawie 50 centów. Dlatego ma sens ten sam nawyk, co przy agentach z Modułu 6: świadomy wybór modelu oraz limity i alerty zużycia po stronie dostawcy."
 ---
 
 import { CardGrid } from '@astrojs/starlight/components';
@@ -65,14 +65,17 @@ własnego asystenta, który buduje je **za Ciebie**. Opisujesz zadanie w czacie 
 a Assistant układa węzły na kanwie, wypełnia je i potrafi rozebrać na części błąd, który
 właśnie zobaczyłeś.
 
-To najkrótszy moduł w kursie i taki ma być. Assistant nie jest tematem do nauczenia się -
+To jeden z najkrótszych modułów w kursie i taki ma być. Assistant nie jest tematem do nauczenia się -
 jest funkcją do włączenia. Cała trudność siedzi w jednym warunku wstępnym, w dwóch
 pułapkach, na których ludzie tracą godziny, i w rachunku za tokeny.
 
-:::danger[Zanim włączysz: płacisz za to własnym kluczem API]
-Assistant działa na modelu, który podpinasz **swoim kluczem API**. Każda jego odpowiedź
+:::danger[Zanim włączysz: w self-hostingu płacisz własnym kluczem API]
+W self-hostingu Assistant działa na modelu, który podpinasz **swoim kluczem API**. Każda jego odpowiedź
 obciąża Twój rachunek u dostawcy, nie n8n - to nie jest funkcja "w cenie". Jeśli podpinasz
-własne API, masz tego pewnie świadomość. Gorzej z drugą częścią.
+własne API, masz tego pewnie świadomość. Na **n8n Cloud** kluczy nie podpinasz: Assistant zużywa
+kredyty z planu (Starter 1 600/mies., Pro do 9 600/mies., stan na listopad 2026), a po ich
+wyczerpaniu właściciel instancji dokupuje kolejne ([docs](https://docs.n8n.io/build/ways-of-building-workflows/n8n-assistant),
+[cennik](https://n8n.io/pricing/)). Gorzej z drugą częścią.
 
 **Kreator podpowiada Opusa od Anthropic**, czyli najmocniejszy, a zarazem najdroższy model
 w tej rodzinie ([cennik](https://www.anthropic.com/pricing)). Do budowania workflow to
@@ -150,7 +153,7 @@ w tym pliku nie wolno ruszać, są w [Module 1](/modul-1-instalacja-hosting#sand
 
 ## Włączenie: trzy wiersze kreatora
 
-W n8n wejdź w `Settings → AI Assistant` (albo prosto pod adres `/assistant`). Kreator ma
+W n8n wejdź w `Settings → Assistant` (albo prosto pod adres `/assistant`). Kreator ma
 dokładnie trzy wiersze i tylko pierwszy wymaga Twojej decyzji:
 
 | Wiersz | Co ma tam być | Skąd |
@@ -187,7 +190,8 @@ kroku? [Daj mi znać](/#o-autorze)**, a wezmę to na warsztat.
 
 Assistant nie działa w Twoim n8n bez nadzoru. Przed operacjami o dużym wpływie - publikacją,
 usunięciem, istotną zmianą - prosi o potwierdzenie, a rutynowe składanie węzłów na kanwie
-robi sam. Zakres tych zgód ustawiasz przy konfiguracji i warto na nie spojrzeć od razu,
+robi sam. Zakres tych zgód ustawia admin instancji w `Settings → Assistant → Permissions`
+([docs](https://docs.n8n.io/build/ways-of-building-workflows/n8n-assistant)) i warto na nie spojrzeć od razu,
 zanim pierwszy raz puścisz go na katalog produkcyjnych workflow.
 
 :::note[Ta sama zasada, co przy agentach]
@@ -343,6 +347,6 @@ przypadkach na dziesięć odpowiedź jest w logu, nie w interfejsie.
   - Zmienne `N8N_INSTANCE_AI_MODEL` i `N8N_INSTANCE_AI_MODEL_API_KEY` blokują wybór modelu w UI - nie ustawiaj ich.
   - Interfejs pokazuje objaw, log kontenera pokazuje przyczynę. Zaczynaj od `docker compose logs n8n`.
   - Zatwierdzanie akcji zostaw włączone, a klucz API trzymaj pod limitem wydatków u dostawcy.
-  - Za tokeny płacisz Ty. Kreator podpowiada najdroższego Opusa, a Sonnet i mniejsze modele budują workflow równie dobrze - trzy węzły potrafią kosztować 50 centów.
+  - W self-hostingu za tokeny płacisz Ty (na Cloud Assistant zużywa kredyty z planu). Kreator podpowiada najdroższego Opusa, a Sonnet i mniejsze modele budują workflow równie dobrze - trzy węzły potrafią kosztować 50 centów.
   - Rachunku da się uniknąć w całości: Assistant przyjmuje endpoint zgodny z OpenAI, więc pociągnie model lokalny (Ollama, LM Studio, vLLM) - kosztem zablokowanego wyboru modelu w interfejsie.
 </Takeaways>
