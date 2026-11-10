@@ -423,7 +423,7 @@ services:
 
   # Twoja istniejąca usługa n8n - te wpisy dokleją się do tego, co już masz.
   n8n:
-    image: n8nio/n8n:2.46.7 # wpisz wersję, która u Ciebie chodzi
+    image: n8nio/n8n:2.47.3 # wpisz wersję, która u Ciebie chodzi
     environment:
       N8N_INSTANCE_AI_SANDBOX_ENABLED: 'true'
       N8N_INSTANCE_AI_SANDBOX_PROVIDER: n8n-sandbox
@@ -770,13 +770,13 @@ docker run -d --name n8n \
  -p 5678:5678 \
  -e N8N_ENCRYPTION_KEY=<TWÓJ_WYGENEROWANY_KLUCZ> \
  -v n8n_data:/home/node/.n8n \
- docker.n8n.io/n8nio/n8n:2.46.7
+ docker.n8n.io/n8nio/n8n:2.47.3
 ```
 
 ```yaml
 services:
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.46.7
+    image: docker.n8n.io/n8nio/n8n:2.47.3
     environment:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 ```
@@ -842,13 +842,13 @@ Wtedy `docker rm` pomiń - kontener znika sam przy zatrzymaniu i ta komenda sko�
 błędem "No such container".
 
 Możesz też przypiąć konkretną wersję zamiast najnowszej, podając tag, np.
-`docker.n8n.io/n8nio/n8n:2.46.7` (wersja stabilna z 9 listopada 2026) - przydatne, gdy
+`docker.n8n.io/n8nio/n8n:2.47.3` (wersja stabilna z 9 listopada 2026) - przydatne, gdy
 chcesz kontrolować, na co dokładnie aktualizujesz.
 
 | Tag | Co dostajesz |
 | --- | --- |
 | `:stable` | najnowsze wydanie stabilne - to chcesz na produkcji |
-| `:2.46.7` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
+| `:2.47.3` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
 | `:beta` | najświeższe wydanie eksperymentalne **linii 2.x** (dziś 2.48.x), nie 3.x - do testów, nie na produkcję |
 | `:3.2.0` | jawny tag bety linii 3.x - tylko do testu migracji na kopii, patrz [Aktualizacja do n8n 3.0](#aktualizacja-do-n8n-30) |
 
