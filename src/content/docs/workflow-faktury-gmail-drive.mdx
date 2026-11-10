@@ -150,7 +150,7 @@ nawyków nazewniczych faktur.
      [wygasają po siedmiu dniach](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
      (stan na listopad 2026) - patrz "Co może pójść nie tak" niżej. Ten adres przekierowania musi
      być publiczny i po HTTPS -
-     zasady konfiguracji domeny i `WEBHOOK_URL` rozkładam w
+     zasady konfiguracji domeny i `N8N_WEBHOOK_URL` rozkładam w
      [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting). Wyjątek:
      [dokumentacja Google OAuth w n8n](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
      dopuszcza `localhost` bez publicznej domeny i SSL na potrzeby lokalnego developmentu - nie
@@ -221,7 +221,7 @@ fakturami i jak długo je tam trzymasz.
   [udokumentowany wyjątek](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/))
   albo literówka przy wklejaniu. Naprawa: skopiuj **OAuth
   Redirect URL** dokładnie z panelu credentiala n8n (łącznie z protokołem i portem) i wklej go
-  bez zmian w "Authorized redirect URIs" w Google Cloud Console - zasady HTTPS/`WEBHOOK_URL` przy
+  bez zmian w "Authorized redirect URIs" w Google Cloud Console - zasady HTTPS/`N8N_WEBHOOK_URL` przy
   self-hostingu opisuję w [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
 - **Trigger nie łapie starych maili po pierwszej publikacji.** Gmail Trigger zapamiętuje moment
   ostatniego sprawdzenia i od publikacji pilnuje tylko wiadomości nowszych niż ten moment -

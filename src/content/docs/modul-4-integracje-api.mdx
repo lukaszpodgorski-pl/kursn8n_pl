@@ -196,7 +196,7 @@ adresy `localhost` są z tej zasady wyłączone
 listopad 2026). Część dostawców wymaga jednak HTTPS bez wyjątków - sprawdź w ich dokumentacji.
 Publiczny adres HTTPS jest konieczny dla webhooków i triggerów (usługa musi do Ciebie
 zadzwonić) oraz dla dostępu z innych urządzeń. Jeśli self-hostujesz, zadbaj o domenę,
-certyfikat i poprawnie ustawiony `WEBHOOK_URL` - zasady konfiguracji rozkładam w
+certyfikat i poprawnie ustawiony `N8N_WEBHOOK_URL` - zasady konfiguracji rozkładam w
 [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
 :::
 
@@ -591,7 +591,7 @@ u siebie - wariant poniżej.
 - **Czas:** 25-35 minut.
 - **Potrzebujesz:** jednej instancji n8n (wariant solo) albo dwóch instancji osiągalnych przez
   sieć (wariant w parze). Instancja na `localhost` wystarczy do gry solo, ale do gry w parze
-  musi mieć publiczny adres HTTPS i ustawione `WEBHOOK_URL` - patrz
+  musi mieć publiczny adres HTTPS i ustawione `N8N_WEBHOOK_URL` - patrz
   [HTTPS, domena, reverse proxy i Cloudflare Tunnel](/modul-1-instalacja-hosting#https-domena-reverse-proxy-i-cloudflare-tunnel).
   n8n Cloud ma publiczny adres od razu.
 
@@ -661,7 +661,7 @@ u siebie - wariant poniżej.
 | 404 z komunikatem, że webhook _is not registered_ | Odbiornik nie jest opublikowany albo Nadajnik używa Test URL zamiast Production URL |
 | 404 z podpowiedzią _Did you mean to make a … request?_ | Niezgodna metoda - Webhook nasłuchuje na `POST`, a HTTP Request wysyła `GET` (albo odwrotnie) |
 | W Odbiorniku pola `od` i `wiadomosc` są puste | Wyrażenie bez `body` - dane leżą w `$json.body.from`, a nie w `$json.from` |
-| Kolega dostaje `ECONNREFUSED` albo timeout | Wysłałeś mu adres z `localhost` - Twoja instancja nie ma publicznego adresu albo brakuje `WEBHOOK_URL` |
+| Kolega dostaje `ECONNREFUSED` albo timeout | Wysłałeś mu adres z `localhost` - Twoja instancja nie ma publicznego adresu albo brakuje `N8N_WEBHOOK_URL` |
 | Publikacja Odbiornika kończy się błędem o zajętej ścieżce | Inny opublikowany workflow ma już ten sam _Path_ i metodę - zmień ścieżkę |
 | Odbiornik po poprawkach dalej działa po staremu | Produkcja używa opublikowanej wersji - po każdej zmianie kliknij **Publish** ponownie |
 | Odmowa (401 lub 403) po włączeniu Header Auth | Nazwa albo wartość nagłówka w Nadajniku różni się od tej w credentialu Odbiornika |

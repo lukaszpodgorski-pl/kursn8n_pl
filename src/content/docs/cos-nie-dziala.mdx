@@ -203,7 +203,7 @@ konfiguracji, opisanej w
 **Naprawa:**
 1. Sprawdź w logach proxy, czy ruch w ogóle dobija do n8n - docelowy host/port zgodny z
    tym, na czym faktycznie nasłuchuje n8n.
-2. Ustaw w n8n zmienną `WEBHOOK_URL` na pełny publiczny adres (np.
+2. Ustaw w n8n zmienną `N8N_WEBHOOK_URL` na pełny publiczny adres (np.
    `https://n8n.twojadomena.pl/`) oraz `N8N_PROXY_HOPS=1`, gdy stoisz za jednym reverse
    proxy.
 3. Upewnij się, że proxy przekazuje nagłówki `X-Forwarded-For`, `X-Forwarded-Host` i
@@ -302,13 +302,13 @@ większości przypadków sam znajdziesz odpowiedź szybciej, niż ktoś zdąży 
 - Produkcja działa na ostatniej opublikowanej wersji - każdą poprawkę trzeba opublikować
   ponownie, inaczej zostaje szkicem w edytorze.
 - OAuth i webhooki potrzebują publicznego adresu zgodnego co do znaku (redirect URI,
-  `WEBHOOK_URL`) - literówka albo brak HTTPS wystarczą, żeby wszystko się posypało.
+  `N8N_WEBHOOK_URL`) - literówka albo brak HTTPS wystarczą, żeby wszystko się posypało.
 - `undefined` w wyrażeniu prawie zawsze znaczy: sprawdź prawdziwą strukturę danych w panelu
   Input, zamiast zgadywać nazwę pola z pamięci.
 - `N8N_ENCRYPTION_KEY` to jak hasło do wszystkich Twoich poświadczeń - zgubiony klucz
   oznacza utratę dostępu do nich na zawsze.
 - Reverse proxy i słaby sprzęt (Raspberry Pi) najczęściej psują się przez brakującą
-  konfigurację (`WEBHOOK_URL`, `N8N_PROXY_HOPS`, pruning executions), nie przez samego n8n.
+  konfigurację (`N8N_WEBHOOK_URL`, `N8N_PROXY_HOPS`, pruning executions), nie przez samego n8n.
 - Zanim zgłosisz błąd - zajrzyj w Executions, wyizoluj node przez Execute step i zobacz dane
   na własne oczy.
 </Takeaways>
