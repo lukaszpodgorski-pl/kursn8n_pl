@@ -52,7 +52,7 @@ faq:
   - q: "Po restarcie zniknęły mi workflow i poświadczenia - dlaczego?"
     a: "Najczęściej dlatego, że kontener uruchomiono bez wolumenu danych. Upewnij się, że masz `-v n8n_data:/home/node/.n8n` (lub odpowiedni wpis w Compose). Dane n8n - baza, poświadczenia, klucz szyfrowania - żyją w tym wolumenie, nie w samym kontenerze."
   - q: "Czy potrzebuję własnej domeny i HTTPS?"
-    a: "Do nauki lokalnej nie. Ale gdy chcesz używać webhooków albo logowania OAuth do zewnętrznych usług, potrzebujesz publicznego adresu po HTTPS. Na VPS-ie zrobisz to przez reverse proxy z Let's Encrypt, a w domu najwygodniej przez Cloudflare Tunnel."
+    a: "Do nauki lokalnej nie. Ale gdy chcesz odbierać webhooki z zewnętrznych usług albo logować się przez OAuth do n8n stojącego na serwerze, potrzebujesz publicznego adresu po HTTPS (na własnym komputerze Google przyjmuje callback na `http://localhost`). Na VPS-ie zrobisz to przez reverse proxy z Let's Encrypt, a w domu najwygodniej przez Cloudflare Tunnel."
   - q: "Co się stanie, jeśli zgubię N8N_ENCRYPTION_KEY?"
     a: "Nie odszyfrujesz istniejących poświadczeń zapisanych w bazie - trzeba będzie wprowadzić je ponownie. Dlatego klucz traktuj jak hasło: przechowuj go bezpiecznie i backupuj razem z bazą danych. Na produkcji najlepiej ustawić własny klucz zmienną środowiskową, zanim uruchomisz instancję po raz pierwszy."
   - q: "Czy muszę dokładać sandbox, żeby korzystać z n8n Assistant?"
@@ -653,8 +653,8 @@ swój przypadek.
 ## HTTPS, domena, reverse proxy i Cloudflare Tunnel
 
 Self-hostowane n8n prawie zawsze chcesz wystawić po HTTPS, na własnej domenie. To nie
-jest fanaberia - bez publicznego, bezpiecznego adresu nie zadziałają poprawnie webhooki
-ani logowanie OAuth do wielu usług.
+jest fanaberia - bez publicznego, bezpiecznego adresu nie zadziałają webhooki z zewnątrz,
+a na serwerze także logowanie OAuth do większości usług.
 
 :::note[Po ludzku - słowa z tej sekcji]
 
@@ -670,13 +670,25 @@ ani logowanie OAuth do wielu usług.
 
 :::
 
-### Dlaczego OAuth wymaga publicznego HTTPS
+### OAuth, webhooki i publiczny HTTPS
 
 Gdy łączysz n8n z usługą przez OAuth (Google, Slack, GitHub itd.), dostawca po
-zalogowaniu odsyła użytkownika na **adres zwrotny (callback)**. Ten adres musi być
-publicznie dostępny i zwykle musi być po HTTPS - `http://localhost` nie zadziała, bo
-dostawca nie ma jak tam wrócić. Tak samo webhooki: zewnętrzna usługa musi móc "zapukać"
-do Twojego n8n z internetu.
+zalogowaniu odsyła Twoją **przeglądarkę** na **adres zwrotny (callback)** n8n. To
+przekierowanie wykonuje przeglądarka, a nie serwer dostawcy, więc na komputerze, na którym
+działa n8n, adres `http://localhost:5678/...` jest osiągalny. Google wprost dopuszcza taki
+adres: adresy zwrotne muszą być po HTTPS, ale _"Localhost URIs (including localhost IP address
+URIs) are exempt from this rule"_
+([Google: Redirect URI validation rules](https://developers.google.com/identity/protocols/oauth2/web-server#uri-validation),
+stan na listopad 2026). Inni dostawcy mają własne reguły, więc przy każdym sprawdź je
+w konsoli aplikacji.
+
+Publiczny HTTPS staje się konieczny w dwóch sytuacjach:
+
+- **Webhooki i triggery z zewnątrz.** Tu to zewnętrzna usługa (Stripe, GitHub, Telegram)
+  musi "zapukać" do Twojego n8n z internetu, a `localhost` jest dla niej nieosiągalny.
+- **n8n na serwerze, nie na Twoim komputerze.** Otwierasz edytor z innej maszyny, więc
+  callback nie może wskazywać `localhost`, a adres po zwykłym IP i `http://` dostawcy
+  zwykle odrzucą.
 
 :::caution[WEBHOOK_URL za reverse proxy]
 Gdy n8n stoi za reverse proxy, wewnętrznie słucha na porcie 5678, a do świata jest
@@ -919,10 +931,10 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
    jego miejsce. Dlaczego to bezpieczne dla Twoich workflow i poświadczeń, o ile masz
    wolumen `n8n_data`, a katastrofalne bez niego? Jeśli nie masz pewności -
    [Aktualizacja pojedynczego kontenera (docker run)](#aktualizacja-pojedynczego-kontenera-docker-run).
-3. Twoje self-hostowane n8n działa na `localhost` bez żadnego tunelu ani domeny. Dlaczego
-   logowanie przez Google czy Slack (OAuth) się nie uda, mimo że sama instancja działa
-   poprawnie? Jeśli nie masz pewności -
-   [Dlaczego OAuth wymaga publicznego HTTPS](#dlaczego-oauth-wymaga-publicznego-https).
+3. Twoje self-hostowane n8n działa na `localhost` bez żadnego tunelu ani domeny. Logowanie
+   do Google przez OAuth przechodzi, ale webhook ze Stripe'a nigdy nie dociera. Dlaczego
+   jedno działa, a drugie nie? Jeśli nie masz pewności -
+   [OAuth, webhooki i publiczny HTTPS](#oauth-webhooki-i-publiczny-https).
 4. Planujesz w przyszłości tryb kolejkowy (queue mode) z kilkoma workerami. Dlaczego
    wszystkie muszą mieć dokładnie ten sam `N8N_ENCRYPTION_KEY`, a nie każdy swój? Jeśli nie
    masz pewności - [Jak ustawić własny klucz](#jak-ustawić-własny-klucz).
@@ -958,7 +970,7 @@ Potrzebujesz Dockera i kilkunastu minut.
   - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj 2 GB+ RAM i PostgreSQL.
   - n8n Cloud = najszybszy start bez administracji; self-host = kontrola i niższy koszt długofalowy.
   - Docker to jedyny wspierany self-host: pamiętaj o wolumenie `n8n_data` - bez niego tracisz dane.
-  - OAuth i webhooki potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel.
+  - Webhooki z zewnątrz i OAuth na serwerze potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel. Lokalnie Google przyjmuje callback na `http://localhost`.
   - Za reverse proxy ustaw `WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
   - `N8N_ENCRYPTION_KEY` szyfruje poświadczenia - utrata klucza = utrata poświadczeń. Backupuj go razem z bazą.
   - Aktualizuj świadomie: backup, release notes, `docker compose pull && up -d`.
