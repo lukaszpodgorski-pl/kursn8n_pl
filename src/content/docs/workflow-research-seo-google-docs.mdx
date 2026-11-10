@@ -166,32 +166,34 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 1. Pobierz plik `research-seo-google-docs.json` (link wyżej).
 2. W n8n otwórz listę workflow i wybierz **Import from File** (albo przeciągnij plik na kanwę
    nowego, pustego workflow).
-3. Uzupełnij placeholdery z tabeli niżej - na kanwie masz też notatkę "Instrukcja" z tą samą
-   listą.
+3. Podmień `NAZWA_MODELU_AI` i podepnij credentials z tabeli niżej - na kanwie masz też
+   notatkę "Instrukcja" z tą samą listą.
 4. W node'ach **Utwórz dokument** i **Wstaw treść** wybierz credentials Google Docs (OAuth2).
 
 </Steps>
 
-| Placeholder | Gdzie | Co wpisać |
+| Co | Gdzie | Co wpisać |
 | --- | --- | --- |
-| `TWOJ_KLUCZ_API_OPENAI` | node'y Pomysły na frazy i Artykuł AI (nagłówek Authorization) | Twój klucz API OpenAI - w obu node'ach |
 | `NAZWA_MODELU_AI` | node'y Pomysły na frazy i Artykuł AI (treść żądania) | identyfikator modelu, np. `gpt-5-mini` - sprawdź aktualną listę w dokumentacji dostawcy |
-| `TWOJ_KLUCZ_API_SERPAPI` | node Wyniki Google (SerpApi), parametr `api_key` | klucz z panelu SerpApi |
-| `TWOJ_KLUCZ_API_TAVILY` | node Research (Tavily), nagłówek Authorization | klucz z panelu Tavily (zaczyna się od `tvly-`) |
+| Credentials **OpenAI** | node'y Pomysły na frazy i Artykuł AI, pole Authentication: _Predefined Credential Type_ → OpenAI | Twój klucz API OpenAI - jedne credentials dla obu node'ów |
+| Credentials **Query Auth** | node Wyniki Google (SerpApi), Authentication: _Generic Credential Type_ → Query Auth | Name: `api_key`, Value: klucz z panelu SerpApi |
+| Credentials **Header Auth** | node Research (Tavily), Authentication: _Generic Credential Type_ → Header Auth | Name: `Authorization`, Value: `Bearer tvly-...` (klucz z panelu Tavily) |
 
 Credentials Google Docs zakładasz tak samo jak każde inne połączenie Google przez OAuth2 -
 instrukcja krok po kroku jest w
 [dokumentacji n8n o Google OAuth2](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/),
 a tło w [Module 4: Integracje i API](/modul-4-integracje-api). W Google Cloud Console włącz
 **Google Docs API** i **Google Drive API** - node tworzy plik przez Dysk, a tekst wstawia przez
-Docs.
+Docs. Jeśli projekt Google Cloud zostaje w statusie **Testing**, Google co 7 dni unieważnia
+zgodę i node'y Google Docs zaczną zwracać błąd autoryzacji - szczegóły i wyjście w
+[Module 4](/modul-4-integracje-api#uwierzytelnianie-api-key-vs-oauth2).
 
-:::caution[Klucze API w polach node'a]
-Tak jak w gotowcu [RSS → podsumowanie AI](/workflow-rss-podsumowanie-ai), klucze wpisujesz
-wprost w nagłówek albo parametr żądania - to najprostsza droga do pierwszego uruchomienia. Wadą
-jest to, że eksportując workflow do JSON albo pokazując go komuś, eksportujesz też klucze. Gdy
-workflow działa, przenieś klucze do credentials typu **Header Auth** (OpenAI, Tavily) i
-**Query Auth** (SerpApi) i wybierz je w polu **Authentication** node'ów HTTP Request.
+:::note[Dlaczego klucze w credentials, a nie w polach node'a]
+Klucz wpisany wprost w nagłówek albo parametr żądania trafia do każdego eksportu JSON i do
+[backupu workflow w GitHubie](/workflow-backup-n8n-github). Credentials n8n trzyma
+zaszyfrowane i nie eksportuje ich razem z workflow, a node HTTP Request sam dokłada nagłówek
+albo parametr z kluczem ([HTTP Request - uwierzytelnianie](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/),
+stan na listopad 2026).
 :::
 
 ## Budowa krok po kroku
@@ -227,8 +229,8 @@ literówka ("50" zamiast "5") to 50 wywołań modelu i 50 wyszukiwań z darmoweg
 ### 3. Pomysły na frazy - HTTP Request do API OpenAI
 
 Pierwsze wywołanie modelu. Node **HTTP Request** wysyła `POST` na
-`https://api.openai.com/v1/chat/completions` z nagłówkiem `Authorization: Bearer
-TWOJ_KLUCZ_API_OPENAI` - dokładnie tak, jak w gotowcu
+`https://api.openai.com/v1/chat/completions` z credentials OpenAI w polu Authentication -
+dokładnie tak, jak w gotowcu
 [RSS → podsumowanie AI](/workflow-rss-podsumowanie-ai), gdzie tłumaczę, dlaczego w gotowcach
 wybieram HTTP Request zamiast cluster node'ów z Modułu 6. Prompt prosi o kilka fraz z długiego
 ogona (3-6 słów, pytania i problemy klientów zamiast samych nazw usług) - o dwie więcej, niż
@@ -270,8 +272,8 @@ Opis node'a:
 ### 6. Wyniki Google - HTTP Request do SerpApi
 
 Node **HTTP Request** wysyła `GET` na `https://serpapi.com/search.json` z parametrami zapytania:
-`engine=google`, `q={{ $json.fraza }}`, `google_domain=google.pl`, `gl=pl`, `hl=pl` i `api_key`.
-Trzy ostatnie parametry przed kluczem ustawiają polską wersję Google i polskie wyniki - bez nich
+`engine=google`, `q={{ $json.fraza }}`, `google_domain=google.pl`, `gl=pl` i `hl=pl`, a klucz
+`api_key` dokłada credential Query Auth. Trzy ostatnie parametry ustawiają polską wersję Google i polskie wyniki - bez nich
 dostaniesz wyniki z perspektywy USA. Z odpowiedzi workflow korzysta z trzech pól:
 
 - `related_questions` - pytania z sekcji "Podobne pytania" (People Also Ask), czyli to, o co
@@ -287,7 +289,7 @@ Każde wywołanie to jedno wyszukiwanie z miesięcznego limitu SerpApi.
 [Tavily](https://docs.tavily.com/documentation/api-reference/endpoint/search) to wyszukiwarka
 zrobiona pod modele AI: zamiast listy linków zwraca od razu fragmenty treści ze stron. Node
 **HTTP Request** wysyła `POST` na `https://api.tavily.com/search` z nagłówkiem `Authorization:
-Bearer TWOJ_KLUCZ_API_TAVILY` i treścią:
+Bearer tvly-...` z credentialu Header Auth i treścią:
 
 ```javascript
 {{ JSON.stringify({ query: $('Rozbij frazy').item.json.fraza, search_depth: 'basic', max_results: 5 }) }}
@@ -368,9 +370,10 @@ Pełny opis operacji:
 
 - **Objaw:** node Wyniki Google albo Research kończy się błędem `401` (zły klucz) albo `429`
   (limit).
-- **Przyczyna:** niepodmieniony placeholder klucza albo wyczerpany miesięczny limit darmowego
-  planu.
-- **Naprawa:** sprawdź klucz w polu node'a i licznik zużycia w panelu usługi. Limity odnawiają się
+- **Przyczyna:** niepodpięte albo źle wypełnione credentials (Query Auth musi mieć Name
+  `api_key`, Header Auth wartość z prefiksem `Bearer `) albo wyczerpany miesięczny limit
+  darmowego planu.
+- **Naprawa:** sprawdź credentials wybrane w polu Authentication node'a i licznik zużycia w panelu usługi. Limity odnawiają się
   co miesiąc.
 
 ### Artykuł AI kończy się timeoutem

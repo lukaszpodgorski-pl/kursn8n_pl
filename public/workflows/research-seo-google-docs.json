@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Research SEO do Google Docs\n\n**Zanim uruchomisz:**\n1. Podmień placeholdery: `TWOJ_KLUCZ_API_OPENAI` (2 razy), `NAZWA_MODELU_AI` (2 razy), `TWOJ_KLUCZ_API_SERPAPI`, `TWOJ_KLUCZ_API_TAVILY`.\n2. W node'ach Google Docs podepnij credentials Google Docs (OAuth2).\n3. Otwórz formularz przez **Test URL**, wpisz branżę i liczbę artykułów (1-5).\n\nKażdy artykuł = 1 wyszukiwanie SerpApi + 1 kredyt Tavily + 1 wywołanie modelu. Opis: kursn8n.pl/workflow-research-seo-google-docs",
+        "content": "## Research SEO do Google Docs\n\n**Zanim uruchomisz:**\n1. Podmień `NAZWA_MODELU_AI` (2 razy).\n2. Podepnij credentials: OpenAI (Pomysły na frazy, Artykuł AI), Query Auth z `api_key` (SerpApi), Header Auth `Authorization: Bearer tvly-...` (Tavily), Google Docs OAuth2 (2 node'y).\n3. Otwórz formularz przez **Test URL**, wpisz branżę i liczbę artykułów (1-5).\n\nKażdy artykuł = 1 wyszukiwanie SerpApi + 1 kredyt Tavily + 1 wywołanie modelu. Opis: kursn8n.pl/workflow-research-seo-google-docs",
         "height": 380,
         "width": 440,
         "color": 4
@@ -121,16 +121,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
-        "sendHeaders": true,
-        "specifyHeaders": "keypair",
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer TWOJ_KLUCZ_API_OPENAI"
-            }
-          ]
-        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  model: 'NAZWA_MODELU_AI',\n  response_format: { type: 'json_object' },\n  messages: [\n    { role: 'system', content: 'Jesteś specjalistą SEO na polskim rynku. Proponujesz frazy kluczowe z długiego ogona, które wpisują prawdziwi klienci w Google. Odpowiadasz wyłącznie poprawnym JSON-em.' },\n    { role: 'user', content: 'Branża lub zawód: ' + $json.branza + '\\nOpis oferty: ' + ($json.opis || 'brak') + '\\n\\nZaproponuj ' + ($json.liczba_artykulow + 2) + ' fraz kluczowych po polsku (3-6 słów każda), pod które warto napisać artykuł blogowy. Preferuj pytania i problemy klientów, nie same nazwy usług. Zwróć JSON w kształcie {\"frazy\": [{\"fraza\": \"...\", \"intencja\": \"informacyjna albo zakupowa\"}]}.' }\n  ]\n}) }}",
@@ -185,6 +177,8 @@
     {
       "parameters": {
         "url": "https://serpapi.com/search.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
         "sendQuery": true,
         "specifyQuery": "keypair",
         "queryParameters": {
@@ -208,10 +202,6 @@
             {
               "name": "hl",
               "value": "pl"
-            },
-            {
-              "name": "api_key",
-              "value": "TWOJ_KLUCZ_API_SERPAPI"
             }
           ]
         },
@@ -230,16 +220,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.tavily.com/search",
-        "sendHeaders": true,
-        "specifyHeaders": "keypair",
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer TWOJ_KLUCZ_API_TAVILY"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ query: $('Rozbij frazy').item.json.fraza, search_depth: 'basic', max_results: 5 }) }}",
@@ -258,16 +240,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
-        "sendHeaders": true,
-        "specifyHeaders": "keypair",
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer TWOJ_KLUCZ_API_OPENAI"
-            }
-          ]
-        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  model: 'NAZWA_MODELU_AI',\n  response_format: { type: 'json_object' },\n  messages: [\n    { role: 'system', content: 'Jesteś copywriterem SEO. Piszesz po polsku, konkretnie, dla klienta końcowego. Fakty, liczby i ceny bierzesz wyłącznie z dostarczonych materiałów - jeśli czegoś w nich nie ma, nie wymyślasz. Odpowiadasz wyłącznie poprawnym JSON-em.' },\n    { role: 'user', content: [\n      'Fraza główna: ' + $('Rozbij frazy').item.json.fraza,\n      'Intencja: ' + $('Rozbij frazy').item.json.intencja,\n      'Branża: ' + $('Parametry').first().json.branza,\n      'Opis oferty: ' + ($('Parametry').first().json.opis || 'brak'),\n      'Pytania z sekcji \"Podobne pytania\" w Google: ' + JSON.stringify(($('Wyniki Google (SerpApi)').item.json.related_questions || []).map(q => q.question)),\n      'Powiązane wyszukiwania: ' + JSON.stringify(($('Wyniki Google (SerpApi)').item.json.related_searches || []).map(s => s.query)),\n      'Tytuły z pierwszej strony wyników: ' + JSON.stringify(($('Wyniki Google (SerpApi)').item.json.organic_results || []).slice(0, 10).map(r => r.title)),\n      'Materiały z researchu (Tavily): ' + JSON.stringify(($json.results || []).map(r => ({ tytul: r.title, url: r.url, fragment: r.content }))),\n      '',\n      'Napisz artykuł blogowy (900-1200 słów) zoptymalizowany pod frazę główną. W pierwszym akapicie odpowiedz wprost na intencję wyszukiwania. Śródtytuły formułuj jako pytania, wykorzystaj pytania z Google. Na końcu dodaj sekcję \"Źródła\" z adresami URL z researchu, na których się oparłeś. Tekst bez znaczników Markdown, każdy śródtytuł w osobnej linii.',\n      'Zwróć JSON {\"tytul\": \"...\", \"meta_opis\": \"do 155 znaków\", \"tresc\": \"...\"}.'\n    ].join('\\n') }\n  ]\n}) }}",
