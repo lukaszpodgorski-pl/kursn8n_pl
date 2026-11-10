@@ -313,11 +313,18 @@ n8n z API sandboxa oraz runner z tym samym API.
 
 ```bash
 cd /sciezka/do/n8n
+cp .env .env.bak 2>/dev/null   # kopia, na wypadek pomyłki
 gen() { openssl rand -base64 32 | tr -d '=+/' | cut -c1-40; }
 printf 'SANDBOX_API_KEY=%s\nSANDBOX_RUNNER_REGISTRATION_TOKEN=%s\nSANDBOX_RUNNER_API_KEY=%s\n' \
-  "$(gen)" "$(gen)" "$(gen)" > .env
+  "$(gen)" "$(gen)" "$(gen)" >> .env
 chmod 600 .env
 ```
+
+:::caution[Dopisujesz (`>>`), nie nadpisujesz (`>`)]
+W tym samym `.env` może już siedzieć `N8N_ENCRYPTION_KEY` i hasło do bazy
+(patrz [klucz szyfrowania](#klucz-n8n_encryption_key-i-zmienne-środowiskowe)). Pojedyncze `>`
+skasowałoby je bez ostrzeżenia, a bez klucza nie odszyfrujesz zapisanych credentials.
+:::
 
 Potem sama nakładka. To jeden plik do skopiowania i nie musisz go czytać linijka po linijce,
 ale trzy rzeczy warto w nim zobaczyć, bo właśnie na nich wykłada się większość osób:

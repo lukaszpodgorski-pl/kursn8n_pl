@@ -50,7 +50,7 @@ faq:
   - q: "Mój webhook nie reaguje - dlaczego?"
     a: "Najczęstsze przyczyny: użyłeś Test URL zamiast Production URL, workflow nie jest opublikowany (przycisk \"Publish\"; w n8n 1.x przełącznik \"Active\") albo nie opublikowałeś ponownie ostatnich zmian, niezgodna metoda HTTP (np. wysyłasz GET, a node nasłuchuje POST) albo blokuje Cię uwierzytelnianie webhooka. Przy self-hostingu sprawdź też, czy instancja jest publicznie dostępna pod HTTPS."
   - q: "Jak sprawdzić, że webhook naprawdę przyszedł od Stripe albo GitHuba?"
-    a: "Zweryfikuj podpis HMAC. Dostawca liczy HMAC-SHA256 z surowego body żądania wspólnym sekretem i wysyła wynik w nagłówku (GitHub: X-Hub-Signature-256, Stripe: Stripe-Signature). W n8n włącz w node Webhook opcję Raw Body, policz HMAC node'em Crypto (sekret w credentialu Crypto) i porównaj oba podpisy w Code node funkcją crypto.timingSafeEqual, sprawdzając najpierw długość. Żądanie z błędnym podpisem odrzuć kodem 401, a przed powtórkami chroń się znacznikiem czasu i odsiewaniem ID zdarzeń."
+    a: "Zweryfikuj podpis HMAC. Dostawca liczy HMAC-SHA256 wspólnym sekretem i wysyła wynik w nagłówku: GitHub z samego surowego body (X-Hub-Signature-256), Stripe z tekstu \"znacznik czasu, kropka, surowe body\" (Stripe-Signature w formacie t=...,v1=...). W n8n włącz w node Webhook opcję Raw Body, policz HMAC node'em Crypto (sekret w credentialu Crypto) i porównaj oba podpisy w Code node funkcją crypto.timingSafeEqual, sprawdzając najpierw długość. Żądanie z błędnym podpisem odrzuć kodem 401, a przed powtórkami chroń się znacznikiem czasu i odsiewaniem ID zdarzeń."
   - q: "Dostaję błąd HTTP 429 - co to znaczy i jak to naprawić?"
     a: "To \"Too Many Requests\" - przekroczyłeś rate limit API. Zmniejsz tempo: podziel dane node'em Loop Over Items, dodaj node Wait między partiami, a w ustawieniach node'a włącz Retry On Fail z odstępem. Sprawdź też w dokumentacji API, jaki jest limit zapytań na minutę."
   - q: "Jak pobrać wszystkie wyniki, a nie tylko pierwszą stronę?"
@@ -333,7 +333,8 @@ webhooka w ich panelu. Różnica jest zasadnicza:
 
 **HMAC** (Hash-based Message Authentication Code) to skrót kryptograficzny liczony z dwóch
 składników naraz: treści wiadomości i sekretu. Nadawca liczy HMAC z **surowego body** żądania
-(dokładnie tych bajtów, które wysyła) i dokleja wynik w nagłówku. Ty liczysz to samo po swojej
+(dokładnie tych bajtów, które wysyła; niektórzy, jak Stripe, doklejają przed nim znacznik
+czasu) i dokleja wynik w nagłówku. Ty liczysz to samo po swojej
 stronie tym samym sekretem i porównujesz. Zgodność oznacza, że nadawca zna sekret i że body
 dotarło bez zmian.
 
@@ -343,7 +344,9 @@ w zapisie szesnastkowym (hex) z prefiksem `sha256=`
 stan na listopad 2026). Stripe używa nagłówka `Stripe-Signature` w formacie `t=...,v1=...`, czyli
 podpis plus znacznik czasu
 ([dokumentacja Stripe o błędach weryfikacji podpisu](https://docs.stripe.com/webhooks/signature),
-stan na listopad 2026). Nazwa nagłówka i format zmieniają się między dostawcami - zasada zostaje ta sama.
+stan na listopad 2026). Nazwa nagłówka, format i to, co dokładnie jest podpisane, zmieniają się
+między dostawcami - zasada zostaje ta sama. Przepis niżej jest dla GitHuba, wariant dla Stripe
+znajdziesz zaraz po nim.
 
 :::caution[Podpisane jest surowe body, nie JSON po parsowaniu]
 Node Webhook domyślnie parsuje JSON do `$json.body`. Jeśli zamienisz go z powrotem na tekst
@@ -405,6 +408,62 @@ return { json: { ...$json, signatureValid: valid } };
 Dlaczego nie zwykłe `received === expected`? Porównanie tekstów kończy się na pierwszym
 różniącym się znaku, więc czas odpowiedzi zdradza, ile początkowych znaków atakujący trafił.
 `crypto.timingSafeEqual` sprawdza zawsze wszystkie bajty - tego wymaga też dokumentacja GitHuba.
+
+#### Wariant dla Stripe: podpis ze znacznikiem czasu
+
+Przepis wyżej jest dla GitHuba, który podpisuje samo body. **Stripe podpisuje coś innego:**
+znacznik czasu, kropkę i dopiero body (`t + "." + body`), a nagłówek `Stripe-Signature` ma postać
+`t=1731150000,v1=<hex>`. Policzony samym Crypto z body podpis nigdy się nie zgodzi i każde
+prawdziwe zdarzenie dostanie 401 ([Stripe - ręczna weryfikacja podpisu](https://docs.stripe.com/webhooks#verify-manually),
+stan na listopad 2026). Układ zostaje ten sam, dochodzi jeden Code przed Crypto:
+
+1. **Code "Przygotuj podpis"** (tryb _Run Once for All Items_) - rozbiera nagłówek na `t` i `v1`
+   i składa tekst do podpisania z surowego body (kod niżej).
+2. **Crypto** - akcja **Hmac**, ale tym razem _Binary File_ wyłączone, _Value_
+   `{{ $json.signedPayload }}`, _Type_ `SHA256`, _Encoding_ `HEX`, _Property Name_ `expected`.
+   Sekret (`whsec_...`) dalej w credentialu Crypto.
+3. **Code "Porównaj"** - jak dla GitHuba, ale porównujesz `expected` z `v1` (bez prefiksu)
+   i dodatkowo odrzucasz zdarzenia starsze niż 5 minut - tyle domyślnie toleruje Stripe.
+
+```js
+// Code "Przygotuj podpis", tryb "Run Once for All Items"
+const out = [];
+for (let i = 0; i < $input.all().length; i++) {
+  const item = $input.all()[i];
+  // "t=1731150000,v1=abc...,v0=..." -> { t: "1731150000", v1: "abc..." }
+  const parts = Object.fromEntries(
+    String(item.json.headers['stripe-signature'] || '')
+      .split(',')
+      .map((p) => p.split('='))
+  );
+  // Surowe bajty body z opcji Raw Body (binarne "data")
+  const raw = await this.helpers.getBinaryDataBuffer(i, 'data');
+  out.push({
+    json: {
+      ...item.json,
+      t: parts.t || '',
+      v1: parts.v1 || '',
+      signedPayload: `${parts.t}.${raw.toString('utf8')}`,
+    },
+  });
+}
+return out;
+```
+
+```js
+// Code "Porównaj" (Stripe), tryb "Run Once for Each Item"
+const crypto = require('crypto');
+const a = Buffer.from(String($json.v1), 'utf8');
+const b = Buffer.from(String($json.expected), 'utf8');
+const podpisOk = a.length === b.length && crypto.timingSafeEqual(a, b);
+// Znacznik czasu w sekundach; starsze niż 300 s odrzucamy (ochrona przed powtórką)
+const wiek = Math.abs(Date.now() / 1000 - Number($json.t));
+return { json: { ...$json, signatureValid: podpisOk && wiek <= 300 } };
+```
+
+`getBinaryDataBuffer` to oficjalny sposób na dostęp do danych binarnych w Code node
+([Get the binary data buffer](https://docs.n8n.io/build/code-in-n8n/cookbook/code-node/get-the-binary-data-buffer)). Z tego samego powodu co wcześniej nie składaj
+`signedPayload` z `JSON.stringify($json.body)`.
 
 :::note[Moduł crypto w Code node]
 W n8n Cloud moduł `crypto` jest dostępny w Code node od ręki

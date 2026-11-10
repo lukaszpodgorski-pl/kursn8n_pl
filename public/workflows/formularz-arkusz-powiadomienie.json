@@ -134,7 +134,7 @@
         "resource": "message",
         "operation": "sendMessage",
         "chatId": "TWOJ_CHAT_ID",
-        "text": "=Nowe zgłoszenie z formularza!\n\nImię: {{ $json.imie }}\nE-mail: {{ $json.email }}\nWiadomość: {{ $json.wiadomosc || '(brak)' }}"
+        "text": "=Nowe zgłoszenie z formularza!\n\nImię: {{ $('Waliduj i oczyść dane').item.json.imie }}\nE-mail: {{ $('Waliduj i oczyść dane').item.json.email }}\nWiadomość: {{ $('Waliduj i oczyść dane').item.json.wiadomosc || '(brak)' }}"
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,

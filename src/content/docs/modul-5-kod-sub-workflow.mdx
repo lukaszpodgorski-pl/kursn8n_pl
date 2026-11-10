@@ -148,18 +148,27 @@ liczbę (np. 100 → 1, albo 1 → 100) - wybierz **Run Once for All Items**.
 
 ### A Python?
 
-Code Node obsługuje też Python (uruchamiany w przeglądarce przez Pyodide). Logika jest taka sama,
-ale zmienne wbudowane mają prefiks **podkreślenia** zamiast dolara: `_input.all()` zamiast
-`$input.all()`, a bieżący item to `_json`. Zwracasz słownik z kluczem `"json"`.
+Code Node obsługuje też Python. Od n8n 2.0 to **natywny Python** uruchamiany przez task runnery
+(osobny proces obok n8n), a nie dawne Pyodide, które usunięto. Logika jest taka sama jak
+w JavaScripcie, ale zmiennych wbudowanych jest dużo mniej: w trybie **Run Once for All Items**
+masz listę `_items`, w trybie **Run Once for Each Item** bieżący item `_item`. Do pól sięgasz
+wyłącznie nawiasami (`_item["json"]["firstName"]`, nie `_item.json.firstName`), a zwracasz
+słownik z kluczem `"json"`.
 
 ```python
-# Run Once for Each Item - Python
+# Run Once for Each Item - Python (natywny)
+dane = _item["json"]
 return {
   "json": {
-    "pelneImie": _json["firstName"] + " " + _json["lastName"]
+    "pelneImie": dane["firstName"] + " " + dane["lastName"]
   }
 }
 ```
+
+Na self-hostingu Python w Code Node działa tylko z task runnerami w trybie **external**, czyli
+z dodatkowym kontenerem `n8nio/runners` obok n8n. Na n8n Cloud działa od ręki, ale bez
+importowania bibliotek. Źródła: [Code node - Python (Native)](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code#python-native),
+[task runnery](https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-task-runners), stan na listopad 2026.
 
 :::caution[Ograniczenia - przeczytaj zanim napiszesz pół biblioteki]
 
@@ -171,8 +180,11 @@ return {
 - **Self-hosted = więcej swobody.** Na własnej instancji możesz dopuścić moduły zmiennymi
   środowiskowymi: `NODE_FUNCTION_ALLOW_BUILTIN` (moduły wbudowane Node.js) i
   `NODE_FUNCTION_ALLOW_EXTERNAL` (pakiety npm zainstalowane obok n8n).
-- **Python działa przez Pyodide** - nie każdy pakiet PyPI zadziała, a pierwszy start bywa
-  wolniejszy.
+- **Python ma osobną listę dozwolonych importów.** Na self-hostingu moduły biblioteki
+  standardowej dopuszczasz zmienną `N8N_RUNNERS_STDLIB_ALLOW`, a pakiety zewnętrzne
+  `N8N_RUNNERS_EXTERNAL_ALLOW` - i muszą być zainstalowane w obrazie `n8nio/runners`.
+  Na n8n Cloud Python nie importuje żadnych bibliotek. Kod z tutoriali do n8n 1.x
+  (`_input.all()`, `_json`, dostęp przez kropkę) trzeba przepisać.
 - **Bez async/await od ręki w trybie "Each Item"** (_async/await_ to sposób obsługi operacji,
   które trwają w czasie, np. pobrania czegoś z sieci) dla wywołań sieciowych lepiej użyć
   dedykowanego node'a HTTP Request - kod ma być logiką, nie zastępować integracji.
@@ -632,7 +644,7 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 
 <Takeaways>
   - Code Node ma dwa tryby: "Run Once for All Items" (cały zbiór, `$input.all()`) i "Run Once for Each Item" (pojedynczy item, `$json`).
-  - Zawsze zwracaj dane w formacie itemów: `{ json: { ... } }` (Python: `"json"` i prefiks `_`).
+  - Zawsze zwracaj dane w formacie itemów: `{ json: { ... } }` (Python: klucz `"json"`, dane z `_item` / `_items`, dostęp nawiasami).
   - Najpierw node'y, kod dopiero gdy naprawdę trzeba - mniej kodu to mniej rzeczy do utrzymania.
   - Zmienne wbudowane (`$input`, `$json`, `$now`/`$today` jako Luxon, `$jmespath`) skracają kod o połowę.
   - Static data (`$getWorkflowStaticData`) daje pamięć między uruchomieniami - zapis utrwala się tylko po udanym wykonaniu produkcyjnym.

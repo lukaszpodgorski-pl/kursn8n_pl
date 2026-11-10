@@ -268,10 +268,18 @@ weźmiesz też swój Chat ID, jeśli jeszcze go nie znasz), wpisz **Chat ID** (p
 ```text
 Nowe zgłoszenie z formularza!
 
-Imię: {{ $json.imie }}
-E-mail: {{ $json.email }}
-Wiadomość: {{ $json.wiadomosc || '(brak)' }}
+Imię: {{ $('Waliduj i oczyść dane').item.json.imie }}
+E-mail: {{ $('Waliduj i oczyść dane').item.json.email }}
+Wiadomość: {{ $('Waliduj i oczyść dane').item.json.wiadomosc || '(brak)' }}
 ```
+
+:::caution[Dlaczego nie `$json.imie`?]
+Telegram stoi za Google Sheets, a Sheets w trybie mapowania kolumn oddaje dalej zapisany wiersz
+pod nazwami **kolumn** (`Imię`, `Email`, `Wiadomość`), nie pola z wejścia. `$json.imie` byłoby
+puste i powiadomienie przyszłoby bez danych. Dlatego sięgasz po dane wprost do node'a
+**Waliduj i oczyść dane** wyrażeniem `$('Waliduj i oczyść dane').item.json` - więcej o odwołaniach do
+wcześniejszych node'ów w [Module 3](/modul-3-praca-z-danymi).
+:::
 
 Zweryfikowane pola:
 [dokumentacja node'a Telegram](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/).
