@@ -137,6 +137,13 @@ export const QUICK_WINS: ReadonlyArray<QuickWin> = [
 		afterModule: 6,
 	},
 	{
+		slug: 'workflow-research-seo-google-docs',
+		label: 'Research SEO → Google Docs',
+		description:
+			'Wpisujesz branżę w formularz, a n8n dobiera frazy kluczowe, sprawdza wyniki Google, robi research i zapisuje szkice artykułów SEO w Google Docs.',
+		afterModule: 6,
+	},
+	{
 		slug: 'workflow-backup-n8n-github',
 		label: 'Backup workflow do GitHuba',
 		description:
