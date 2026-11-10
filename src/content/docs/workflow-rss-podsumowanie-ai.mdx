@@ -132,8 +132,9 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 <Steps>
 
 1. Pobierz plik `rss-podsumowanie-ai.json` (link wyżej).
-2. W n8n otwórz listę workflow i wybierz **Import from File** (albo po prostu przeciągnij plik
-   na kanwę nowego, pustego workflow).
+2. W n8n utwórz nowy, pusty workflow, kliknij menu trzech kropek (**...**) w prawym górnym
+   rogu i wybierz **Import from File** (albo po prostu przeciągnij plik na kanwę tego pustego
+   workflow).
 3. Uzupełnij cztery placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
 
 </Steps>
@@ -159,6 +160,11 @@ dziennie, rano. Więcej o samej konfiguracji interwałów znajdziesz w
 [dokumentacji Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/).
 Pamiętaj: żeby trigger czasowy w ogóle zadziałał, workflow musi być **opublikowany** (aktywny),
 nie tylko zapisany.
+
+Godzina `8:00` liczy się według strefy czasowej workflow. Plik JSON ma już zapisane
+`Europe/Warsaw` w ustawieniach, ale po imporcie sprawdź to w **...** → **Settings** →
+**Timezone** - bez strefy workflow n8n bierze strefę instancji, domyślnie nowojorską
+([ustawienia workflow](https://docs.n8n.io/build/manage-workflows/configure-workflow-settings)).
 
 ### 2. Wczytaj kanał RSS - RSS Read
 
@@ -234,7 +240,7 @@ sam, gdy treść żądania wysyłasz w trybie **JSON Body**, dokładnie tak jak 
     },
     {
       role: 'user',
-      content: 'Podsumuj poniższe wpisy z kanału RSS. Dla każdego wpisu napisz jedno, maksymalnie dwuzdaniowe podsumowanie i dodaj link źródłowy. Pomiń wpisy czysto promocyjne, jeśli takie się pojawią. Wpisy w formacie JSON: ' + JSON.stringify($json.wpisy)
+      content: 'Podsumuj poniższe wpisy z kanału RSS. Dla każdego wpisu napisz jedno, maksymalnie dwuzdaniowe podsumowanie i dodaj link źródłowy. Pomiń wpisy czysto promocyjne, jeśli takie się pojawią. Pisz zwykłym tekstem, bez Markdowna, a całość zmieść w 3500 znakach. Wpisy w formacie JSON: ' + JSON.stringify($json.wpisy)
     }
   ]
 }) }}
@@ -244,7 +250,10 @@ Krok po kroku: `messages` to lista wiadomości w formacie, jaki rozumie większo
 modeli czatu - wiadomość `system` ustawia rolę modelu, a wiadomość `user` to właściwe polecenie
 razem z danymi (`$json.wpisy` z poprzedniego node'a, zamienione na tekst przez
 `JSON.stringify`). Odpowiedź modelu trafia do pola `choices[0].message.content` zwróconej
-odpowiedzi - to z niego korzysta kolejny node.
+odpowiedzi - to z niego korzysta kolejny node. Prośba o zwykły tekst i limit 3500 znaków nie są
+ozdobnikiem: Telegram przyjmuje w jednej wiadomości
+[najwyżej 4096 znaków](https://core.telegram.org/bots/api#sendmessage), a znaczniki Markdowna
+wyświetliłyby się w wiadomości dosłownie (gwiazdki, krzyżyki).
 
 :::caution[To nie jest jedyny słuszny format]
 Dokładny kształt zapytania (nazwa pola na model, strukturę `messages`) zweryfikuj w bieżącej
@@ -256,10 +265,20 @@ starszego) częściej niż inne, ustabilizowane integracje w tym kursie.
 ### 6. Wyślij podsumowanie - Telegram
 
 Node **Telegram** w operacji **Send Message** wysyła treść z pola
-`{{ $json.choices[0].message.content }}` do czatu wskazanego w polu **Chat ID**. Credentials
+`choices[0].message.content` do czatu wskazanego w polu **Chat ID**. Credentials
 (token bota) skonfigurujesz dokładnie tak, jak opisuję w gotowcu
 [Poranny brief na Telegram](/workflow-poranny-brief-telegram) - stamtąd też weźmiesz swój Chat ID,
 jeśli jeszcze go nie znasz.
+
+W **Additional Fields** plik ma ustawione **Parse Mode** = _HTML_ i wyłączone **Append n8n
+Attribution** - dlaczego, wyjaśniam w
+[kroku 6 porannego briefu](/workflow-poranny-brief-telegram#6-telegram---wyślij-wiadomość).
+Tekst od modelu to dane z zewnątrz: tytuł w stylu "AT&T" albo znak `<` w zajawce zepsułby tryb
+HTML, dlatego pole **Text** zamienia te trzy znaki na encje:
+
+```javascript
+{{ $json.choices[0].message.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}
+```
 
 ## Co może pójść nie tak
 
@@ -295,6 +314,16 @@ jeśli jeszcze go nie znasz.
   `fieldsToInclude` w node'cie Połącz wpisy jeszcze bardziej (np. do samego tytułu i linku, bez
   zajawki treści).
 
+### Node Telegram zwraca błąd "message is too long"
+
+- **Objaw:** podsumowanie AI powstaje, ale node Wyślij podsumowanie kończy się błędem
+  `Bad Request: message is too long`.
+- **Przyczyna:** Telegram przyjmuje w jednej wiadomości
+  [najwyżej 4096 znaków](https://core.telegram.org/bots/api#sendmessage), a model przy dużej
+  liczbie wpisów zignorował limit z promptu.
+- **Naprawa:** zmniejsz liczbę wpisów node'em **Limit** (jak przy limicie kontekstu wyżej) albo
+  obetnij tekst w polu **Text** przed zamianą znaków, np. `content.slice(0, 4000)`.
+
 ### Klucz API nieustawiony albo wyczerpany limit
 
 - **Objaw:** node Podsumowanie AI kończy się błędem `401` (brak albo zły klucz) albo `429`
@@ -304,7 +333,7 @@ jeśli jeszcze go nie znasz.
 - **Naprawa:** sprawdź credentials OpenAI podpięte pod node Podsumowanie AI oraz saldo i
   limit konta na stronie dostawcy modelu.
 
-### Bot Telegram milczy, mimo że workflow zakończył się bez błędu
+### Node Telegram zwraca błąd Forbidden
 
 - **Objaw:** node Wyślij podsumowanie kończy się błędem, a na Telegramie nic nie przychodzi.
 - **Przyczyna:** bot nigdy nie dostał od Ciebie wiadomości - Telegram nie pozwala botom pisać

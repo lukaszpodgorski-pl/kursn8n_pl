@@ -49,7 +49,7 @@ faq:
   - q: "Czy ten backup zawiera moje credentials (klucze API, tokeny OAuth)?"
     a: "Nie. API n8n, którym posługuje się ten workflow, nie eksportuje credentials w jawnej, użytecznej postaci - w pliku JSON dostajesz wyłącznie definicje workflow (node'y, połączenia, parametry). Pełny backup, który obejmuje też credentials, opisuję w \"Backupy 3-2-1 i testowane odtwarzanie\" z Modułu 7: kopia bazy danych plus bezpiecznie przechowany klucz N8N_ENCRYPTION_KEY."
   - q: "Co się stanie przy pierwszym uruchomieniu, skoro plików jeszcze nie ma w repozytorium?"
-    a: "Operacja Edit w node'cie GitHub najpierw pobiera SHA istniejącego pliku, żeby bezpiecznie go nadpisać - a dla świeżo dodanego workflow tego pliku jeszcze nie ma, więc node zgłosi błąd. Rozwiązanie opisuję w kroku 5 i w sekcji \"Co może pójść nie tak\": dla nowego workflow uruchamiasz node raz ręcznie z operacją przełączoną na Create, a potem wracasz do Edit."
+    a: "Operacja Edit w node'cie GitHub najpierw pobiera SHA istniejącego pliku, żeby bezpiecznie go nadpisać - a dla świeżo dodanego workflow tego pliku jeszcze nie ma, więc node zgłosi błąd. Bez obsługi błędu pierwszy brakujący plik przerywa cały node i tej nocy nie zapisuje się żaden kolejny workflow. Gotowiec ma to rozwiązane: node Edit ma ustawione On Error na Continue (using error output), a do wyjścia błędu podłączony jest drugi node GitHub z operacją Create, który zakłada brakujący plik - szczegóły w kroku 5."
   - q: "Ile workflow mogę zbackupować w ten sposób?"
     a: "W praktyce tyle, ile masz - dopóki w node'cie n8n włączony jest Return All (domyślnie tak), node sam przechodzi przez wszystkie strony odpowiedzi z API. Sama REST API n8n paginuje wyniki (domyślnie 100 na stronę, maksymalnie 250), ale to Return All bierze tę paginację na siebie, nie Ty."
   - q: "Czy mogę użyć repozytorium, którego używam też do innych rzeczy?"
@@ -100,13 +100,16 @@ workflow, node'em, który nazywa się po prostu **n8n**.
   title="backup-n8n-github"
   alt="Diagram: Harmonogram uruchamia się co noc o 3:00 i wywołuje node n8n, który przez własne API n8n
   pobiera wszystkie workflow z instancji - każdy jako osobny item. Code przygotowuje dla każdego itemu
-  nazwę pliku i treść JSON. GitHub zapisuje albo aktualizuje ten plik w repozytorium."
-  caption="Cztery node'y, bez osobnej pętli - node n8n zwraca jeden item na każdy workflow, więc Code i GitHub
+  nazwę pliku i treść JSON. GitHub aktualizuje ten plik w repozytorium operacją Edit, a gdy pliku
+  jeszcze nie ma, item trafia wyjściem błędu do drugiego node'a GitHub, który zakłada plik operacją
+  Create."
+  caption="Pięć node'ów, bez osobnej pętli - node n8n zwraca jeden item na każdy workflow, więc Code i GitHub
   przetwarzają je automatycznie, po kolei, tak jak każdy inny zestaw itemów w n8n."
   spec={`
     Harmonogram (codziennie 3:00):clock @slate -> n8n (pobierz workflow):server @blue
     n8n -> Code (przygotuj plik):code @amber
-    Code -> GitHub (zapisz w repo):fab/github @green
+    Code -> GitHub (zapisz w repo, Edit):fab/github @green
+    GitHub -> GitHub Create (nowy plik, wyjście błędu):fab/github @pink
   `}
 />
 
@@ -129,8 +132,8 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 <Steps>
 
 1. Pobierz plik `backup-n8n-github.json` (link wyżej).
-2. W n8n otwórz listę workflow i wybierz **Import from File** (albo przeciągnij plik na kanwę
-   nowego, pustego workflow).
+2. W n8n utwórz nowy, pusty workflow, kliknij menu trzech kropek (**...**) w prawym górnym
+   rogu i wybierz **Import from File** (albo przeciągnij plik na kanwę tego pustego workflow).
 3. Uzupełnij trzy placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
 4. Podłącz pod właściwymi node'ami dwa zestawy credentials - n8n API i GitHub API - patrz kroki
    2 i 6 w sekcji "Budowa krok po kroku".
@@ -139,8 +142,8 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 
 | Placeholder | Gdzie | Co wpisać |
 | --- | --- | --- |
-| `WLASCICIEL` | node Zapisz w repozytorium GitHub (pole Repository Owner) | nazwa użytkownika albo organizacji na GitHubie, właściciela repozytorium |
-| `REPO` | node Zapisz w repozytorium GitHub (pole Repository Name) | nazwa repozytorium, do którego trafiają kopie workflow |
+| `WLASCICIEL` | oba node'y GitHub: Zapisz w repozytorium GitHub i Utwórz nowy plik w repozytorium (pole Repository Owner) | nazwa użytkownika albo organizacji na GitHubie, właściciela repozytorium |
+| `REPO` | oba node'y GitHub (pole Repository Name) | nazwa repozytorium, do którego trafiają kopie workflow |
 | `SCIEZKA_W_REPO` | node Przygotuj plik backupu (stała `folder` w kodzie) | ścieżka folderu w repo na pliki backupu, np. `backups/workflows` |
 
 ## Budowa krok po kroku
@@ -153,6 +156,11 @@ produkcji. Szczegóły konfiguracji interwałów (w tym różnicę między Days,
 znajdziesz w [dokumentacji Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/).
 Jak w każdym gotowcu z triggerem czasowym - workflow musi być **opublikowany** (aktywny), żeby
 Harmonogram w ogóle zadziałał.
+
+Godzina `3:00` liczy się według strefy czasowej workflow. Plik JSON ma już zapisane
+`Europe/Warsaw` w ustawieniach, ale po imporcie sprawdź to w **...** → **Settings** →
+**Timezone** - bez strefy workflow n8n bierze strefę instancji, domyślnie nowojorską
+([ustawienia workflow](https://docs.n8n.io/build/manage-workflows/configure-workflow-settings)).
 
 ### 2. Wygeneruj klucz n8n API i podłącz credentials
 
@@ -256,12 +264,21 @@ przez poprzedni node: `{{ $json.sciezka }}`, `{{ $json.tresc }}` i `{{ $json.wia
 Treść pliku możesz wpisać jako zwykły tekst - node sam zakoduje ją do Base64, którego wymaga API
 GitHuba, nie musisz robić tego ręcznie.
 
-:::caution[Pierwsze uruchomienie dla nowego workflow]
-Ponieważ Edit najpierw pobiera SHA istniejącego pliku, dla **świeżo dodanego** workflow (którego
-plik jeszcze nie istnieje w repo) node zgłosi błąd - nie ma czego pobrać. Rozwiązanie: dla tego
-jednego workflow uruchom node raz ręcznie z operacją przełączoną na **Create**, żeby założyć plik,
-a potem wróć do **Edit** na kolejne, cykliczne uruchomienia. Więcej w sekcji "Co może pójść nie tak"
-niżej.
+:::caution[Nowy workflow, którego pliku jeszcze nie ma w repo]
+Edit najpierw pobiera SHA istniejącego pliku, więc dla **świeżo dodanego** workflow (pliku jeszcze
+nie ma w repo) kończy się błędem - nie ma czego pobrać
+([`getFileSha` w kodzie node'a GitHub](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Github/Github.node.ts)).
+Bez obsługi błędu to nie jest problem "jednego workflow": pierwszy brakujący plik przerywa cały
+node, więc tej nocy nie zapisuje się już żaden kolejny workflow, a każdy nowy workflow psuje
+backup aż do ręcznej interwencji.
+
+Dlatego gotowiec ma to rozwiązane na stałe. W node'cie **Zapisz w repozytorium GitHub** otwórz
+**Settings** i ustaw **On Error** na _Continue (using error output)_ - node dostaje drugie
+wyjście, na które trafiają tylko itemy zakończone błędem. Do tego wyjścia podłącz drugi node
+**GitHub** (w pliku: **Utwórz nowy plik w repozytorium**) z operacją **Create**. Item na wyjściu
+błędu niesie już tylko komunikat błędu, więc pola bierzesz wprost z node'a Code:
+`{{ $('Przygotuj plik backupu').item.json.sciezka }}`, analogicznie `tresc`
+i `wiadomoscCommit`. Pozostałe workflow zapisują się normalnie przez Edit.
 :::
 
 ### 6. Podłącz credentials GitHub - Personal Access Token
@@ -307,8 +324,11 @@ Access Token (classic)** zamiast tokena fine-grained - ma mniej ograniczeń
   świeżo dodany workflow - albo gdy SHA zdążył się zmienić między odczytem a zapisem, bo dwa
   uruchomienia próbowały nadpisać ten sam plik niemal równocześnie (np. nakładający się ręczny test
   i harmonogram, albo wciąż trwające poprzednie wykonanie).
-- **Naprawa:** dla nowego workflow uruchom node raz ręcznie z operacją przełączoną na **Create**,
-  żeby założyć plik, a potem wróć do **Edit**. Jeśli podejrzewasz nakładające się uruchomienia,
+- **Naprawa:** sprawdź, czy node **Zapisz w repozytorium GitHub** ma w **Settings** ustawione
+  **On Error** na _Continue (using error output)_ i czy do jego wyjścia błędu jest podłączony node
+  **Utwórz nowy plik w repozytorium** (patrz krok 5) - bez tego pierwszy nowy workflow zatrzymuje
+  backup całej nocy. Jeśli błąd pojawia się w node'cie Create, plik pod tą ścieżką już istnieje,
+  a Edit zawiódł z innego powodu - jego komunikat zobaczysz w danych wykonania. Jeśli podejrzewasz nakładające się uruchomienia,
   sprawdź w zakładce **Executions**, czy poprzednia noc na pewno się zakończyła, zanim wystartowała
   kolejna.
 
@@ -523,9 +543,11 @@ na końcu workflow postawić dwa node'y zapisu obok siebie i mieć jedno i drugi
 - **Powiadomienie o niepowodzeniu** - podepnij Error Trigger (patrz [Moduł 5: Kod i sub-workflow](/modul-5-kod-sub-workflow),
   sekcja o obsłudze błędów), żeby dostać alert, gdy nocny backup się nie powiedzie - inaczej cicha
   awaria potrafi trwać tygodniami, zanim ją zauważysz.
-- **Rozróżnienie Create/Edit automatycznie** - zamiast ręcznego przełączania operacji dla nowych
-  workflow (krok 5), dodaj przed node'em GitHub operację **Get** z włączonym **Continue On Fail** i
-  node IF sprawdzający, czy plik już istnieje - w zależności od wyniku kieruj do Create albo Edit.
+- **Rozróżnienie Create/Edit przez Get i IF** - zamiast wyjścia błędu z kroku 5 możesz dodać
+  przed node'em GitHub operację **Get** z ustawieniem **On Error** → _Continue_ (dawniej
+  **Continue On Fail**, patrz [Moduł 5](/modul-5-kod-sub-workflow)) i node IF sprawdzający, czy
+  plik już istnieje - w zależności od wyniku kieruj do Create albo Edit. To o jedno zapytanie do
+  GitHuba więcej na każdy workflow, za to błąd Edit z innego powodu nie wpada w gałąź Create.
 - **Backup tylko zmienionych workflow** - zamiast zapisywać wszystko co noc, porównaj pole
   `updatedAt` z poprzednim zapisanym stanem (np. w osobnym pliku albo arkuszu) i pomiń workflow,
   które się nie zmieniły - mniej commitów, ta sama kompletność.
