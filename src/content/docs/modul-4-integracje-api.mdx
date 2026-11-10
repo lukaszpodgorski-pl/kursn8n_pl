@@ -200,6 +200,17 @@ certyfikat i poprawnie ustawiony `N8N_WEBHOOK_URL` - zasady konfiguracji rozkła
 [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
 :::
 
+:::caution[Google w trybie Testing: zgoda wygasa po 7 dniach]
+Zakładając własny projekt w Google Cloud pod credentials OAuth2, ekran zgody (OAuth consent
+screen) ustawiasz zwykle jako _External_, a projekt startuje w statusie publikacji **Testing**.
+W tym stanie Google wydaje refresh token ważny tylko **7 dni** (wyjątek: same zakresy profilu,
+czyli e-mail, imię i `openid`). Po tygodniu workflow z Gmailem, Drive czy Sheets zacznie
+zwracać błąd autoryzacji, choć nic nie zmieniłeś. Wyjście: opublikuj aplikację (status
+_In production_) albo licz się z ponownym połączeniem credentials co tydzień
+([Google: wygasanie refresh tokenów](https://developers.google.com/identity/protocols/oauth2#expiration),
+stan na listopad 2026).
+:::
+
 :::tip[Dobre praktyki dla credentials]
 
 - Nadawaj kontom serwisowym **minimalny zakres** uprawnień (zasada najmniejszych przywilejów).

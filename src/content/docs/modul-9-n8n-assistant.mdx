@@ -146,7 +146,10 @@ i odmówi pracy.
 :::caution[Jeśli dokładasz sandbox sam]
 Trzy usługi, które wchodzą do stacku, to nie jest kosmetyka: jedna z nich chodzi jako
 `privileged` i prowadzi Dockera wewnątrz Dockera, czyli w praktyce ma uprawnienia roota na
-hoście. Doliczyć trzeba też około **4 GB RAM i 2 rdzenie ponad to**, co maszyna już robi.
+hoście. Serwer z sandboxem potrzebuje według n8n **co najmniej 4 GB RAM i 2 vCPU** - to minimum
+dla całego stosu, bo Docker wewnątrz Dockera zjada więcej niż zwykły kontener
+([docs: Docker Compose](https://docs.n8n.io/deploy/host-n8n/install-options/install-using-docker-compose),
+stan na listopad 2026).
 Gotowa nakładka `docker-compose.override.yml`, trzy sekrety w `.env` i lista rzeczy, których
 w tym pliku nie wolno ruszać, są w [Module 1](/modul-1-instalacja-hosting#sandbox-dla-ai-assistant---najlepszy-moment-jest-teraz).
 :::
