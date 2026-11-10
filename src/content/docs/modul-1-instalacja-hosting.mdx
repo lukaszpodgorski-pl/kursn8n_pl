@@ -690,12 +690,16 @@ Publiczny HTTPS staje się konieczny w dwóch sytuacjach:
   callback nie może wskazywać `localhost`, a adres po zwykłym IP i `http://` dostawcy
   zwykle odrzucą.
 
-:::caution[WEBHOOK_URL za reverse proxy]
+:::caution[N8N_WEBHOOK_URL za reverse proxy]
 Gdy n8n stoi za reverse proxy, wewnętrznie słucha na porcie 5678, a do świata jest
 wystawione na 443 (HTTPS). n8n nie zgadnie swojego publicznego adresu - trzeba mu go
-podać zmienną `WEBHOOK_URL` (np. `https://n8n.example.com/`), żeby pokazywał poprawne
+podać zmienną `N8N_WEBHOOK_URL` (np. `https://n8n.example.com/`), żeby pokazywał poprawne
 adresy webhooków w edytorze i rejestrował je u zewnętrznych usług. Przy proxy ustawia się
 też `N8N_PROXY_HOPS`.
+
+W starszych poradnikach zobaczysz samo `WEBHOOK_URL` - od n8n 2.35.0 to przestarzały alias
+`N8N_WEBHOOK_URL`. Dalej działa, ale przy starcie n8n wypisuje ostrzeżenie, więc w nowych
+konfiguracjach używaj pełnej nazwy ([docs: Endpoints](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/endpoints), stan na listopad 2026).
 :::
 
 ### Ścieżka A: VPS + domena + Let's Encrypt
@@ -707,7 +711,7 @@ certyfikat od Let's Encrypt) albo NGINX. W konfiguracji ustawiasz wtedy m.in.:
 
 - `N8N_HOST` - domena, pod którą działa n8n (np. `n8n.twojadomena.pl`).
 - `N8N_PROTOCOL=https` - protokół, którego n8n używa do budowania adresów.
-- `WEBHOOK_URL` - pełny publiczny adres bazowy webhooków.
+- `N8N_WEBHOOK_URL` - pełny publiczny adres bazowy webhooków.
 
 Reverse proxy (np. Traefik) zajmie się wystawieniem TLS i automatycznym odnawianiem
 certyfikatu - gotowe szablony Docker Compose w docs n8n robią to za Ciebie.
@@ -802,7 +806,7 @@ podstawowych:
 | `DB_POSTGRESDB_HOST` i pokrewne | Host, port, nazwa bazy, użytkownik i hasło połączenia z PostgreSQL. |
 | `N8N_HOST` | Domena, pod którą działa n8n. |
 | `N8N_PROTOCOL` | Protokół (np. `https`) używany do budowania adresów. |
-| `WEBHOOK_URL` | Publiczny adres bazowy webhooków (ważne za reverse proxy). |
+| `N8N_WEBHOOK_URL` | Publiczny adres bazowy webhooków (ważne za reverse proxy). |
 | `GENERIC_TIMEZONE` / `TZ` | Strefa czasowa - wpływa na node'y harmonogramu. |
 
 ## Aktualizacje i utrzymanie
@@ -971,7 +975,7 @@ Potrzebujesz Dockera i kilkunastu minut.
   - n8n Cloud = najszybszy start bez administracji; self-host = kontrola i niższy koszt długofalowy.
   - Docker to jedyny wspierany self-host: pamiętaj o wolumenie `n8n_data` - bez niego tracisz dane.
   - Webhooki z zewnątrz i OAuth na serwerze potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel. Lokalnie Google przyjmuje callback na `http://localhost`.
-  - Za reverse proxy ustaw `WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
+  - Za reverse proxy ustaw `N8N_WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
   - `N8N_ENCRYPTION_KEY` szyfruje poświadczenia - utrata klucza = utrata poświadczeń. Backupuj go razem z bazą.
   - Aktualizuj świadomie: backup, release notes, `docker compose pull && up -d`.
   - Chcesz używać n8n Assistant? Sandbox jest wymagany - dołóż go nakładką `docker-compose.override.yml` od razu przy stawianiu instancji.

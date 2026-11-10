@@ -1029,7 +1029,7 @@ już publicznej ceny startowej.
 2. "Deploy n8n"
 3. Login GitHub
 4. Pojawia się projekt z dwoma serwisami: n8n + Postgres. Czekasz ~2 minuty.
-5. W Variables ustawiasz `WEBHOOK_URL`, `N8N_ENCRYPTION_KEY` (Railway generuje, ale
+5. W Variables ustawiasz `N8N_WEBHOOK_URL`, `N8N_ENCRYPTION_KEY` (Railway generuje, ale
    zapisz!), opcjonalnie własną domenę.
 
 ### Lokalizacja i RODO
@@ -2208,7 +2208,7 @@ services:
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
       N8N_HOST: ${N8N_HOST}
-      WEBHOOK_URL: https://${N8N_HOST}/
+      N8N_WEBHOOK_URL: https://${N8N_HOST}/
       N8N_PROTOCOL: https
     volumes:
       - ./data/n8n:/home/node/.n8n
