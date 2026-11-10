@@ -52,7 +52,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Koszty · wszystkie poziomy"
-  readingTime="~11 min"
+  readingTime="~14 min"
   note="Ceny zweryfikowane w listopadzie 2026"
 />
 
@@ -104,7 +104,7 @@ przepisuję. Szczegóły zakładania instancji opisuję w
 
 Tak - jeśli mieścisz się w licencji. Wersja self-hosted działa na licencji **Sustainable Use
 License**, którą n8n w dokumentacji nazywa też licencją Community. Według
-[strony licencji w dokumentacji n8n](https://docs.n8n.io/n8n-community-license/community-license)
+[strony licencji w dokumentacji n8n](https://docs.n8n.io/n8n-community-license)
 daje ona prawo do używania, modyfikowania i rozpowszechniania n8n z trzema ograniczeniami:
 używasz go tylko do **wewnętrznych celów firmy albo do celów niekomercyjnych lub osobistych**,
 rozpowszechniasz go innym tylko **bezpłatnie i niekomercyjnie** oraz **nie usuwasz** informacji
@@ -139,10 +139,12 @@ zanim zbudujesz na tym biznes. Historię licencji i jej zmianę z 2022 roku opis
 - **Mały polski VPS** - na przykład [Mikrus](https://mikr.us/): plan 3.0 (2 GB RAM, 25 GB
   dysku) kosztuje 130 zł brutto za rok, a plan 3.5 (4 GB RAM, 40 GB dysku) 197 zł brutto za
   rok. Mikrus sprzedaje serwery wyłącznie w abonamencie rocznym (stan na listopad 2026).
-- **VPS w chmurze w UE** - na przykład [Hetzner Cloud](https://www.hetzner.com/cloud/), gdzie
-  najtańsze serwery współdzielone zaczynają się od 5,99 EUR netto miesięcznie (stan na
-  listopad 2026). Mocniejsze plany kosztują odpowiednio więcej - konfigurację dobierasz
-  w cenniku.
+- **VPS w chmurze w UE** - na przykład [Hetzner Cloud](https://www.hetzner.com/cloud/). Cennik
+  zaczyna się od CX23 za 5,99 EUR netto miesięcznie, ale cała tania linia CX/CAX jest od
+  września niedostępna do zamówienia. Realnie dostępny najtańszy plan to CPX22 (2 vCPU, 4 GB
+  RAM) za 19,99 EUR netto miesięcznie (stan na listopad 2026,
+  [cennik Hetznera](https://www.hetzner.com/cloud/regular-performance)). Szczegóły
+  i polskie alternatywy są w [poradniku hostingowym](/porownanie-n8n-hostingow#hetzner-cloud---vps-bez-nakładek).
 
 Ile RAM-u realnie potrzebujesz i którego dostawcę wybrać pod RODO, porównuję w
 [poradniku "Porównanie hostingów n8n"](/porownanie-n8n-hostingow) - tam są też pełne tabele
@@ -191,7 +193,7 @@ Część funkcji dla zespołów i firm jest jednak zamknięta za płatnymi plana
 Cennik zaznacza też, że instancje self-hosted z licencją Business i Enterprise muszą raz
 dziennie łączyć się z serwerem licencji n8n. Kod tych funkcji leży w tym samym repozytorium,
 ale w plikach z `.ee.` w nazwie, objętych osobną licencją n8n Enterprise - tak opisuje to
-[strona licencji](https://docs.n8n.io/n8n-community-license/community-license).
+[strona licencji](https://docs.n8n.io/n8n-community-license).
 
 Dla porządku jedna niespójność, którą widać dziś w cenniku: SSO i LDAP figurują na karcie
 planu Business, ale w tabeli porównawczej są zaznaczone tylko przy Enterprise. Jeśli to dla
@@ -247,7 +249,10 @@ w miesiącu: 300 × 0,006 USD = **1,80 USD miesięcznie** za transkrypcję Whisp
 Tam, gdzie liczba wywołań przestaje być pod Twoją kontrolą: agent AI, który sam decyduje
 o kolejnych krokach i woła model kilka razy w jednym wykonaniu, chatbot otwarty dla klientów
 albo workflow uruchamiany webhookiem przez kogoś z zewnątrz. Do tego dochodzi n8n Assistant,
-który buduje workflow za Ciebie na Twoim kluczu API - konkretny przykład rachunku i pułapkę
+który buduje workflow za Ciebie. Na self-hostingu działa na Twoim kluczu API, a na n8n Cloud
+zużywa kredyty z planu (Starter 1 600, Pro do 9 600 miesięcznie, stan na listopad 2026,
+[cennik n8n](https://n8n.io/pricing/)) - po ich wyczerpaniu właściciel instancji dokupuje
+kolejne. Konkretny przykład rachunku i pułapkę
 z domyślnie podpowiadanym najdroższym modelem opisuję w
 [Module 9](/modul-9-n8n-assistant). Jak ograniczać zużycie w samych workflow, pokazuję
 w [Module 8](/modul-8-wzorce-wdrozenia#optymalizacja-wydajności-i-kosztów).
@@ -267,7 +272,7 @@ Pozycja "Twój czas" to osobny koszt, policzony według wzoru z sekcji o
 | Scenariusz | n8n Cloud | Self-hosting | AI (przykładowo) |
 | --- | --- | --- | --- |
 | **Hobby** - kilka workflow, w tym oba gotowce z przykładów wyżej | Starter: 20 EUR / mies. | Mikrus 3.0: 130 zł brutto / rok + Twój czas | ok. 2 USD / mies. (przykłady 1 i 2) |
-| **Mała firma** - kilkanaście workflow, do 10 000 wykonań miesięcznie | Pro: 50 EUR / mies. | VPS w UE: od 5,99 EUR netto / mies. + Twój czas | zależnie od liczby wywołań, wg wzoru wyżej |
+| **Mała firma** - kilkanaście workflow, do 10 000 wykonań miesięcznie | Pro: 50 EUR / mies. | VPS w UE: od ok. 20 EUR netto / mies. (Hetzner CPX22) albo cyber_Folks vroot_RUN 69 zł netto / mies. + Twój czas | zależnie od liczby wywołań, wg wzoru wyżej |
 | **Agencja** - workflow dla wielu klientów | Pro albo Enterprise (wycena indywidualna) | Community, jeśli klienci nie mają dostępu do n8n; Business 667 EUR / mies. przy potrzebie środowisk, Gita lub SSO; Enterprise, jeśli klienci mają sami budować workflow | rachunek per klient, najlepiej na osobnych kluczach API |
 
 Najważniejszy wniosek z tej tabeli: przy małej skali **różnica w cenie jest mniejsza niż

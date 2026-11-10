@@ -68,7 +68,7 @@ LANG_CODE="EN"
 # this release. Do not jump to 3.x here - the 2.x -> 3.x upgrade is one-way;
 # follow the migration steps in Module 1 and use: sudo n8n-update --major 3.x.y
 # (The helper container used by n8n-backup / n8n-restore is alpine:3.24.)
-N8N_VERSION="2.46.6"
+N8N_VERSION="2.47.3"
 POSTGRES_IMAGE="pgvector/pgvector:0.8.7-pg15"
 CURRENT_STEP="initialization"
 
@@ -1036,7 +1036,7 @@ services:
       N8N_PORT: 5678
       N8N_PROTOCOL: https
       N8N_EDITOR_BASE_URL: https://${DOMAIN_NAME}
-      WEBHOOK_URL: https://${DOMAIN_NAME}/
+      N8N_WEBHOOK_URL: https://${DOMAIN_NAME}/
       NODE_ENV: production
       GENERIC_TIMEZONE: ${TIMEZONE}
       TZ: ${TIMEZONE}
@@ -1460,7 +1460,7 @@ BACKUP_BIN="/usr/local/sbin/n8n-backup"
 
 usage() {
     cat <<USAGE
-Usage: $0 <version>            e.g. $0 2.46.7
+Usage: $0 <version>            e.g. $0 2.47.3
        $0 --major <version>    allow a major jump (2.x -> 3.x is ONE-WAY)
        $0 --current            show the pinned version
 
@@ -1485,7 +1485,7 @@ esac
 
 target="${1:-}"
 if ! [[ "$target" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "FAIL: version must look like 2.46.7 (got: '${target}')"; exit 1
+    echo "FAIL: version must look like 2.47.3 (got: '${target}')"; exit 1
 fi
 
 current="$(sed -n 's/^N8N_VERSION=//p' "$ENV_FILE" | head -n1)"

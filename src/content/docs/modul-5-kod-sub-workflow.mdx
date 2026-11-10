@@ -38,9 +38,9 @@ faq:
   - q: "Który tryb Code Node wybrać - \"All Items\" czy \"Each Item\"?"
     a: "Jeśli przekształcasz każdy rekord niezależnie (zmiana pól, formatowanie) - wybierz Run Once for Each Item: kod jest krótszy, a bieżący item masz w $json. Jeśli musisz widzieć cały zbiór naraz (suma, sortowanie, łączenie, deduplikacja) albo zmieniasz liczbę itemów - wybierz Run Once for All Items i pracuj na $input.all()."
   - q: "Czy mogę zainstalować pakiet npm w Code Node?"
-    a: "W n8n Cloud nie - dostępne są tylko wbudowane moduły dopuszczone przez n8n (jak crypto). Na instancji self-hosted możesz włączyć moduły zmiennymi środowiskowymi NODE_FUNCTION_ALLOW_BUILTIN (wbudowane Node.js) oraz NODE_FUNCTION_ALLOW_EXTERNAL (pakiety npm zainstalowane obok n8n). Wiele typowych potrzeb (daty, zapytania JSON) pokrywają jednak wbudowane $now/Luxon i $jmespath."
+    a: "W n8n Cloud nie - dostępne są tylko wbudowane moduły dopuszczone przez n8n (jak crypto). Na instancji self-hosted możesz włączyć moduły zmiennymi środowiskowymi NODE_FUNCTION_ALLOW_BUILTIN (wbudowane Node.js) oraz NODE_FUNCTION_ALLOW_EXTERNAL (pakiety npm zainstalowane obok n8n). Przy task runnerach w trybie external te zmienne wpisujesz jako env-override w pliku /etc/n8n-task-runners.json kontenera n8nio/runners, nie jako zmienne środowiskowe kontenera. Wiele typowych potrzeb (daty, zapytania JSON) pokrywają jednak wbudowane $now/Luxon i $jmespath."
   - q: "Dlaczego moje static data nie zapamiętuje wartości podczas testów?"
-    a: "Bo dane statyczne utrwalają się tylko po udanym wykonaniu produkcyjnym (np. uruchomienie przez trigger w aktywnym workflow). Ręczne uruchomienia z edytora nie zapisują zmian - dlatego klikając \"Test\" w kółko, nie zobaczysz przyrastającej pamięci. Włącz workflow i sprawdź na realnym wykonaniu."
+    a: "Bo dane statyczne utrwalają się tylko po udanym wykonaniu produkcyjnym (np. uruchomienie przez trigger w opublikowanym workflow). Ręczne uruchomienia z edytora nie zapisują zmian - dlatego klikając \"Test\" w kółko, nie zobaczysz przyrastającej pamięci. Opublikuj workflow (przycisk Publish) i sprawdź na realnym wykonaniu."
   - q: "Kiedy wydzielić logikę do sub-workflow?"
     a: "Gdy ten sam fragment powtarza się w kilku workflow, gdy kanwa robi się za duża do ogarnięcia, albo gdy chcesz mieć jeden testowalny \"klocek\" (np. \"wyślij powiadomienie\"). Dla małej logiki używanej raz sub-workflow zwykle nie warto - dodaje tylko warstwę pośrednią."
   - q: "Jaka jest różnica między \"Continue On Fail\" a Stop And Error?"
@@ -61,7 +61,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 5 · Poziom: średnio zaawansowany"
-  readingTime="~28 min"
+  readingTime="~23 min"
   note="Wymaga: Moduły 0-4"
 />
 
@@ -148,18 +148,27 @@ liczbę (np. 100 → 1, albo 1 → 100) - wybierz **Run Once for All Items**.
 
 ### A Python?
 
-Code Node obsługuje też Python (uruchamiany w przeglądarce przez Pyodide). Logika jest taka sama,
-ale zmienne wbudowane mają prefiks **podkreślenia** zamiast dolara: `_input.all()` zamiast
-`$input.all()`, a bieżący item to `_json`. Zwracasz słownik z kluczem `"json"`.
+Code Node obsługuje też Python. Od n8n 2.0 to **natywny Python** uruchamiany przez task runnery
+(osobny proces obok n8n), a nie dawne Pyodide, które usunięto. Logika jest taka sama jak
+w JavaScripcie, ale zmiennych wbudowanych jest dużo mniej: w trybie **Run Once for All Items**
+masz listę `_items`, w trybie **Run Once for Each Item** bieżący item `_item`. Do pól sięgasz
+wyłącznie nawiasami (`_item["json"]["firstName"]`, nie `_item.json.firstName`), a zwracasz
+słownik z kluczem `"json"`.
 
 ```python
-# Run Once for Each Item - Python
+# Run Once for Each Item - Python (natywny)
+dane = _item["json"]
 return {
   "json": {
-    "pelneImie": _json["firstName"] + " " + _json["lastName"]
+    "pelneImie": dane["firstName"] + " " + dane["lastName"]
   }
 }
 ```
+
+Na self-hostingu Python w Code Node działa tylko z task runnerami w trybie **external**, czyli
+z dodatkowym kontenerem `n8nio/runners` obok n8n. Na n8n Cloud działa od ręki, ale bez
+importowania bibliotek. Źródła: [Code node - Python (Native)](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code#python-native),
+[task runnery](https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-task-runners), stan na listopad 2026.
 
 :::caution[Ograniczenia - przeczytaj zanim napiszesz pół biblioteki]
 
@@ -170,12 +179,25 @@ return {
   sekcja "Metody i zmienne wbudowane" niżej.
 - **Self-hosted = więcej swobody.** Na własnej instancji możesz dopuścić moduły zmiennymi
   środowiskowymi: `NODE_FUNCTION_ALLOW_BUILTIN` (moduły wbudowane Node.js) i
-  `NODE_FUNCTION_ALLOW_EXTERNAL` (pakiety npm zainstalowane obok n8n).
-- **Python działa przez Pyodide** - nie każdy pakiet PyPI zadziała, a pierwszy start bywa
-  wolniejszy.
-- **Bez async/await od ręki w trybie "Each Item"** (_async/await_ to sposób obsługi operacji,
-  które trwają w czasie, np. pobrania czegoś z sieci) dla wywołań sieciowych lepiej użyć
-  dedykowanego node'a HTTP Request - kod ma być logiką, nie zastępować integracji.
+  `NODE_FUNCTION_ALLOW_EXTERNAL` (pakiety npm zainstalowane obok n8n). Od n8n 2.0 każdy Code
+  Node wykonuje się na task runnerach. W trybie internal ustawiasz te zmienne na kontenerze n8n,
+  a w trybie external (kontener `n8nio/runners`) jako `env-override` w pliku
+  `/etc/n8n-task-runners.json`, nie jako zmienne środowiskowe kontenera
+  ([Task runners environment variables](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/task-runners),
+  stan na listopad 2026). To samo dotyczy `N8N_RUNNERS_STDLIB_ALLOW` i
+  `N8N_RUNNERS_EXTERNAL_ALLOW` poniżej.
+- **Python ma osobną listę dozwolonych importów.** Na self-hostingu moduły biblioteki
+  standardowej dopuszczasz zmienną `N8N_RUNNERS_STDLIB_ALLOW`, a pakiety zewnętrzne
+  `N8N_RUNNERS_EXTERNAL_ALLOW` - i muszą być zainstalowane w obrazie `n8nio/runners`.
+  Na n8n Cloud Python nie importuje żadnych bibliotek. Kod z tutoriali do n8n 1.x
+  (`_input.all()`, `_json`, dostęp przez kropkę) trzeba przepisać.
+- **Bez sieci i bez dysku.** Code Node nie wykona zapytania HTTP ani nie dotknie systemu plików.
+  Do tego służą node'y HTTP Request i Read/Write Files from Disk - kod ma być logiką, nie
+  zastępować integracji ([Code node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code)).
+- **Limit czasu kodu.** Zadanie Code Node'a, które trwa dłużej niż `N8N_RUNNERS_TASK_TIMEOUT`,
+  kończy się błędem. W n8n 3.0 domyślna wartość spada z 300 do 60 sekund - jeśli Twój kod liczy
+  dłużej, ustaw zmienną jawnie. Szczegóły:
+  [Aktualizacja do n8n 3.0](/modul-1-instalacja-hosting#aktualizacja-do-n8n-30).
 
 :::
 
@@ -227,12 +249,12 @@ dowolnego miejsca workflow.
 | `$input.first()` / `$input.last()` | Pierwszy / ostatni item z wejścia - gdy interesuje Cię tylko jeden. |
 | `$input.item` | Bieżący item w trybie "Run Once for Each Item". |
 | `$json` | Skrót do danych bieżącego itemu (czyli `$input.item.json`). Najczęściej używana zmienna. |
-| `$node["Nazwa"].json` / `$('Nazwa')` | Dane z konkretnego, wcześniejszego node'a po jego nazwie. Pozwala sięgnąć "w bok", nie tylko do poprzednika. |
+| `$('Nazwa')` | Dane z konkretnego, wcześniejszego node'a po jego nazwie (`.item`, `.first()`, `.all()`). Pozwala sięgnąć "w bok", nie tylko do poprzednika. Starsza składnia `$node["Nazwa"].json` nie jest już w dokumentacji. |
 | `$now` | Aktualna data i czas jako obiekt Luxon DateTime (wygodne formatowanie i arytmetyka dat). |
 | `$today` | Dzisiejsza data (początek dnia) jako Luxon DateTime. |
 | `$workflow` | Metadane workflow: m.in. `$workflow.id`, `$workflow.name`, `$workflow.active`. |
-| `$execution` | Kontekst wykonania: m.in. `$execution.id` oraz `$execution.mode` (np. `manual` / `trigger`). |
-| `$vars` | Zmienne środowiskowe instancji (Variables) - wartości współdzielone, np. adres API per środowisko. |
+| `$execution` | Kontekst wykonania: m.in. `$execution.id` oraz `$execution.mode` (`test` przy ręcznym uruchomieniu, `production` z triggera). |
+| `$vars` | Własne zmienne (Variables) ustawiane w UI, np. adres API per środowisko. Tylko płatne plany: Cloud Pro/Enterprise, self-hosted Business/Enterprise ([`$vars`](https://docs.n8n.io/build/code-in-n8n/cookbook/built-in-methods-and-variables-examples/vars)). Nie myl z `$env` - to zmienne środowiskowe instancji, od n8n 2.0 domyślnie zablokowane w Code Node (`N8N_BLOCK_ENV_ACCESS_IN_NODE`). |
 | `$jmespath(obj, "...")` | Zapytanie po danych JSON składnią JMESPath - wygodne wyciąganie zagnieżdżonych pól. |
 
 ### Krótkie przykłady
@@ -242,7 +264,7 @@ dowolnego miejsca workflow.
 const data = $now.toFormat('yyyy-MM-dd HH:mm');
 
 // Czy uruchomienie jest produkcyjne, czy testowe?
-const tryb = $execution.mode; // 'manual' podczas testów
+const tryb = $execution.mode; // 'test' przy ręcznym uruchomieniu, 'production' z triggera
 
 // Pobierz dane z node'a sprzed kilku kroków po nazwie
 const klient = $('Pobierz klienta').first().json;
@@ -309,8 +331,13 @@ return nowe;
   static data ładuje się przy każdym wykonaniu.
 - **Przypisane do konkretnego workflow.** Skopiowanie/duplikat workflow nie przenosi jego danych
   statycznych.
-- Gdy potrzebujesz trwałego, większego stanu - użyj prawdziwej bazy (Postgres, Redis) albo
-  zewnętrznego magazynu.
+- **To funkcja eksperymentalna.** Dokumentacja n8n przy trwałym stanie poleca teraz najpierw
+  [Data Tables](https://docs.n8n.io/build/work-with-data/data-tables): działają też w testach
+  i nie wymagają Code Node'a
+  ([getWorkflowStaticData](https://docs.n8n.io/build/code-in-n8n/cookbook/built-in-methods-and-variables-examples/getworkflowstaticdata),
+  stan na listopad 2026). Przykład z Data Table jako magazynem stanu znajdziesz w
+  [Module 8](/modul-8-wzorce-wdrozenia#wzorce-odporności-na-błędy). Dla dużego stanu albo
+  współdzielonego z innymi systemami użyj prawdziwej bazy (Postgres, Redis).
 
 :::
 
@@ -359,7 +386,10 @@ _Execute Sub-workflow wywołuje poniższy sub-workflow:_
 
 1. **Stwórz sub-workflow i dodaj jego trigger** - Załóż nowy workflow. Jako pierwszy node dodaj
    **Execute Sub-workflow Trigger** ("When Executed by Another Workflow"). To on przyjmie dane od
-   rodzica.
+   rodzica. Ustaw w nim **Input data mode**: **Accept all data** (przyjmie wszystko, co przyśle
+   rodzic) albo **Define using fields below** z listą oczekiwanych pól i ich typów. Bez tego
+   pola od rodzica nie dotrą do środka
+   ([Execute Sub-workflow Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflowtrigger)).
 2. **Zbuduj wewnątrz powtarzalną logikę** - Dodaj kroki, które chcesz uwspólnić - np. walidację
    e-maila, wzbogacenie danych, wysyłkę na Slacka. Zakończ node'em, którego wyjście chcesz
    zwrócić rodzicowi.
@@ -444,14 +474,19 @@ Całość wyłączasz jedną zmienną `N8N_COMMUNITY_PACKAGES_ENABLED=false` - w
 zweryfikowane, ani niezweryfikowane paczki. Na n8n Cloud właściciel instancji może wyłączyć
 zweryfikowane community nodes w **Instance settings** w panelu Cloud
 ([Risks](https://docs.n8n.io/integrations/community-nodes/risks),
-[Nodes environment variables](https://docs.n8n.io/hosting/configuration/environment-variables/nodes)).
+[Nodes environment variables](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/nodes)).
 
 ### n8n 3.0: niezweryfikowane paczki domyślnie wyłączone
 
 W n8n 3.0 (stan na 9 listopada 2026: beta, wydanie stabilne zapowiedziane na początek grudnia
 2026) domyślna wartość `N8N_UNVERIFIED_PACKAGES_ENABLED` zmienia się z `true` na `false`. Po
 aktualizacji nie zainstalujesz niezweryfikowanej paczki z npm, a **te już zainstalowane przestaną
-się ładować** - workflow, który z nich korzysta, zacznie padać. Masz dwie drogi:
+się ładować** - workflow, który z nich korzysta, zacznie padać. Jeśli zarządzasz paczkami
+zmiennymi (`N8N_COMMUNITY_PACKAGES_MANAGED_BY_ENV`), skutek jest poważniejszy: niezweryfikowana
+paczka bez `checksum` sprawia, że **cała instancja n8n nie wystartuje**. Dopisz `checksum` przed
+aktualizacją
+([Environment variable installation](https://docs.n8n.io/integrations/community-nodes/installation-and-management/environment-variable-installation),
+stan na listopad 2026). Masz dwie drogi:
 
 - **Przejść na zweryfikowany odpowiednik** - sprawdź w panelu node'ów, czy taki istnieje.
 - **Świadomie włączyć niezweryfikowane** - ustaw `N8N_UNVERIFIED_PACKAGES_ENABLED=true`. Jeśli
@@ -526,8 +561,8 @@ npm create @n8n/node@latest
 Komenda tworzy szkielet projektu w TypeScript. W nim masz polecenia `dev` (n8n z Twoim node'em,
 przebudowa przy każdej zmianie - od n8n 3.0 wymaga Dockera albo Podmana), `lint`, `build`
 i `release` (publikacja w npm). Pełna ścieżka, łącznie ze zgłoszeniem node'a do weryfikacji przez
-[Creator Portal](https://creators.n8n.io/nodes): [Using the n8n-node tool](https://docs.n8n.io/integrations/creating-nodes/build/n8n-node)
-i [Verification guidelines](https://docs.n8n.io/integrations/creating-nodes/build/reference/verification-guidelines)
+[Creator Portal](https://creators.n8n.io/nodes): [Using the n8n-node tool](https://docs.n8n.io/connect/create-nodes/build-your-node/using-the-n8n-node-tool)
+i [Verification guidelines](https://docs.n8n.io/connect/create-nodes/build-your-node/reference/verification-guidelines)
 (m.in. licencja MIT, zero zależności uruchomieniowych, interfejs i dokumentacja po angielsku).
 Node na własny użytek nie musi przechodzić weryfikacji - instalujesz go ręcznie jako paczkę
 prywatną.
@@ -554,6 +589,10 @@ workflow (**Settings → Error Workflow**) wskaż go jako workflow obsługi bł�
 każda nieobsłużona awaria uruchomi ten workflow i przekaże mu szczegóły błędu - możesz wysłać
 alert na Slacka/e-mail, zalogować incydent albo utworzyć zgłoszenie. Jedno miejsce, które "pilnuje"
 wszystkiego.
+
+Error Trigger działa tylko przy wykonaniach automatycznych (trigger, webhook, harmonogram), nie
+przy ręcznym Execute workflow z edytora. Testując go, odpal awarię w opublikowanym workflow
+([Error Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.errortrigger)).
 
 <Flow
   title="error-workflow"
@@ -618,21 +657,27 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 <summary>Mini-zadanie: zbuduj sub-workflow liczący sumę zamówień</summary>
 
 1. Stwórz nowy workflow "Suma zamówień" i dodaj **Execute Sub-workflow Trigger** jako pierwszy
-   node.
+   node. Ustaw **Input data mode** na **Accept all data** albo zdefiniuj pole `kwota` typu
+   Number.
 2. Dodaj Code Node w trybie **Run Once for All Items**, który sumuje pole `kwota` ze wszystkich
-   przychodzących itemów i zwraca jeden item z polami `liczbaZamowien` i `sumaPLN` - wzoruj się na
-   przykładzie w sekcji [Format zwracanych danych](#format-zwracanych-danych).
-3. Dodaj **Stop And Error**, jeśli lista wejściowa jest pusta - świadome przerwanie zamiast
-   zwrócenia sumy 0.
-4. W osobnym workflow-rodzicu dodaj Manual Trigger, node **Edit Fields** tworzący kilka testowych
-   itemów z polem `kwota`, a potem **Execute Sub-workflow** wskazujący workflow z kroku 1.
+   przychodzących itemów i zwraca jeden item z polami `liczbaZamowien`, `sumaPLN` i `bezKwoty`
+   (liczba itemów, w których `kwota` nie jest liczbą) - wzoruj się na przykładzie w sekcji
+   [Format zwracanych danych](#format-zwracanych-danych).
+3. Za Code Node'em dodaj **IF** z warunkiem `{{ $json.bezKwoty }}` **Number → is greater than**
+   `0`, a na jego gałęzi true **Stop And Error** - świadome przerwanie zamiast zwrócenia
+   zafałszowanej sumy. Pustej listy nie musisz łapać: bez itemów wejściowych Code Node w ogóle
+   się nie uruchomi.
+4. W osobnym workflow-rodzicu dodaj Manual Trigger, a za nim Code Node (Run Once for All Items)
+   tworzący testowe itemy: `return [{ json: { kwota: 100 } }, { json: { kwota: 50 } }];`.
+   Edit Fields za Manual Triggerem dałby tylko jeden item. Na końcu dodaj **Execute
+   Sub-workflow** wskazujący workflow z kroku 1.
 5. Uruchom rodzica i sprawdź w podglądzie wyniku node'a Execute Sub-workflow, czy suma się zgadza.
 
 </details>
 
 <Takeaways>
   - Code Node ma dwa tryby: "Run Once for All Items" (cały zbiór, `$input.all()`) i "Run Once for Each Item" (pojedynczy item, `$json`).
-  - Zawsze zwracaj dane w formacie itemów: `{ json: { ... } }` (Python: `"json"` i prefiks `_`).
+  - Zawsze zwracaj dane w formacie itemów: `{ json: { ... } }` (Python: klucz `"json"`, dane z `_item` / `_items`, dostęp nawiasami).
   - Najpierw node'y, kod dopiero gdy naprawdę trzeba - mniej kodu to mniej rzeczy do utrzymania.
   - Zmienne wbudowane (`$input`, `$json`, `$now`/`$today` jako Luxon, `$jmespath`) skracają kod o połowę.
   - Static data (`$getWorkflowStaticData`) daje pamięć między uruchomieniami - zapis utrwala się tylko po udanym wykonaniu produkcyjnym.

@@ -53,17 +53,17 @@ faq:
   - q: "Po restarcie zniknęły mi workflow i poświadczenia - dlaczego?"
     a: "Najczęściej dlatego, że kontener uruchomiono bez wolumenu danych. Upewnij się, że masz `-v n8n_data:/home/node/.n8n` (lub odpowiedni wpis w Compose). Dane n8n - baza, poświadczenia, klucz szyfrowania - żyją w tym wolumenie, nie w samym kontenerze."
   - q: "Czy potrzebuję własnej domeny i HTTPS?"
-    a: "Do nauki lokalnej nie. Ale gdy chcesz używać webhooków albo logowania OAuth do zewnętrznych usług, potrzebujesz publicznego adresu po HTTPS. Na VPS-ie zrobisz to przez reverse proxy z Let's Encrypt, a w domu najwygodniej przez Cloudflare Tunnel."
+    a: "Do nauki lokalnej nie. Ale gdy chcesz odbierać webhooki z zewnętrznych usług albo logować się przez OAuth do n8n stojącego na serwerze, potrzebujesz publicznego adresu po HTTPS (na własnym komputerze Google przyjmuje callback na `http://localhost`). Na VPS-ie zrobisz to przez reverse proxy z Let's Encrypt, a w domu najwygodniej przez Cloudflare Tunnel."
   - q: "Co się stanie, jeśli zgubię N8N_ENCRYPTION_KEY?"
     a: "Nie odszyfrujesz istniejących poświadczeń zapisanych w bazie - trzeba będzie wprowadzić je ponownie. Dlatego klucz traktuj jak hasło: przechowuj go bezpiecznie i backupuj razem z bazą danych. Na produkcji najlepiej ustawić własny klucz zmienną środowiskową, zanim uruchomisz instancję po raz pierwszy."
   - q: "Czy muszę dokładać sandbox, żeby korzystać z n8n Assistant?"
-    a: "Tak, jeśli hostujesz n8n samodzielnie. Assistant pisze kod i musi go gdzieś uruchomić, a n8n nie pozwala robić tego we własnym kontenerze - bez sandboxa funkcja się nie włączy. Instalator jednolinijkowy `curl -fsSL https://get.n8n.io | sh` stawia sandbox automatycznie. Przy własnym pliku `docker-compose.yml` dokładasz trzy usługi przez `docker-compose.override.yml`, bez ruszania pliku bazowego. Doliczyć trzeba około 4 GB RAM i 2 rdzenie, bo sandbox uruchamia Dockera wewnątrz Dockera."
+    a: "Tak, jeśli hostujesz n8n samodzielnie. Assistant pisze kod i musi go gdzieś uruchomić, a n8n nie pozwala robić tego we własnym kontenerze - bez sandboxa funkcja się nie włączy. Instalator jednolinijkowy `curl -fsSL https://get.n8n.io | sh` stawia sandbox automatycznie. Przy własnym pliku `docker-compose.yml` dokładasz trzy usługi przez `docker-compose.override.yml`, bez ruszania pliku bazowego. n8n podaje minimum 4 GB RAM i 2 vCPU dla serwera z sandboxem, bo sandbox uruchamia Dockera wewnątrz Dockera."
   - q: "Czy jest gotowy instalator n8n na Raspberry Pi?"
     a: "Tak, w tym kursie jest skrypt install-n8n-rpi.sh do pobrania z kursn8n.pl/scripts. Na Raspberry Pi 4 lub 5 z 64-bitowym systemem instaluje Dockera, stawia n8n w przypiętej wersji z PostgreSQL, generuje własny klucz szyfrowania, zakłada Cloudflare Tunnel i ustawia codzienny backup z rotacją 7 kopii oraz polecenia przywracania i aktualizacji. Pobierz go, przeczytaj i dopiero wtedy uruchom przez sudo bash - nie przez curl … | sh. Oficjalny instalator get.n8n.io służy do wypróbowania n8n lokalnie i nie ustawia HTTPS, PostgreSQL ani backupu."
   - q: "Jak bezpiecznie aktualizować n8n?"
     a: "Najpierw backup (wolumen/baza + klucz), potem przeczytaj release notes pod kątem zmian łamiących zgodność, a następnie w Compose: `docker compose pull` i `docker compose up -d`. Na ważnych instancjach nie przeskakuj wielu wersji naraz i testuj po aktualizacji."
   - q: "Czy już teraz aktualizować do n8n 3.0?"
-    a: "Na produkcji jeszcze nie. Od 27 października 2026 wersja 3.0 jest dostępna jako beta, a wydanie stabilne n8n zapowiada na początek grudnia 2026. Przejście na 3.x jest jednokierunkowe - z 3.x nie wrócisz do 2.x. Przygotuj się już teraz: zaktualizuj instancję do najnowszej wersji 2.x, otwórz Settings → Migration Report (od wersji 2.39) i popraw wskazane workflow, a samą 3.0 przetestuj najpierw na kopii. Linia 2.x dostaje poprawki bezpieczeństwa jeszcze przez 12 miesięcy od wydania stabilnej 3.0, więc nie musisz się spieszyć."
+    a: "Na produkcji jeszcze nie. Od 27 października 2026 wersja 3.0 jest dostępna jako beta, a wydanie stabilne n8n zapowiada na początek grudnia 2026. Przejście na 3.x jest jednokierunkowe - z 3.x nie wrócisz do 2.x. Przygotuj się już teraz: zaktualizuj instancję do najnowszej wersji 2.x, otwórz Settings → Migration Report (od wersji 2.39) i popraw wskazane workflow, a samą 3.x przetestuj najpierw na kopii, z jawnym tagiem 3.x (np. `3.2.0`), bo `:beta` wskazuje betę linii 2.x. Linia 2.x dostaje poprawki bezpieczeństwa jeszcze przez 12 miesięcy od wydania stabilnej 3.0, więc nie musisz się spieszyć."
 ---
 
 import { CardGrid } from '@astrojs/starlight/components';
@@ -108,7 +108,7 @@ realnego minimum produkcyjnego - bo to dwa różne światy.
 | Wskaźnik | Wartość |
 | --- | --- |
 | RAM (nauka) | ~512 MB - 1 GB |
-| RAM (produkcja) | 2 GB+ |
+| RAM (produkcja) | minimum 2 GB, komfortowo 4 GB |
 | CPU | 1-2 rdzenie |
 | Dysk | kilka GB+ |
 
@@ -311,16 +311,28 @@ pliku, nie do cofania edycji.
 Zapamiętaj tę technikę niezależnie od sandboxa. Przydaje się za każdym razem, gdy dokładasz
 coś do stacku, którego nie chcesz przepisywać.
 
-Najpierw trzy sekrety w pliku `.env` obok Compose. Każdy zabezpiecza inną parę rozmówców:
-n8n z API sandboxa oraz runner z tym samym API.
+Najpierw do pliku `.env` obok Compose trafia wersja sandboxa i trzy sekrety. Sekrety
+zabezpieczają dwie pary rozmówców: n8n z API sandboxa oraz runner z tym samym API. Wersja
+jest jedna dla trzech obrazów (API, runner, sandbox), bo n8n wspiera je wyłącznie w tej samej
+wersji - tak samo robi oficjalny
+[get-n8n-compose.yml](https://github.com/n8n-io/n8n/blob/master/docker/get-n8n-compose.yml),
+a instalator `get.n8n.io` instaluje dziś sandbox `1.8.1` (stan na listopad 2026).
 
 ```bash
 cd /sciezka/do/n8n
+cp .env .env.bak 2>/dev/null   # kopia, na wypadek pomyłki
+echo 'N8N_SANDBOX_VERSION=1.8.1' >> .env
 gen() { openssl rand -base64 32 | tr -d '=+/' | cut -c1-40; }
 printf 'SANDBOX_API_KEY=%s\nSANDBOX_RUNNER_REGISTRATION_TOKEN=%s\nSANDBOX_RUNNER_API_KEY=%s\n' \
-  "$(gen)" "$(gen)" "$(gen)" > .env
+  "$(gen)" "$(gen)" "$(gen)" >> .env
 chmod 600 .env
 ```
+
+:::caution[Dopisujesz (`>>`), nie nadpisujesz (`>`)]
+W tym samym `.env` może już siedzieć `N8N_ENCRYPTION_KEY` i hasło do bazy
+(patrz [klucz szyfrowania](#klucz-n8n_encryption_key-i-zmienne-środowiskowe)). Pojedyncze `>`
+skasowałoby je bez ostrzeżenia, a bez klucza nie odszyfrujesz zapisanych credentials.
+:::
 
 Potem sama nakładka. To jeden plik do skopiowania i nie musisz go czytać linijka po linijce,
 ale trzy rzeczy warto w nim zobaczyć, bo właśnie na nich wykłada się większość osób:
@@ -345,7 +357,7 @@ volumes:
 services:
   # Wystawia certyfikaty dla pozostałych dwóch usług. Uruchamia się raz i kończy.
   sandbox-certs:
-    image: ghcr.io/n8n-io/n8n-sandbox-service-api:1.2.0
+    image: ghcr.io/n8n-io/n8n-sandbox-service-api:${N8N_SANDBOX_VERSION:?brak N8N_SANDBOX_VERSION w .env}
     user: '0:0'
     entrypoint: ['sh', '-c']
     command:
@@ -360,7 +372,7 @@ services:
 
   # Punkt, z którym rozmawia n8n.
   sandbox-api:
-    image: ghcr.io/n8n-io/n8n-sandbox-service-api:1.2.0
+    image: ghcr.io/n8n-io/n8n-sandbox-service-api:${N8N_SANDBOX_VERSION:?brak N8N_SANDBOX_VERSION w .env}
     restart: unless-stopped
     depends_on:
       sandbox-certs:
@@ -387,7 +399,7 @@ services:
 
   # Tu naprawdę uruchamia się kod Assistanta. Docker wewnątrz Dockera.
   sandbox-runner-1:
-    image: ghcr.io/n8n-io/n8n-sandbox-service-runner-dind:1.2.0
+    image: ghcr.io/n8n-io/n8n-sandbox-service-runner-dind:${N8N_SANDBOX_VERSION:?brak N8N_SANDBOX_VERSION w .env}
     privileged: true
     restart: unless-stopped
     depends_on:
@@ -397,11 +409,11 @@ services:
       SANDBOX_RUNNER_REGISTRATION_TOKEN: ${SANDBOX_RUNNER_REGISTRATION_TOKEN:?brak tokenu}
       SANDBOX_RUNNER_API_KEYS: ${SANDBOX_RUNNER_API_KEY:?brak klucza runnera}
       SANDBOX_RUNNER_API_GRPC_ADDR: sandbox-api:9090
-      SANDBOX_RUNNER_HTTP_BASE_URL: http://sandbox-runner-1:8080
+      SANDBOX_RUNNER_HTTP_BASE_URL: https://sandbox-runner-1:8080
       SANDBOX_RUNNER_CONTROL_GRPC_LISTEN_ADDR: ':9091'
       SANDBOX_RUNNER_CONTROL_GRPC_ADVERTISE_ADDR: sandbox-runner-1:9091
       SANDBOX_RUNNER_ID: runner-1
-      SANDBOX_RUNNER_DOCKER_SANDBOX_IMAGE: ghcr.io/n8n-io/n8n-sandbox-service-sandbox:latest
+      SANDBOX_RUNNER_DOCKER_SANDBOX_IMAGE: ghcr.io/n8n-io/n8n-sandbox-service-sandbox:${N8N_SANDBOX_VERSION}
       SANDBOX_RUNNER_REGISTRATION_GRPC_CA_FILE: /tls/runner/ca.crt
       SANDBOX_RUNNER_REGISTRATION_GRPC_CERT_FILE: /tls/runner/grpc-client.crt
       SANDBOX_RUNNER_REGISTRATION_GRPC_KEY_FILE: /tls/runner/grpc-client.key
@@ -414,12 +426,10 @@ services:
 
   # Twoja istniejąca usługa n8n - te wpisy dokleją się do tego, co już masz.
   n8n:
-    image: n8nio/n8n:2.46.6 # wpisz wersję, która u Ciebie chodzi
+    image: n8nio/n8n:2.47.3 # wpisz wersję, która u Ciebie chodzi
     environment:
-      N8N_ENABLED_MODULES: instance-ai
       N8N_INSTANCE_AI_SANDBOX_ENABLED: 'true'
       N8N_INSTANCE_AI_SANDBOX_PROVIDER: n8n-sandbox
-      N8N_INSTANCE_AI_SANDBOX_IMAGE: ghcr.io/n8n-io/n8n-sandbox-service-sandbox:latest
       N8N_SANDBOX_SERVICE_URL: http://sandbox-api:8080
       N8N_INSTANCE_AI_SANDBOX_API_URL: http://sandbox-api:8080
       N8N_SANDBOX_SERVICE_API_KEY: ${SANDBOX_API_KEY:?brak SANDBOX_API_KEY w .env}
@@ -427,6 +437,21 @@ services:
       sandbox-api:
         condition: service_healthy
 ```
+
+Nakładka odwzorowuje usługi sandboxa z oficjalnego
+[get-n8n-compose.yml](https://github.com/n8n-io/n8n/blob/master/docker/get-n8n-compose.yml)
+i `.env` z instalatora [get.n8n.io](https://get.n8n.io) (stan na 10 listopada 2026). Dwie
+rzeczy, które starsze poradniki robią inaczej:
+
+- **Jedna wersja dla trzech obrazów.** API, runner i sandbox biorą tag z
+  `N8N_SANDBOX_VERSION`. Mieszanie wersji (np. API `1.2.0` i sandbox `:latest`) nie jest
+  wspierane. Aktualizując sandbox, zmieniasz tylko tę jedną linię w `.env`.
+- **Runner pod `https://`.** Sandbox serwuje HTTPS od wersji 1.3, dlatego
+  `SANDBOX_RUNNER_HTTP_BASE_URL` zaczyna się od `https://`.
+
+Nakładka nie ustawia `N8N_ENABLED_MODULES` - oficjalny instalator też tego nie robi. Masz tę
+zmienną w pliku bazowym (np. z `chat-hub` w 3.x)? Pamiętaj, że wpis w nakładce zastępuje
+całą wartość zmiennej, a nie dopisuje się do niej, więc listę modułów trzymaj w jednym pliku.
 
 Na działającej instancji nie włączaj nakładki od razu. Wgraj ją najpierw pod nazwą
 `docker-compose.override.yml.new`, czyli nieaktywną, i zwaliduj bez dotykania stacku.
@@ -460,8 +485,9 @@ Usługa `sandbox-runner-1` chodzi jako `privileged` i prowadzi Dockera wewnątrz
 w praktyce **odpowiednik roota na hoście** - dlatego w nakładce nie ma dla niej żadnego
 `ports:` i nie dodawaj go "tylko na czas debugowania".
 
-Dwie rzeczy do doliczenia. Zasoby: około **4 GB RAM i 2 rdzenie ponad to**, co maszyna już
-robi ([docs](https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-n8n-assistant)).
+Dwie rzeczy do doliczenia. Zasoby: n8n podaje **minimum 4 GB RAM i 2 vCPU** dla serwera
+z sandboxem ([docs: Docker Compose](https://docs.n8n.io/deploy/host-n8n/install-options/install-using-docker-compose)).
+Moja rada: jeśli maszyna robi już coś innego, licz te zasoby ponad to, co jest zajęte.
 Oraz backup: typowy skrypt kopiuje `docker-compose.yml` i nic więcej, więc po dołożeniu
 nakładki i `.env` przestaje być kompletny. Popraw go w tej samej turze, w której dodajesz
 sandbox.
@@ -533,6 +559,19 @@ Migracja sprowadza się więc do przeniesienia zawartości `~/.n8n` do wolumenu 
 3. **Utwórz wolumen i wgraj do niego dane.** Wolumen tworzysz komendą
    `docker volume create n8n_data`, a zawartość `~/.n8n` przenosisz do zamontowanego
    `/home/node/.n8n`. Pilnuj właściciela plików - w obrazie n8n pracuje użytkownik `node`.
+   Najprościej zrobić to jednorazowym kontenerem pomocniczym, który widzi oba katalogi:
+
+   ```bash
+   docker volume create n8n_data
+   docker run --rm \
+    -v n8n_data:/data \
+    -v "$HOME/.n8n":/src:ro \
+    alpine sh -c "cp -a /src/. /data/ && chown -R 1000:1000 /data"
+   ```
+
+   `1000:1000` to UID i GID użytkownika `node` w obrazie n8n. Upewnij się na swojej
+   maszynie: `docker run --rm --entrypoint id docker.n8n.io/n8nio/n8n` powinno pokazać
+   `uid=1000(node)`.
 4. **Uruchom kontener** komendą z sekcji
    [Najprostszy start](#najprostszy-start-jeden-kontener-sqlite), z tym samym wolumenem.
 5. **Sprawdź trzy rzeczy**, zanim cokolwiek skasujesz: czy widzisz swoje workflow, czy
@@ -586,7 +625,7 @@ dokumentacji hostingu
 ([źródło skryptu](https://github.com/n8n-io/n8n/blob/master/docker/get-n8n.sh), stan na
 listopad 2026). Wymaga też zainstalowanego wcześniej Dockera. Mój skrypt robi resztę:
 
-- instaluje Dockera i stawia n8n w przypiętej wersji `2.46.6` z bazą **PostgreSQL**
+- instaluje Dockera i stawia n8n w przypiętej wersji `2.47.3` z bazą **PostgreSQL**
   (z rozszerzeniem pgvector pod workflow AI),
 - generuje własny `N8N_ENCRYPTION_KEY` i hasło bazy (`openssl rand`) i zapisuje je w
   pliku `.env` czytelnym tylko dla roota,
@@ -623,7 +662,7 @@ Po instalacji masz trzy polecenia:
 | --- | --- |
 | `sudo n8n-backup` | backup na żądanie (automatycznie codziennie około 3:00) |
 | `sudo n8n-restore --latest` | przywraca najnowszy backup z `/var/lib/n8n/backups` |
-| `sudo n8n-update 2.46.7` | backup, potem przejście na wskazaną wersję n8n |
+| `sudo n8n-update 2.47.3` | backup, potem przejście na wskazaną wersję n8n |
 
 `n8n-update` nie pozwoli zejść do starszej wersji (migracje bazy działają tylko w przód)
 ani przeskoczyć na 3.x bez flagi `--major`. Zanim jej użyjesz, przejdź kroki z sekcji
@@ -686,8 +725,8 @@ swój przypadek.
 ## HTTPS, domena, reverse proxy i Cloudflare Tunnel
 
 Self-hostowane n8n prawie zawsze chcesz wystawić po HTTPS, na własnej domenie. To nie
-jest fanaberia - bez publicznego, bezpiecznego adresu nie zadziałają poprawnie webhooki
-ani logowanie OAuth do wielu usług.
+jest fanaberia - bez publicznego, bezpiecznego adresu nie zadziałają webhooki z zewnątrz,
+a na serwerze także logowanie OAuth do większości usług.
 
 :::note[Po ludzku - słowa z tej sekcji]
 
@@ -703,20 +742,36 @@ ani logowanie OAuth do wielu usług.
 
 :::
 
-### Dlaczego OAuth wymaga publicznego HTTPS
+### OAuth, webhooki i publiczny HTTPS
 
 Gdy łączysz n8n z usługą przez OAuth (Google, Slack, GitHub itd.), dostawca po
-zalogowaniu odsyła użytkownika na **adres zwrotny (callback)**. Ten adres musi być
-publicznie dostępny i zwykle musi być po HTTPS - `http://localhost` nie zadziała, bo
-dostawca nie ma jak tam wrócić. Tak samo webhooki: zewnętrzna usługa musi móc "zapukać"
-do Twojego n8n z internetu.
+zalogowaniu odsyła Twoją **przeglądarkę** na **adres zwrotny (callback)** n8n. To
+przekierowanie wykonuje przeglądarka, a nie serwer dostawcy, więc na komputerze, na którym
+działa n8n, adres `http://localhost:5678/...` jest osiągalny. Google wprost dopuszcza taki
+adres: adresy zwrotne muszą być po HTTPS, ale _"Localhost URIs (including localhost IP address
+URIs) are exempt from this rule"_
+([Google: Redirect URI validation rules](https://developers.google.com/identity/protocols/oauth2/web-server#uri-validation),
+stan na listopad 2026). Inni dostawcy mają własne reguły, więc przy każdym sprawdź je
+w konsoli aplikacji.
 
-:::caution[WEBHOOK_URL za reverse proxy]
+Publiczny HTTPS staje się konieczny w dwóch sytuacjach:
+
+- **Webhooki i triggery z zewnątrz.** Tu to zewnętrzna usługa (Stripe, GitHub, Telegram)
+  musi "zapukać" do Twojego n8n z internetu, a `localhost` jest dla niej nieosiągalny.
+- **n8n na serwerze, nie na Twoim komputerze.** Otwierasz edytor z innej maszyny, więc
+  callback nie może wskazywać `localhost`, a adres po zwykłym IP i `http://` dostawcy
+  zwykle odrzucą.
+
+:::caution[N8N_WEBHOOK_URL za reverse proxy]
 Gdy n8n stoi za reverse proxy, wewnętrznie słucha na porcie 5678, a do świata jest
 wystawione na 443 (HTTPS). n8n nie zgadnie swojego publicznego adresu - trzeba mu go
-podać zmienną `WEBHOOK_URL` (np. `https://n8n.example.com/`), żeby pokazywał poprawne
+podać zmienną `N8N_WEBHOOK_URL` (np. `https://n8n.example.com/`), żeby pokazywał poprawne
 adresy webhooków w edytorze i rejestrował je u zewnętrznych usług. Przy proxy ustawia się
 też `N8N_PROXY_HOPS`.
+
+W starszych poradnikach zobaczysz samo `WEBHOOK_URL` - od n8n 2.35.0 to przestarzały alias
+`N8N_WEBHOOK_URL`. Dalej działa, ale przy starcie n8n wypisuje ostrzeżenie, więc w nowych
+konfiguracjach używaj pełnej nazwy ([docs: Endpoints](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/endpoints), stan na listopad 2026).
 :::
 
 ### Ścieżka A: VPS + domena + Let's Encrypt
@@ -728,7 +783,7 @@ certyfikat od Let's Encrypt) albo NGINX. W konfiguracji ustawiasz wtedy m.in.:
 
 - `N8N_HOST` - domena, pod którą działa n8n (np. `n8n.twojadomena.pl`).
 - `N8N_PROTOCOL=https` - protokół, którego n8n używa do budowania adresów.
-- `WEBHOOK_URL` - pełny publiczny adres bazowy webhooków.
+- `N8N_WEBHOOK_URL` - pełny publiczny adres bazowy webhooków.
 
 Reverse proxy (np. Traefik) zajmie się wystawieniem TLS i automatycznym odnawianiem
 certyfikatu - gotowe szablony Docker Compose w docs n8n robią to za Ciebie.
@@ -787,13 +842,13 @@ docker run -d --name n8n \
  -p 5678:5678 \
  -e N8N_ENCRYPTION_KEY=<TWÓJ_WYGENEROWANY_KLUCZ> \
  -v n8n_data:/home/node/.n8n \
- docker.n8n.io/n8nio/n8n:2.46.6
+ docker.n8n.io/n8nio/n8n:2.47.3
 ```
 
 ```yaml
 services:
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.46.6
+    image: docker.n8n.io/n8nio/n8n:2.47.3
     environment:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 ```
@@ -823,7 +878,7 @@ podstawowych:
 | `DB_POSTGRESDB_HOST` i pokrewne | Host, port, nazwa bazy, użytkownik i hasło połączenia z PostgreSQL. |
 | `N8N_HOST` | Domena, pod którą działa n8n. |
 | `N8N_PROTOCOL` | Protokół (np. `https`) używany do budowania adresów. |
-| `WEBHOOK_URL` | Publiczny adres bazowy webhooków (ważne za reverse proxy). |
+| `N8N_WEBHOOK_URL` | Publiczny adres bazowy webhooków (ważne za reverse proxy). |
 | `GENERIC_TIMEZONE` / `TZ` | Strefa czasowa - wpływa na node'y harmonogramu. |
 
 ## Aktualizacje i utrzymanie
@@ -854,15 +909,20 @@ docker rm n8n
 # następnie ponownie uruchom kontener tą samą komendą docker run z -v n8n_data:/home/node/.n8n
 ```
 
+Uruchamiałeś kontener z `--rm` (jak w [Najprostszym starcie](#najprostszy-start-jeden-kontener-sqlite))?
+Wtedy `docker rm` pomiń - kontener znika sam przy zatrzymaniu i ta komenda skończy się
+błędem "No such container".
+
 Możesz też przypiąć konkretną wersję zamiast najnowszej, podając tag, np.
-`docker.n8n.io/n8nio/n8n:2.46.6` (wersja stabilna z 4 listopada 2026) - przydatne, gdy
+`docker.n8n.io/n8nio/n8n:2.47.3` (wersja stabilna z 9 listopada 2026) - przydatne, gdy
 chcesz kontrolować, na co dokładnie aktualizujesz.
 
 | Tag | Co dostajesz |
 | --- | --- |
 | `:stable` | najnowsze wydanie stabilne - to chcesz na produkcji |
-| `:2.46.6` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
-| `:beta` | najświeższe wydanie eksperymentalne - do testów, nie na produkcję |
+| `:2.47.3` | konkretna, przypięta wersja - powtarzalne wdrożenia i świadome aktualizacje |
+| `:beta` | najświeższe wydanie eksperymentalne **linii 2.x** (dziś 2.48.x), nie 3.x - do testów, nie na produkcję |
+| `:3.2.0` | jawny tag bety linii 3.x - tylko do testu migracji na kopii, patrz [Aktualizacja do n8n 3.0](#aktualizacja-do-n8n-30) |
 
 Numery wersji podane wyżej to stan na listopad 2026 - aktualny stabilny tag sprawdzisz w
 [release notes n8n](https://docs.n8n.io/changelog/release-notes-2.x) albo na
@@ -884,8 +944,10 @@ Numery wersji podane wyżej to stan na listopad 2026 - aktualny stabilny tag spr
 
 ### Aktualizacja do n8n 3.0
 
-Stan na 9 listopada 2026: wersja 3.0 jest od **27 października 2026** dostępna jako beta
-(na n8n Cloud wybierasz ją w ustawieniach wersji jako "3.0.0 Beta"), a wydanie stabilne
+Stan na 10 listopada 2026: linia 3.x jest w becie od **27 października 2026** (3.0.0),
+najnowsza beta to 3.2.0 z 10 listopada (lista:
+[wydania n8n na GitHubie](https://github.com/n8n-io/n8n/releases)). Na n8n Cloud wybierasz
+ją w ustawieniach wersji, gdzie jest oznaczona jako beta. Wydanie stabilne
 n8n zapowiada na **początek grudnia 2026**, bez konkretnego dnia. Najnowsza stabilna
 wersja to wciąż linia 2.x.
 
@@ -906,7 +968,8 @@ Kolejność, którą zaleca n8n, rozpisana na kroki:
 3. **Popraw to, co wskazał raport**, jeszcze na 2.x.
 4. **Zrób backup** bazy, wolumenu i klucza `N8N_ENCRYPTION_KEY`.
 5. **Przetestuj 3.0 na kopii** (instancja testowa lub staging z kopii danych), dopiero
-   potem produkcja.
+   potem produkcja. Na kopii podaj jawny tag 3.x (np. `docker.n8n.io/n8nio/n8n:3.2.0`),
+   nie `:beta` - ten wskazuje betę linii 2.x.
 
 Co zmienia się w samej instalacji (wybór najważniejszych pozycji dla self-hostingu):
 
@@ -944,10 +1007,10 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
    jego miejsce. Dlaczego to bezpieczne dla Twoich workflow i poświadczeń, o ile masz
    wolumen `n8n_data`, a katastrofalne bez niego? Jeśli nie masz pewności -
    [Aktualizacja pojedynczego kontenera (docker run)](#aktualizacja-pojedynczego-kontenera-docker-run).
-3. Twoje self-hostowane n8n działa na `localhost` bez żadnego tunelu ani domeny. Dlaczego
-   logowanie przez Google czy Slack (OAuth) się nie uda, mimo że sama instancja działa
-   poprawnie? Jeśli nie masz pewności -
-   [Dlaczego OAuth wymaga publicznego HTTPS](#dlaczego-oauth-wymaga-publicznego-https).
+3. Twoje self-hostowane n8n działa na `localhost` bez żadnego tunelu ani domeny. Logowanie
+   do Google przez OAuth przechodzi, ale webhook ze Stripe'a nigdy nie dociera. Dlaczego
+   jedno działa, a drugie nie? Jeśli nie masz pewności -
+   [OAuth, webhooki i publiczny HTTPS](#oauth-webhooki-i-publiczny-https).
 4. Planujesz w przyszłości tryb kolejkowy (queue mode) z kilkoma workerami. Dlaczego
    wszystkie muszą mieć dokładnie ten sam `N8N_ENCRYPTION_KEY`, a nie każdy swój? Jeśli nie
    masz pewności - [Jak ustawić własny klucz](#jak-ustawić-własny-klucz).
@@ -966,8 +1029,11 @@ Potrzebujesz Dockera i kilkunastu minut.
 
 1. Uruchom n8n w kontenerze z wolumenem `n8n_data` (komenda z sekcji
    [Docker i Docker Compose krok po kroku](#docker-i-docker-compose-krok-po-kroku)).
-2. Utwórz w edytorze pusty workflow z jednym node'em i zapisz go pod dowolną nazwą.
-3. Zatrzymaj kontener (`docker stop n8n`) i usuń go (`docker rm n8n`).
+2. Utwórz w edytorze pusty workflow z jednym node'em i nadaj mu dowolną nazwę (zapis jest
+   automatyczny).
+3. Zatrzymaj kontener (`docker stop n8n` z drugiego terminala albo `Ctrl+C` w tym, w którym
+   działa). Flaga `--rm` z tej komendy usuwa go przy zatrzymaniu, więc `docker rm` nie jest
+   potrzebne - kontenera już nie ma, został tylko wolumen.
 4. Uruchom ponownie tę samą komendę `docker run` z tym samym wolumenem
    `-v n8n_data:/home/node/.n8n`.
 5. Otwórz `http://localhost:5678` - Twój workflow powinien tam nadal być. Gdybyś w kroku 1
@@ -980,12 +1046,12 @@ Potrzebujesz Dockera i kilkunastu minut.
   - Przejście na 3.x jest jednokierunkowe: najpierw najnowsza 2.x i Migration Report, potem backup i test na kopii, a produkcja na końcu.
   - Widzisz gdzieś poradnik z npm? Jest starszy niż decyzja n8n - nie idź tą drogą.
   - Masz instalację z npm? Przenieś zawartość `~/.n8n` do wolumenu `n8n_data` - razem z plikiem `config`, bo w nim jest klucz szyfrowania.
-  - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj 2 GB+ RAM i PostgreSQL.
+  - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj minimum 2 GB RAM (komfortowo 4 GB) i PostgreSQL.
   - n8n Cloud = najszybszy start bez administracji; self-host = kontrola i niższy koszt długofalowy.
   - Docker to jedyny wspierany self-host: pamiętaj o wolumenie `n8n_data` - bez niego tracisz dane.
-  - OAuth i webhooki potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel.
+  - Webhooki z zewnątrz i OAuth na serwerze potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel. Lokalnie Google przyjmuje callback na `http://localhost`.
   - Na Raspberry Pi możesz użyć gotowego instalatora z kursu: pobierz, przeczytaj, uruchom - i kopiuj backupy poza Pi.
-  - Za reverse proxy ustaw `WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
+  - Za reverse proxy ustaw `N8N_WEBHOOK_URL`, `N8N_HOST` i `N8N_PROTOCOL`.
   - `N8N_ENCRYPTION_KEY` szyfruje poświadczenia - utrata klucza = utrata poświadczeń. Backupuj go razem z bazą.
   - Aktualizuj świadomie: backup, release notes, `docker compose pull && up -d`.
   - Chcesz używać n8n Assistant? Sandbox jest wymagany - dołóż go nakładką `docker-compose.override.yml` od razu przy stawianiu instancji.

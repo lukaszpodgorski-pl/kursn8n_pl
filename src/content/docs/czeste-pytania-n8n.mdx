@@ -1,0 +1,332 @@
+---
+title: Częste pytania o n8n - krótkie odpowiedzi
+description: "Częste pytania o n8n: czy n8n jest za darmo, n8n czy Zapier albo Make, Cloud czy self-hosting, czy trzeba programować, czy n8n jest po polsku, RODO, AI i n8n 3.0. Krótkie odpowiedzi z linkami do modułów kursu."
+head:
+  - tag: title
+    content: "Częste pytania o n8n: koszty, licencja, hosting, RODO i AI | KursN8N.pl"
+  - tag: meta
+    attrs:
+      property: og:title
+      content: "Częste pytania o n8n - krótkie odpowiedzi"
+  - tag: meta
+    attrs:
+      property: og:description
+      content: "Za darmo czy płatnie, n8n czy Zapier, Cloud czy własny serwer, RODO, AI i n8n 3.0 - konkretne odpowiedzi w 2-4 zdaniach, każda z linkiem do modułu kursu."
+datePublished: 2026-11-09
+educationalLevel: Beginner
+# Strona sama jest FAQ: pytania stoją w treści jako nagłówki `###`, więc
+# automatyczna sekcja "Częste pytania" powielałaby je pod spodem. JSON-LD
+# FAQPage generuje się dalej z pola `faq` (Head.astro nie czyta tej flagi).
+faqHidden: true
+teaches:
+  - Czym jest n8n i czy do pracy z nim trzeba umieć programować
+  - Czym n8n różni się od Zapiera i Make w modelu rozliczeń i hostingu
+  - Kiedy n8n jest darmowy, ile kosztuje n8n Cloud i na co pozwala licencja Sustainable Use License
+  - Jak wybrać między n8n Cloud a self-hostingiem i co zmienia n8n 3.0
+  - Od czego zależy zgodność n8n z RODO i jak n8n chroni zapisane poświadczenia
+  - Co n8n potrafi w AI - agenci, lokalne modele, n8n Assistant i koszt tokenów
+about:
+  - name: n8n
+    sameAs: https://en.wikipedia.org/wiki/N8n
+mentions:
+  - name: Zapier
+    sameAs: https://en.wikipedia.org/wiki/Zapier
+  - name: Make
+    sameAs: https://www.make.com/
+  - name: Docker
+    sameAs: https://en.wikipedia.org/wiki/Docker_(software)
+  - name: General Data Protection Regulation
+    sameAs: https://en.wikipedia.org/wiki/General_Data_Protection_Regulation
+  - name: LangChain
+    sameAs: https://en.wikipedia.org/wiki/LangChain
+  - name: Ollama
+    sameAs: https://en.wikipedia.org/wiki/Ollama
+faq:
+  - q: "Czym jest n8n?"
+    a: "n8n to platforma do automatyzacji procesów: łączysz aplikacje i usługi w workflow (przepływy pracy), które wykonują się same - według harmonogramu, po zdarzeniu z zewnątrz albo na żądanie. Workflow budujesz wizualnie z gotowych node'ów (klocków), a gdy trzeba, dokładasz wyrażenia albo kod w JavaScripcie lub Pythonie. n8n uruchomisz w chmurze twórców (n8n Cloud) albo na własnym serwerze."
+  - q: "Czy muszę umieć programować, żeby używać n8n?"
+    a: "Nie. Większość workflow zbudujesz, przeciągając gotowe node'y na kanwę i wypełniając ich pola. Kod przydaje się dopiero przy nietypowych przekształceniach danych - jako krótkie wyrażenia albo Code Node z JavaScriptem lub Pythonem. Nawet wtedy obowiązuje zasada: najpierw node'y, kod dopiero, gdy naprawdę trzeba."
+  - q: "Czy n8n jest po polsku?"
+    a: "Nie - interfejs n8n jest dostępny tylko po angielsku, bo w repozytorium n8n oficjalne tłumaczenie edytora istnieje wyłącznie dla tego języka (stan na listopad 2026). Zmienna N8N_DEFAULT_LOCALE pozwala wskazać inny język, ale wszystkie nieprzetłumaczone teksty n8n i tak pokazuje po angielsku. Workflow bez problemu przetwarzają za to polskie teksty, a ten kurs objaśnia cały żargon n8n po polsku."
+  - q: "n8n czy Zapier - co wybrać?"
+    a: "n8n, jeśli zależy Ci na kontroli nad danymi, własnym hostingu i długich workflow: n8n Cloud liczy całe uruchomienia, a na własnym serwerze nie płacisz za uruchomienia wcale. Zapier liczy taski, czyli każdą udaną akcję, więc workflow z 10 akcjami uruchomiony 1 000 razy to 10 000 tasków. Przy prostych automatyzacjach na 1-2 akcje Zapier bywa za to najszybszy na start, bez żadnego zaplecza technicznego."
+  - q: "n8n czy Make - co wybrać?"
+    a: "Oba narzędzia budują automatyzacje wizualnie, ale tylko n8n postawisz na własnym serwerze - Make działa wyłącznie jako usługa w chmurze. Make rozlicza się kredytami, z których większość akcji w scenariuszu zużywa po jednym, a n8n Cloud liczy wykonania całych workflow. n8n wybierz, gdy chcesz zejść do kodu i trzymać dane u siebie, Make - gdy wolisz rozbudowane scenariusze bez zajmowania się hostingiem."
+  - q: "Czy n8n jest za darmo?"
+    a: "Wersja self-hosted tak: licencja Sustainable Use License pozwala używać n8n bez opłat do wewnętrznych celów firmy oraz do celów osobistych i niekomercyjnych. Płacisz wtedy za serwer, prąd i własny czas na utrzymanie. n8n Cloud to płatny abonament, a funkcje Business i Enterprise na własnym serwerze wymagają płatnej licencji."
+  - q: "Ile kosztuje n8n Cloud?"
+    a: "Według cennika n8n plan Starter kosztuje 20 EUR miesięcznie i daje 2 500 wykonań, a plan Pro 50 EUR miesięcznie i 10 000 wykonań - obie stawki przy rozliczeniu rocznym, stan na listopad 2026. Wykonanie to jedno uruchomienie całego workflow, bez względu na liczbę kroków. Na start dostajesz darmowy trial bez karty z limitem 1 000 wykonań."
+  - q: "Czy n8n jest open source?"
+    a: "Nie w rozumieniu definicji Open Source Initiative - n8n działa w modelu fair-code, na licencji Sustainable Use License. Kod jest publiczny i możesz go modyfikować, ale licencja zawęża użycie do celów wewnętrznych firmy, osobistych i niekomercyjnych. Tę licencję n8n przyjął w marcu 2022 roku w miejsce wcześniejszej Apache 2.0 z Commons Clause."
+  - q: "Czy mogę zarabiać na budowaniu workflow w n8n dla klientów?"
+    a: "Tak - licencja pozwala pobierać opłaty za budowę, konfigurację i utrzymanie workflow oraz za szkolenia i consulting, bez osobnej umowy z n8n. Granica przebiega tam, gdzie klienci sami dostają dostęp do n8n: hostowanie n8n jako usługi, w której klienci budują lub edytują workflow, oraz white-label wymagają umowy komercyjnej. Przy przypadkach granicznych n8n odsyła na adres license@n8n.io."
+  - q: "n8n Cloud czy self-hosting - co wybrać?"
+    a: "n8n Cloud, jeśli chcesz zacząć w kilka minut i nie zajmować się aktualizacjami, backupami ani HTTPS - płacisz abonament, a dane leżą u dostawcy. Self-hosting, jeśli zależy Ci na pełnej kontroli nad danymi i braku opłat za wykonania - w zamian aktualizacje, backupy i bezpieczeństwo są po Twojej stronie. Do nauki nadaje się jedno i drugie: trial n8n Cloud albo Docker na własnym komputerze."
+  - q: "Jaki serwer jest potrzebny do n8n?"
+    a: "Do nauki wystarczy około 512 MB - 1 GB RAM i 1-2 rdzenie, do produkcji minimum 2 GB RAM, komfortowo 4 GB przy AI agentach i dużych payloadach. Zapotrzebowanie na pamięć rośnie z liczbą równoległych wykonań, rozmiarem przetwarzanych danych i node'ami AI. Na start wystarczy mały VPS, Raspberry Pi albo mini PC, a do poważnej produkcji warto od razu zaplanować bazę PostgreSQL zamiast domyślnego SQLite."
+  - q: "Czy n8n można zainstalować przez npm?"
+    a: "W linii 2.x jeszcze tak (z Node.js od 20.19 do 24.x), ale n8n 3.0 kończy z instalacją przez npm i npx - self-hosting będzie działał tylko w Dockerze. Wersja 3.0 jest dostępna jako beta od 27 października 2026, a wydanie stabilne n8n zapowiada na początek grudnia 2026. Nową instalację stawiaj więc od razu w Dockerze, a istniejącą z npm przenieś, zanim zaktualizujesz do 3.0."
+  - q: "Co zmienia n8n 3.0?"
+    a: "Dla self-hostingu najważniejsze są: koniec instalacji przez npm, domyślnie wyłączone niezweryfikowane community nodes, krótszy domyślny limit czasu task runnera dla Code node (60 zamiast 300 sekund) i usunięcie starych node'ów, m.in. Function i Cron. Aktualizacja do 3.x jest jednokierunkowa, więc przed nią robisz backup i przeglądasz Settings → Migration Report na najnowszej wersji 2.x. Linia 2.x dostaje poprawki bezpieczeństwa jeszcze przez 12 miesięcy od stabilnego wydania 3.0, więc nie musisz się spieszyć."
+  - q: "Czy n8n jest zgodny z RODO?"
+    a: "n8n da się używać zgodnie z RODO, ale zgodność zależy od Twojego wdrożenia, nie od samego narzędzia. Najprostsza ścieżka to self-hosting w UE i umowa powierzenia (DPA) z dostawcą serwera oraz z każdą usługą, której przekazujesz dane osobowe, np. z dostawcą modelu AI. n8n Cloud według cennika n8n przechowuje dane w UE, na serwerach we Frankfurcie (stan na listopad 2026)."
+  - q: "Gdzie n8n przechowuje hasła i klucze API?"
+    a: "W swojej bazie danych, jako zaszyfrowane credentials (poświadczenia) - szyfruje je kluczem N8N_ENCRYPTION_KEY. Jeśli zgubisz ten klucz, n8n nie odszyfruje zapisanych credentials i każde połączenie trzeba będzie skonfigurować od nowa. Dlatego na self-hostingu ustawiasz własny klucz i trzymasz jego kopię osobno, np. w menedżerze haseł."
+  - q: "Jak zabezpieczyć n8n wystawiony do internetu?"
+    a: "Panel edytora stawiasz za HTTPS i reverse proxy, włączasz 2FA i ograniczasz dostęp, np. do VPN albo wybranych adresów IP. Webhooki zwykle muszą zostać publiczne, więc zabezpieczasz je inaczej: trudnym do odgadnięcia adresem, weryfikacją podpisu (HMAC) w workflow i HTTPS. Do tego regularne aktualizacje - dokumentacja n8n zaleca co najmniej jedną w miesiącu."
+  - q: "Czy w n8n zbuduję agenta AI?"
+    a: "Tak - node AI Agent łączy model językowy z pamięcią i narzędziami, a model sam decyduje, po które narzędzie sięgnąć w kolejnym kroku. Węzły AI w n8n są oparte na LangChain, więc agenta, chatbota czy RAG na własnych dokumentach składasz z gotowych klocków na kanwie. n8n obsługuje też MCP: jako klient korzysta z cudzych serwerów MCP, a jako serwer udostępnia Twoje workflow klientom AI."
+  - q: "Czy mogę używać lokalnego modelu AI zamiast OpenAI?"
+    a: "Tak - podpinasz sub-node Ollama Chat Model i uruchamiasz model na własnym serwerze. Nie płacisz wtedy za tokeny, a dane nie opuszczają Twojej infrastruktury. Ceną jest wymagający sprzęt i zwykle niższa jakość odpowiedzi niż w topowych modelach chmurowych."
+  - q: "Ile kosztuje AI w workflow n8n?"
+    a: "Płacisz dostawcy modelu za tokeny, osobno od n8n - niezależnie od tego, czy n8n stoi w Cloud, czy u Ciebie. Koszt policzysz wzorem: liczba wywołań × tokeny na wywołanie × cena modelu, a codzienne podsumowanie RSS na tanim modelu to kilka centów miesięcznie (stan na listopad 2026). Rachunek rośnie przy agentach, które same wołają model wiele razy, i przy workflow otwartych dla klientów, więc limit wydatków ustaw w panelu dostawcy."
+  - q: "Czym różni się n8n Assistant od AI Agenta?"
+    a: "AI Agent to node, który budujesz wewnątrz workflow i który pracuje dla Twoich użytkowników w produkcji. n8n Assistant to funkcja edytora, która pracuje dla Ciebie podczas budowania: generuje workflow z opisu, zmienia istniejące i analizuje nieudane wykonania. Na self-hostingu Assistant potrzebuje sandboxa, czyli osobnego środowiska do uruchamiania kodu."
+---
+
+import ModuleHero from '../../components/ModuleHero.astro';
+
+<ModuleHero
+  tag="FAQ · wszystkie poziomy"
+  readingTime="~9 min"
+  note="Fakty zweryfikowane w listopadzie 2026"
+/>
+
+Tu zbieram pytania o n8n, które padają najczęściej - zanim ktoś w ogóle zacznie kurs albo
+w połowie, gdy musi podjąć decyzję. Każda odpowiedź ma 2-4 zdania i zaczyna się od konkretu,
+a pod nią znajdziesz link do modułu, w którym rozwijam temat. Jeśli zaczynasz od zera, najlepszą
+drogą jest [Moduł 0](/modul-0-fundamenty), potem instalacja w
+[Module 1](/modul-1-instalacja-hosting) i pierwszy workflow w
+[Module 2](/modul-2-interfejs-pierwszy-workflow).
+
+:::caution[Ceny i wersje zmieniają się szybko]
+Kwoty, limity i daty sprawdziłem u źródła w listopadzie 2026. Zanim wpiszesz liczbę do budżetu
+albo zaplanujesz aktualizację, otwórz podlinkowany cennik lub dokumentację i sprawdź bieżący
+stan.
+:::
+
+## Podstawy
+
+### Czym jest n8n?
+
+n8n to platforma do automatyzacji procesów: łączysz aplikacje i usługi w workflow (przepływy
+pracy), które wykonują się same - według harmonogramu, po zdarzeniu z zewnątrz albo na
+żądanie. Workflow budujesz wizualnie z gotowych node'ów (klocków), a gdy trzeba, dokładasz
+wyrażenia albo kod w JavaScripcie lub Pythonie. n8n uruchomisz w chmurze twórców (n8n Cloud)
+albo na własnym serwerze.
+
+Więcej: [Moduł 0 - Czym jest n8n](/modul-0-fundamenty#czym-jest-n8n).
+
+### Czy muszę umieć programować, żeby używać n8n?
+
+Nie. Większość workflow zbudujesz, przeciągając gotowe node'y na kanwę i wypełniając ich pola.
+Kod przydaje się dopiero przy nietypowych przekształceniach danych - jako krótkie wyrażenia
+(składnia `{{ }}`) albo Code Node z JavaScriptem lub Pythonem. Nawet wtedy obowiązuje zasada:
+najpierw node'y, kod dopiero, gdy naprawdę trzeba.
+
+Więcej: [Moduł 3 - wyrażenia](/modul-3-praca-z-danymi#wyrażenia-expressions-i-składnia--) ·
+[Moduł 5 - Kiedy kod, a kiedy node'y](/modul-5-kod-sub-workflow#kiedy-kod-a-kiedy-nodey).
+
+### Czy n8n jest po polsku?
+
+Nie - interfejs n8n jest dostępny tylko po angielsku, bo w
+[repozytorium n8n](https://github.com/n8n-io/n8n/tree/master/packages/frontend/@n8n/i18n/src/locales)
+oficjalne tłumaczenie edytora istnieje wyłącznie dla tego języka (stan na listopad 2026).
+Zmienna `N8N_DEFAULT_LOCALE` pozwala wskazać inny język, ale wszystkie nieprzetłumaczone
+teksty n8n i tak pokazuje po angielsku
+([dokumentacja](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/timezone-and-localization)).
+Workflow bez problemu przetwarzają za to polskie teksty, a ten kurs objaśnia cały żargon n8n
+po polsku.
+
+Więcej: [Moduł 2 - przegląd interfejsu edytora](/modul-2-interfejs-pierwszy-workflow#przegląd-interfejsu-edytora) ·
+[Słownik pojęć n8n](/slownik-pojec).
+
+### n8n czy Zapier - co wybrać?
+
+n8n, jeśli zależy Ci na kontroli nad danymi, własnym hostingu i długich workflow: n8n Cloud
+liczy całe uruchomienia, a na własnym serwerze nie płacisz za uruchomienia wcale. Zapier
+liczy taski, czyli każdą udaną akcję, więc workflow z 10 akcjami uruchomiony 1 000 razy to
+10 000 tasków. Przy prostych automatyzacjach na 1-2 akcje Zapier bywa za to najszybszy na
+start, bez żadnego zaplecza technicznego.
+
+Więcej: [Moduł 0 - n8n vs Make, Zapier i Power Automate](/modul-0-fundamenty#n8n-vs-make-zapier-i-power-automate) ·
+[ten sam workflow w n8n, Zapierze i Make - policzony](/ile-kosztuje-n8n#ile-kosztuje-ten-sam-workflow-w-n8n-zapierze-i-make).
+
+### n8n czy Make - co wybrać?
+
+Oba narzędzia budują automatyzacje wizualnie, ale tylko n8n postawisz na własnym serwerze -
+Make działa wyłącznie jako usługa w chmurze. Make rozlicza się kredytami, z których większość
+akcji w scenariuszu zużywa po jednym, a n8n Cloud liczy wykonania całych workflow. n8n
+wybierz, gdy chcesz zejść do kodu i trzymać dane u siebie, Make - gdy wolisz rozbudowane
+scenariusze bez zajmowania się hostingiem.
+
+Więcej: [Moduł 0 - porównanie narzędzi](/modul-0-fundamenty#n8n-vs-make-zapier-i-power-automate) ·
+[cennik Make w porównaniu kosztów](/ile-kosztuje-n8n#ile-kosztuje-ten-sam-workflow-w-n8n-zapierze-i-make).
+
+## Koszty i licencja
+
+### Czy n8n jest za darmo?
+
+Wersja self-hosted tak: licencja Sustainable Use License pozwala używać n8n bez opłat do
+wewnętrznych celów firmy oraz do celów osobistych i niekomercyjnych. Płacisz wtedy za serwer,
+prąd i własny czas na utrzymanie. n8n Cloud to płatny abonament, a funkcje Business
+i Enterprise na własnym serwerze wymagają płatnej licencji.
+
+Więcej: [Ile kosztuje n8n - self-hosting](/ile-kosztuje-n8n#czy-n8n-na-własnym-serwerze-jest-naprawdę-za-darmo) ·
+[płatne funkcje self-hosted](/ile-kosztuje-n8n#które-funkcje-self-hosted-wymagają-płatnej-licencji).
+
+### Ile kosztuje n8n Cloud?
+
+Według [cennika n8n](https://n8n.io/pricing) plan Starter kosztuje 20 EUR miesięcznie i daje
+2 500 wykonań, a plan Pro 50 EUR miesięcznie i 10 000 wykonań - obie stawki przy rozliczeniu
+rocznym, stan na listopad 2026. Wykonanie to jedno uruchomienie całego workflow, bez względu
+na liczbę kroków. Na start dostajesz darmowy trial bez karty z limitem 1 000 wykonań.
+
+Więcej: [Ile kosztuje n8n Cloud - pełna tabela planów](/ile-kosztuje-n8n#ile-kosztuje-n8n-cloud).
+
+### Czy n8n jest open source?
+
+Nie w rozumieniu definicji Open Source Initiative - n8n działa w modelu fair-code, na licencji
+Sustainable Use License ([dokumentacja licencji](https://docs.n8n.io/n8n-community-license)).
+Kod jest publiczny i możesz go modyfikować, ale licencja zawęża użycie do celów wewnętrznych
+firmy, osobistych i niekomercyjnych. Tę licencję n8n przyjął w marcu 2022 roku w miejsce
+wcześniejszej Apache 2.0 z Commons Clause.
+
+Więcej: [Moduł 0 - Licencja: Sustainable Use License](/modul-0-fundamenty#licencja-sustainable-use-license-fair-code).
+
+### Czy mogę zarabiać na budowaniu workflow w n8n dla klientów?
+
+Tak - licencja pozwala pobierać opłaty za budowę, konfigurację i utrzymanie workflow oraz za
+szkolenia i consulting, bez osobnej umowy z n8n. Granica przebiega tam, gdzie klienci sami
+dostają dostęp do n8n: hostowanie n8n jako usługi, w której klienci budują lub edytują
+workflow, oraz white-label wymagają umowy komercyjnej. Przy przypadkach granicznych n8n
+odsyła na adres `license@n8n.io`.
+
+Więcej: [Ile kosztuje n8n - co wolno na darmowej licencji](/ile-kosztuje-n8n#czy-n8n-na-własnym-serwerze-jest-naprawdę-za-darmo).
+
+## Hosting
+
+### n8n Cloud czy self-hosting - co wybrać?
+
+n8n Cloud, jeśli chcesz zacząć w kilka minut i nie zajmować się aktualizacjami, backupami ani
+HTTPS - płacisz abonament, a dane leżą u dostawcy. Self-hosting, jeśli zależy Ci na pełnej
+kontroli nad danymi i braku opłat za wykonania - w zamian aktualizacje, backupy
+i bezpieczeństwo są po Twojej stronie. Do nauki nadaje się jedno i drugie: trial n8n Cloud
+albo Docker na własnym komputerze.
+
+Więcej: [Moduł 0 - n8n Cloud vs self-hosted](/modul-0-fundamenty#n8n-cloud-vs-self-hosted---którą-drogą-iść) ·
+[Moduł 1 - Instalacja i hosting](/modul-1-instalacja-hosting).
+
+### Jaki serwer jest potrzebny do n8n?
+
+Do nauki wystarczy około 512 MB - 1 GB RAM i 1-2 rdzenie, do produkcji minimum 2 GB RAM,
+komfortowo 4 GB przy AI agentach i dużych payloadach. Zapotrzebowanie na pamięć rośnie
+z liczbą równoległych wykonań, rozmiarem
+przetwarzanych danych i node'ami AI. Na start wystarczy mały VPS, Raspberry Pi albo mini PC,
+a do poważnej produkcji warto od razu zaplanować bazę PostgreSQL zamiast domyślnego SQLite.
+
+Więcej: [Moduł 1 - Wymagania systemowe](/modul-1-instalacja-hosting#wymagania-systemowe) ·
+[Porównanie hostingów n8n](/porownanie-n8n-hostingow).
+
+### Czy n8n można zainstalować przez npm?
+
+W linii 2.x jeszcze tak (z Node.js od 20.19 do 24.x), ale n8n 3.0 kończy z instalacją przez
+npm i npx - self-hosting będzie działał tylko w Dockerze. Wersja 3.0 jest dostępna jako beta
+od 27 października 2026, a wydanie stabilne n8n zapowiada na początek grudnia 2026. Nową
+instalację stawiaj więc od razu w Dockerze, a istniejącą z npm przenieś, zanim zaktualizujesz
+do 3.0.
+
+Więcej: [Moduł 1 - Migracja z npm na Dockera](/modul-1-instalacja-hosting#migracja-z-npm-na-dockera) ·
+[Introducing n8n v3](https://blog.n8n.io/introducing-n8n-v3).
+
+### Co zmienia n8n 3.0?
+
+Dla self-hostingu najważniejsze są: koniec instalacji przez npm, domyślnie wyłączone
+niezweryfikowane community nodes, krótszy domyślny limit czasu task runnera dla Code node
+(60 zamiast 300 sekund) i usunięcie starych node'ów, m.in. Function i Cron. Aktualizacja do
+3.x jest jednokierunkowa, więc przed nią robisz backup i przeglądasz Settings → Migration
+Report na najnowszej wersji 2.x. Linia 2.x dostaje poprawki bezpieczeństwa jeszcze przez
+12 miesięcy od stabilnego wydania 3.0, więc nie musisz się spieszyć.
+
+Więcej: [Moduł 1 - Aktualizacja do n8n 3.0](/modul-1-instalacja-hosting#aktualizacja-do-n8n-30) ·
+[v3.0 Breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes).
+
+## Bezpieczeństwo i RODO
+
+### Czy n8n jest zgodny z RODO?
+
+n8n da się używać zgodnie z RODO, ale zgodność zależy od Twojego wdrożenia, nie od samego
+narzędzia. Najprostsza ścieżka to self-hosting w UE i umowa powierzenia (DPA) z dostawcą
+serwera oraz z każdą usługą, której przekazujesz dane osobowe, np. z dostawcą modelu AI.
+n8n Cloud według [cennika n8n](https://n8n.io/pricing) przechowuje dane w UE, na serwerach we
+Frankfurcie (stan na listopad 2026).
+
+Więcej: [Moduł 7 - RODO / GDPR w automatyzacjach](/modul-7-produkcja#rodo--gdpr-w-automatyzacjach) ·
+[RODO u konkretnych dostawców hostingu](/porownanie-n8n-hostingow#rodo--gdpr).
+
+### Gdzie n8n przechowuje hasła i klucze API?
+
+W swojej bazie danych, jako zaszyfrowane credentials (poświadczenia) - szyfruje je kluczem
+`N8N_ENCRYPTION_KEY`. Jeśli zgubisz ten klucz, n8n nie odszyfruje zapisanych credentials
+i każde połączenie trzeba będzie skonfigurować od nowa. Dlatego na self-hostingu ustawiasz
+własny klucz i trzymasz jego kopię osobno, np. w menedżerze haseł.
+
+Więcej: [Moduł 4 - Gdzie n8n trzyma credentials](/modul-4-integracje-api#gdzie-n8n-trzyma-credentials) ·
+[Moduł 1 - klucz szyfrowania](/modul-1-instalacja-hosting#klucz-n8n_encryption_key-i-zmienne-środowiskowe).
+
+### Jak zabezpieczyć n8n wystawiony do internetu?
+
+Panel edytora stawiasz za HTTPS i reverse proxy, włączasz 2FA i ograniczasz dostęp, np. do
+VPN albo wybranych adresów IP. Webhooki zwykle muszą zostać publiczne, więc zabezpieczasz je
+inaczej: trudnym do odgadnięcia adresem, weryfikacją podpisu (HMAC) w workflow i HTTPS. Do
+tego regularne aktualizacje - dokumentacja n8n
+[zaleca co najmniej jedną w miesiącu](https://docs.n8n.io/deploy/host-n8n/keep-n8n-running/update-n8n).
+
+Więcej: [Moduł 7 - Zabezpieczenie instancji](/modul-7-produkcja#zabezpieczenie-instancji) ·
+[Moduł 4 - weryfikacja podpisu webhooka](/modul-4-integracje-api#czy-to-naprawdę-stripe-weryfikacja-podpisu-hmac).
+
+## AI
+
+### Czy w n8n zbuduję agenta AI?
+
+Tak - node AI Agent łączy model językowy z pamięcią i narzędziami, a model sam decyduje, po
+które narzędzie sięgnąć w kolejnym kroku. Węzły AI w n8n są oparte na LangChain, więc agenta,
+chatbota czy RAG na własnych dokumentach składasz z gotowych klocków na kanwie. n8n obsługuje
+też MCP: jako klient korzysta z cudzych serwerów MCP, a jako serwer udostępnia Twoje workflow
+klientom AI.
+
+Więcej: [Moduł 6 - AI i agenci](/modul-6-ai-agenci) ·
+[MCP - n8n jako klient i jako serwer](/modul-6-ai-agenci#mcp---n8n-jako-klient-i-jako-serwer).
+
+### Czy mogę używać lokalnego modelu AI zamiast OpenAI?
+
+Tak - podpinasz sub-node Ollama Chat Model i uruchamiasz model na własnym serwerze. Nie
+płacisz wtedy za tokeny, a dane nie opuszczają Twojej infrastruktury. Ceną jest wymagający
+sprzęt i zwykle niższa jakość odpowiedzi niż w topowych modelach chmurowych.
+
+Więcej: [Moduł 6 - Modele: OpenAI, Anthropic i lokalne](/modul-6-ai-agenci#modele-openai-anthropic-i-lokalne-ollama).
+
+### Ile kosztuje AI w workflow n8n?
+
+Płacisz dostawcy modelu za tokeny, osobno od n8n - niezależnie od tego, czy n8n stoi w Cloud,
+czy u Ciebie. Koszt policzysz wzorem: liczba wywołań × tokeny na wywołanie × cena modelu,
+a codzienne podsumowanie RSS na tanim modelu to kilka centów miesięcznie (stan na listopad
+2026). Rachunek rośnie przy agentach, które same wołają model wiele razy, i przy workflow
+otwartych dla klientów, więc limit wydatków ustaw w panelu dostawcy.
+
+Więcej: [Ile kosztują tokeny AI - przykłady z cenami modeli](/ile-kosztuje-n8n#ile-kosztują-tokeny-ai-w-workflow).
+
+### Czym różni się n8n Assistant od AI Agenta?
+
+AI Agent to node, który budujesz wewnątrz workflow i który pracuje dla Twoich użytkowników
+w produkcji. n8n Assistant to funkcja edytora, która pracuje dla Ciebie podczas budowania:
+generuje workflow z opisu, zmienia istniejące i analizuje nieudane wykonania. Na
+self-hostingu Assistant potrzebuje sandboxa, czyli osobnego środowiska do uruchamiania kodu.
+
+Więcej: [Moduł 9 - Assistant to nie jest AI Agent](/modul-9-n8n-assistant#assistant-to-nie-jest-ai-agent).
+
+## Nie ma Twojego pytania?
+
+Ta strona rośnie razem z kursem. Jeśli coś się zepsuło, zajrzyj najpierw do
+[Coś nie działa? Troubleshooting](/cos-nie-dziala). Jeśli brakuje tu pytania, które Ciebie
+nurtuje, [daj mi znać](/#o-autorze) - dopiszę je razem z odpowiedzią.

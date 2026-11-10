@@ -22,6 +22,7 @@ teaches:
   - Najprzydatniejsze skróty klawiszowe edytora n8n na Windows, Linux i macOS
   - Data Tables - wbudowane tabele danych n8n, ich limity i wybór między Data Tables a Google Sheets
   - Organizacja pracy - projekty, foldery, tagi, grupy node'ów i sticky notes
+  - "Ćwiczenie praktyczne: pobranie pogody z wttr.in node'em HTTP Request i złożenie wyniku w Edit Fields"
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -35,12 +36,12 @@ mentions:
   - name: CSV
     sameAs: https://en.wikipedia.org/wiki/Comma-separated_values
 faq:
-  - q: "Czy workflow zadziała sam, jeśli go nie aktywuję?"
-    a: "Nie. Bez aktywacji (przełącznik Active) workflow działa wyłącznie w edytorze - uruchamiany ręcznie przyciskiem \"Execute workflow\". Triggery Schedule i Webhook reagują samodzielnie dopiero po aktywacji. Manual Trigger nigdy nie działa \"produkcyjnie\" - służy tylko do testów."
+  - q: "Czy workflow zadziała sam, jeśli go nie opublikuję?"
+    a: "Nie. Bez publikacji (przycisk Publish w prawym górnym rogu edytora, w n8n 1.x przełącznik Active) workflow działa wyłącznie w edytorze - uruchamiany ręcznie przyciskiem \"Execute workflow\". Triggery Schedule i Webhook reagują samodzielnie dopiero po publikacji, a produkcja zawsze używa ostatniej opublikowanej wersji - zmiany wprowadzone później zaczną działać dopiero po ponownym kliknięciu Publish. Manual Trigger nigdy nie działa \"produkcyjnie\" - służy tylko do testów."
   - q: "Czym różni się \"Execute workflow\" od \"Execute step\"?"
     a: "\"Execute workflow\" uruchamia cały przepływ od triggera. \"Execute step\" to częściowe wykonanie - odpala tylko zaznaczony node, korzystając z danych z wcześniejszych kroków. Drugie jest szybsze, gdy poprawiasz pojedynczy node i nie chcesz przepuszczać wszystkiego od nowa."
   - q: "Mój webhook działa w teście, ale nie na produkcji - dlaczego?"
-    a: "Najczęściej dlatego, że workflow nie jest aktywny lub system zewnętrzny używa Test URL zamiast Production URL. To dwa różne adresy. Aktywuj workflow przełącznikiem Active i skopiuj produkcyjny URL z node'a Webhook do systemu, który wysyła żądania."
+    a: "Najczęściej dlatego, że workflow nie jest opublikowany lub system zewnętrzny używa Test URL zamiast Production URL. To dwa różne adresy. Opublikuj workflow przyciskiem Publish i skopiuj produkcyjny URL z node'a Webhook do systemu, który wysyła żądania."
   - q: "Po co przypinać dane (pinning), skoro mogę po prostu uruchomić workflow?"
     a: "Pinning \"zamraża\" wynik node'a, więc kolejne testy nie wywołują ponownie API - oszczędzasz czas i limity, a zarazem pracujesz na tym samym, stałym zestawie danych (łatwiej porównać efekty zmian). Pamiętaj jednak, że przypięte dane działają tylko w edytorze; produkcja zawsze pobiera dane na żywo."
   - q: "Który trigger wybrać dla swojego pierwszego prawdziwego workflow?"
@@ -61,7 +62,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 2 · Poziom: początkujący"
-  readingTime="~25 min"
+  readingTime="~30 min"
   note="Z praktyką - budujesz pierwszy workflow"
 />
 
@@ -91,7 +92,7 @@ odwoływać przez cały kurs, a oficjalna dokumentacja używa tych samych nazw.
     wybierasz credentials. Po lewej widzisz dane wejściowe (Input), po prawej wynik (Output).
   </ConceptCard>
   <ConceptCard icon="fa-gear" title="Ustawienia node'a (Settings)">
-    Zakładka obok parametrów. Tu zmienisz m.in. notatki, obsługę błędów (_Continue On Fail_),
+    Zakładka obok parametrów. Tu zmienisz m.in. notatki, obsługę błędów (_On Error_),
     zachowanie przy braku danych czy timeouty - przydaje się przy debugowaniu.
   </ConceptCard>
   <ConceptCard icon="fa-list" title="Lista workflow (Overview)">
@@ -108,10 +109,26 @@ odwoływać przez cały kurs, a oficjalna dokumentacja używa tych samych nazw.
 
 ### Toolbar nad kanwą
 
-U góry edytora znajdziesz nazwę workflow (kliknij, by ją zmienić), przełącznik **Active /
-Inactive** (aktywuje workflow dla produkcyjnych uruchomień), dostęp do tagów oraz przycisk
-**Save**. Workflow nieaktywny działa tylko w testach z edytora; dopiero aktywacja sprawia,
-że triggery typu Schedule czy Webhook reagują samodzielnie.
+U góry edytora znajdziesz nazwę workflow (kliknij, by ją zmienić), dostęp do tagów oraz
+przycisk **Publish** w prawym górnym rogu (skrót `Shift + P`). Przycisku zapisu nie ma:
+n8n zapisuje każdą zmianę automatycznie w ciągu kilku sekund, ale wszystkie edycje są
+**szkicem**, dopóki nie opublikujesz workflow. Kliknięcie **Publish** otwiera okno, w którym
+możesz nazwać wersję i dodać opis. Dopiero opublikowany workflow działa sam: Schedule
+Trigger odpala się o swojej porze, a webhooki i formularze odpowiadają pod Production URL.
+Niepublikowany workflow uruchomisz tylko ręcznie, w testach z edytora. W n8n 1.x tę samą
+rolę pełnił przełącznik **Active / Inactive** - jeśli trafisz na starszy tutorial,
+"aktywuj workflow" czytaj jako "opublikuj workflow".
+
+:::caution[Edycje po publikacji nie trafiają na produkcję same]
+Produkcja zawsze używa **opublikowanej wersji**, nie Twoich ostatnich edycji. Jeśli
+poprawisz opublikowany workflow, zmiany zapiszą się jako szkic, a przycisk pokaże stan
+"Published, has changes" - opublikowany, ale z nieopublikowanymi zmianami. Żeby poprawka
+zaczęła działać, kliknij **Publish** jeszcze raz. Opublikowany workflow rozpoznasz też na
+liście Workflows po znaczniku na jego karcie, a wycofasz go opcją **Unpublish** z menu
+obok przycisku **Publish**. Źródło:
+[Save and publish workflows (docs.n8n.io)](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows/),
+stan na listopad 2026.
+:::
 
 ### Skróty klawiszowe
 
@@ -124,7 +141,8 @@ na obu systemach, o ile kursor nie stoi w polu tekstowym.
 | --- | --- | --- |
 | `N` | `N` | Otwiera panel node'ów - szukasz node'a po nazwie i wstawiasz go `Enter` |
 | `Ctrl + K` | `Cmd + K` | Otwiera Command Bar (paletę poleceń) - akcje edytora wpisywane z klawiatury |
-| `Ctrl + S` | `Cmd + S` | Zapisuje workflow |
+| `Shift + P` | `Shift + P` | Otwiera okno publikacji workflow (to samo co przycisk **Publish**) |
+| `Ctrl + S` | `Cmd + S` | Otwiera menu obok **Publish** z opcją _Name version_ (nazwane wersje: Cloud Pro i Enterprise, self-hosted Business i Enterprise). Zapisywania nie ma, jest automatyczne |
 | `Ctrl + Enter` | `Cmd + Enter` | Uruchamia cały workflow (to samo co **Execute workflow**) |
 | `Ctrl + Z` / `Ctrl + Shift + Z` | `Cmd + Z` / `Cmd + Shift + Z` | Cofa / ponawia ostatnią zmianę |
 | `Ctrl + Alt + N` | `Cmd + Option + N` | Tworzy nowy workflow |
@@ -146,6 +164,8 @@ kroków.
 Skróty zweryfikowałem w oficjalnej dokumentacji -
 [Keyboard shortcuts (docs.n8n.io)](https://docs.n8n.io/build/keyboard-shortcuts/) - stan na
 listopad 2026. Tam znajdziesz też pełną listę, łącznie z nawigacją strzałkami między node'ami.
+Skróty publikacji (`Shift + P`, `Ctrl/Cmd + S` jako menu obok **Publish**) pochodzą ze strony
+[Save and publish workflows](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows/).
 n8n rozwija edytor szybko, więc jeśli w Twojej wersji któryś skrót nie reaguje, zajrzyj
 najpierw do dokumentacji dla swojej wersji.
 :::
@@ -180,9 +200,13 @@ co potrzebne. Każdy workflow zaczyna się od triggera - bez niego n8n nie wie, 
 5. **Uruchom workflow.** Kliknij **Execute workflow** (przycisk u dołu kanwy). n8n wykona
    przepływ od triggera w trybie testowym i pokoloruje node'y, które zakończyły się
    sukcesem.
-6. **Sprawdź wynik i zapisz.** Otwórz node **Edit Fields** i spójrz na panel **Output** po
-   prawej - zobaczysz przygotowane pola `nazwa` i `gwiazdki`. Na końcu kliknij **Save** i
-   nadaj workflow czytelną nazwę.
+6. **Sprawdź wynik i nazwij workflow.** Otwórz node **Edit Fields** i spójrz na panel
+   **Output** po prawej - zobaczysz przygotowane pola `nazwa` i `gwiazdki`. Zapisywać nie
+   musisz, n8n robi to automatycznie. Nadaj workflow czytelną nazwę (kliknij nazwę u góry
+   edytora).
+7. **Opublikuj workflow.** Kliknij **Publish** w prawym górnym rogu edytora i potwierdź w
+   oknie publikacji. Od tej chwili Schedule Trigger będzie startował przepływ codziennie
+   o 7:00 bez Twojego udziału.
 
 :::tip[Dlaczego akurat ta trójka]
 To minimalny, ale kompletny wzorzec niemal każdej automatyzacji: **kiedy** (trigger) →
@@ -200,7 +224,7 @@ automatyzacja w ogóle ruszy. Na start wystarczy poznać trzy najczęstsze - ró
 <CardGrid>
   <ConceptCard icon="fa-hand-pointer" title="Manual Trigger">
     **Ty** uruchamiasz przepływ klikając "Execute workflow". Idealny do nauki i testów - nie
-    reaguje na nic z zewnątrz i nie działa po aktywacji.
+    reaguje na nic z zewnątrz i nie działa po publikacji.
   </ConceptCard>
   <ConceptCard icon="fa-calendar-days" title="Schedule Trigger">
     **Czas** uruchamia przepływ - co kilka sekund, minut, godzin, dni, tygodni, miesięcy lub
@@ -214,11 +238,11 @@ automatyzacja w ogóle ruszy. Na start wystarczy poznać trzy najczęstsze - ró
 
 ### Kiedy którego użyć
 
-| Trigger | Co go wyzwala | Wymaga aktywacji workflow? | Typowe zastosowanie |
+| Trigger | Co go wyzwala | Wymaga publikacji workflow? | Typowe zastosowanie |
 | --- | --- | --- | --- |
 | **Manual Trigger** | Kliknięcie "Execute workflow" w edytorze | Nie - działa tylko w teście | Nauka, testy, jednorazowe uruchomienia |
 | **Schedule Trigger** | Harmonogram (interwał lub cron) | Tak - by uruchamiał się sam | Raporty cykliczne, synchronizacje, sprzątanie danych |
-| **Webhook** | Przychodzące żądanie HTTP na URL | Tak - produkcyjny URL działa po aktywacji | Formularze, płatności, integracje real-time, callbacki z API |
+| **Webhook** | Przychodzące żądanie HTTP na URL | Tak - produkcyjny URL działa po publikacji | Formularze, płatności, integracje real-time, callbacki z API |
 
 :::note[Schedule Trigger - interwały]
 W parametrze `Trigger Interval` wybierasz jednostkę: _Seconds, Minutes, Hours, Days, Weeks,
@@ -260,8 +284,8 @@ użyje przypiętych danych zamiast ponownie wołać API - szybciej, taniej i zaw
 zestawie danych (łatwiej porównywać efekty zmian). Przypięcie zdejmiesz przez **Unpin
 data**.
 
-**Ważne:** pinning działa tylko w edytorze, przy wykonaniach ręcznych i częściowych. Po
-aktywacji workflow przypięte dane są ignorowane - produkcja zawsze pobiera dane "na żywo".
+**Ważne:** pinning działa tylko w edytorze, przy wykonaniach ręcznych i częściowych. W
+opublikowanym workflow przypięte dane są ignorowane - produkcja zawsze pobiera dane "na żywo".
 :::
 
 ### Lista i szczegóły executions
@@ -278,14 +302,16 @@ tak. Nieudane wykonania możesz też ponowić (**Retry**).
 
 Webhook ma **dwa URL-e**. **Test URL** działa po kliknięciu **Listen for test event** - n8n
 nasłuchuje pojedynczego żądania, żebyś zobaczył jego dane w edytorze. **Production URL**
-zaczyna działać dopiero, gdy workflow jest **aktywny** (przełącznik _Active_). To
+zaczyna działać dopiero, gdy workflow jest **opublikowany** (przycisk **Publish**). To
 najczęstsza pułapka początkujących: testowy URL działał, a "na produkcji" cisza - bo
-workflow nie został aktywowany.
+workflow nie został opublikowany. Druga pułapka: poprawiasz node po publikacji, testujesz
+pod Test URL i wszystko gra, a Production URL dalej odpowiada po staremu - bo produkcja
+używa opublikowanej wersji, dopóki nie klikniesz **Publish** ponownie.
 
 :::caution[Częsty błąd przy webhookach]
 Test URL i Production URL to **różne adresy**. Po przejściu na produkcję skopiuj
 produkcyjny URL z node'a Webhook i wpisz go w systemie zewnętrznym oraz upewnij się, że
-workflow jest aktywny. Do odsyłania własnej odpowiedzi na żądanie służy osobny node
+workflow jest opublikowany, a ostatnie zmiany nie czekają na ponowną publikację. Do odsyłania własnej odpowiedzi na żądanie służy osobny node
 **Respond to Webhook**.
 :::
 
@@ -387,10 +413,14 @@ n8n porządkuje pracę na dwóch poziomach. **Projekt** grupuje workflow, creden
 Tables oraz decyduje, kto ma do nich dostęp i z jaką rolą. Wewnątrz projektu układasz
 workflow w **folderach**, także zagnieżdżonych - jak pliki w katalogach.
 
-- **Dostępność:** projekty i role (RBAC) są na wszystkich planach n8n Cloud, a na
-  self-hosted od wersji Registered Community (darmowa rejestracja instancji kluczem
-  licencyjnym) wzwyż. Liczba projektów zależy od planu
-  ([Projects, docs.n8n.io](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects/)).
+- **Dostępność:** projekty i role (RBAC) są na wszystkich planach n8n Cloud, a liczba
+  projektów zależy od planu. Na self-hostingu dokumentacja n8n sama sobie przeczy: strona
+  [Projects](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects/)
+  podaje Registered Community (darmowa rejestracja instancji kluczem licencyjnym) wzwyż, a
+  [porównanie edycji](https://docs.n8n.io/deploy/host-n8n/community-edition-features)
+  wymienia projekty wśród funkcji Business i Enterprise - rejestracja odblokowuje według niego
+  foldery, debug in editor i custom execution data (stan na listopad 2026). Co masz u siebie,
+  sprawdzisz w **Settings → Plan & usage**.
 - **Foldery** weszły w n8n 1.85 (kwiecień 2025) i według ogłoszenia wymagają Registered
   Community Edition lub planu płatnego
   ([ogłoszenie na forum n8n](https://community.n8n.io/t/organize-your-workspace-with-folders/95887)).
@@ -441,13 +471,98 @@ WooCommerce" zamiast "HTTP Request1"). Czytelne nazwy node'ów sprawiają, że w
 odwołujące się do nich (`{{ $('Pobierz zamówienia').item.json... }}`) same się dokumentują.
 :::
 
+## Ćwiczenie: pogoda z wttr.in
+
+Czas na pierwsze ćwiczenie, które robisz sam, od pustej kanwy. To "Hello World" automatyzacji:
+trzy node'y, zero credentials, a na końcu zdanie zbudowane z danych z prawdziwego API.
+
+- **Cel:** zbudować workflow **Manual Trigger → HTTP Request → Edit Fields**, który pobiera
+  bieżącą pogodę dla wybranego miasta z darmowego serwisu [wttr.in](https://wttr.in/) i składa
+  z niej jedno zdanie.
+- **Czas:** 15-20 minut.
+- **Potrzebujesz:** dowolnej instancji n8n (Cloud albo self-hosted z
+  [Modułu 1](/modul-1-instalacja-hosting)). Konto ani klucz API do wttr.in nie są potrzebne.
+
+<Flow
+  title="cwiczenie-pogoda"
+  alt="Schemat ćwiczenia: Manual Trigger uruchamia HTTP Request, który pobiera pogodę z wttr.in, a Edit Fields składa z odpowiedzi jedno zdanie"
+  caption="Trzy node'y: ręczny start, pobranie JSON-a z wttr.in i złożenie zdania z wybranych pól."
+  spec={`
+    Manual Trigger (start ręczny):hand-pointer @green -> HTTP Request (GET wttr.in):globe @blue
+    HTTP Request -> Edit Fields (zdanie o pogodzie):pen-to-square @amber
+  `}
+/>
+
+### Kroki
+
+1. **Nowy workflow i trigger.** Utwórz nowy workflow, kliknij **Add first step** i wybierz
+   _Trigger manually_. Na kanwie pojawi się Manual Trigger (podpisany "When clicking
+   'Execute workflow'").
+2. **HTTP Request.** Dodaj za triggerem node **HTTP Request**: metoda `GET`, URL
+   `https://wttr.in/Warszawa?format=j1&lang=pl`. Miasto wpisz bez polskich znaków (`Krakow`,
+   `Gdansk`, `Jelenia+Gora`) - spację zastępujesz plusem.
+3. **Wymuś format JSON.** W tym samym node'zie kliknij **Add Option → Response** i ustaw
+   _Response Format_ na **JSON**. To ważne: wttr.in odsyła JSON z nagłówkiem
+   `Content-Type: text/plain`, więc domyślne _Autodetect_ potraktuje odpowiedź jak zwykły
+   tekst i dostaniesz jeden długi napis zamiast drzewa pól (nagłówek sprawdziłem `curl`-em
+   w listopadzie 2026, opcje _Response Format_ opisuje
+   [dokumentacja HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/)).
+4. **Uruchom tylko ten krok.** Kliknij **Execute step** w HTTP Request i obejrzyj Output
+   w widoku _Schema_. Znajdziesz tam m.in. `current_condition` (pomiar teraz), `nearest_area`
+   (najbliższy punkt pomiarowy) i `weather` (prognoza na trzy dni). Przypnij ten wynik
+   klawiszem `P` - kolejne testy nie będą już odpytywać serwisu.
+5. **Edit Fields.** Dodaj node **Edit Fields (Set)** w trybie _Manual Mapping_ i utwórz dwa
+   pola:
+   - `temperatura` typu _Number_ z wartością `{{ $json.current_condition[0].temp_C }}`,
+   - `podsumowanie` typu _String_ z wartością
+     `{{ $json.nearest_area[0].areaName[0].value }}: {{ $json.current_condition[0].temp_C }}°C, odczuwalna {{ $json.current_condition[0].FeelsLikeC }}°C, {{ $json.current_condition[0].lang_pl[0].value }}`.
+
+   Pole wartości musi być w trybie wyrażeń (_Expression_) - wpisz `=` w pustym polu albo
+   po prostu przeciągnij pole z panelu Input, a n8n sam przełączy tryb i zbuduje wyrażenie.
+6. **Uruchom całość.** Kliknij **Execute workflow** (`Ctrl + Enter`). Ten workflow zostaje
+   testowy - z Manual Triggerem nie ma czego publikować.
+
+<details>
+<summary>Sprawdź, czy działa</summary>
+
+- Wszystkie trzy node'y mają zielony znacznik, a na połączeniach widać "1 item".
+- Output node'a Edit Fields zawiera dwa pola: `temperatura` jako liczbę (bez cudzysłowu
+  w widoku JSON) i `podsumowanie` w stylu `Powisle: 6°C, odczuwalna 4°C, Słonecznie`.
+- Gdy podmienisz w URL-u miasto i uruchomisz workflow ponownie (po zdjęciu pinu), zmienia się
+  tylko treść pól - reszty workflow nie ruszasz.
+- Nazwa w `nearest_area` to najbliższy punkt pomiarowy, nie zawsze nazwa miasta: dla
+  Warszawy wttr.in zwraca dzielnicę (Powisle). To nie błąd, tylko kształt danych - dokładnie
+  ten rodzaj niespodzianki, który wyłapujesz w panelu Output.
+
+</details>
+
+### Wariant dla zaawansowanych
+
+Dodaj za Edit Fields node **IF** z warunkiem _Number → is greater than_: `{{ $json.temperatura }}`
+większe od `15`. Na wyjście _true_ podepnij Edit Fields z polem `rada` = "Kurtka zostaje w domu",
+na _false_ - "Weź kurtkę". Logikę IF omawiam szerzej w
+[Module 3](/modul-3-praca-z-danymi#logika-if-switch-filter). Drugi krok: zamień Manual Trigger
+na Schedule Trigger (codziennie o 7:00) i opublikuj workflow przyciskiem **Publish** - od teraz
+prognoza liczy się sama, a wynik zobaczysz w zakładce Executions.
+
+### Typowe pułapki
+
+| Objaw | Przyczyna |
+| --- | --- |
+| Output HTTP Request to jedno pole `data` z długim tekstem | _Response Format_ zostało na _Autodetect_, a wttr.in wysyła `text/plain` - ustaw **JSON** (krok 3) |
+| W polu wyrażenia widać `[undefined]` albo czerwony komunikat | Literówka w ścieżce albo brak `[0]` - `current_condition`, `areaName` i `lang_pl` to tablice |
+| Pogoda jest dla zupełnie innego miejsca, np. Szkocji | Polskie znaki w nazwie miasta - wpisz `Gdansk` zamiast `Gdańsk` |
+| Opis pogody jest po angielsku | wttr.in nie ma tłumaczenia dla każdego opisu - przy `lang=pl` czasem zostaje angielski tekst, to normalne |
+| IF przepuszcza wszystko na złą gałąź | Porównujesz tekst `"6"` zamiast liczby - pole `temperatura` musi mieć typ _Number_ |
+| Wynik się nie zmienia po zmianie miasta | Wynik HTTP Request jest przypięty - zdejmij pin (**Unpin data**) |
+
 ## Sprawdź się
 
 Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na
 kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 
 1. Dlaczego Manual Trigger nigdy nie uruchomi workflow "sam z siebie", nawet jeśli
-   przełączysz workflow na Active - co konkretnie odróżnia go pod tym względem od Schedule
+   opublikujesz workflow - co konkretnie odróżnia go pod tym względem od Schedule
    i Webhooka? Jeśli nie masz pewności -
    [Triggery: Manual, Schedule i Webhook](#triggery-manual-schedule-i-webhook).
 2. Kolejny node w Twoim przepływie "nie widzi" pola, którego się spodziewałeś, i się
@@ -469,6 +584,9 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 6. Masz zaznaczony node, który pobiera dane z płatnego API. Jakimi trzema klawiszami
    przypniesz jego dane, zmienisz mu nazwę na opisową i dodasz obok notatkę z wyjaśnieniem?
    Jeśli nie masz pewności - [Skróty klawiszowe](#skróty-klawiszowe).
+7. API zwraca poprawny JSON, a n8n pokazuje Ci jeden długi napis zamiast drzewa pól. Na który
+   nagłówek odpowiedzi spojrzysz i które ustawienie node'a HTTP Request zmienisz? Jeśli nie
+   masz pewności - [Ćwiczenie: pogoda z wttr.in](#ćwiczenie-pogoda-z-wttrin).
 
 <details>
 <summary>Mini-zadanie: zamień Schedule Trigger na Webhook</summary>
@@ -480,8 +598,8 @@ Bazujesz na workflow z tego modułu (Schedule Trigger → HTTP Request → Edit 
 3. Kliknij **Listen for test event** i otwórz Test URL w przeglądarce (albo wywołaj go
    `curl`-em).
 4. Sprawdź w panelu Output node'a Edit Fields, że dane przeszły tak samo jak wcześniej.
-5. Żeby to zadziałało "na produkcji", pamiętaj o dwóch rzeczach z tego modułu: aktywacji
-   workflow (Active) i użyciu Production URL zamiast Test URL.
+5. Żeby to zadziałało "na produkcji", pamiętaj o dwóch rzeczach z tego modułu: publikacji
+   workflow (**Publish**) i użyciu Production URL zamiast Test URL.
 
 </details>
 
@@ -491,8 +609,10 @@ Bazujesz na workflow z tego modułu (Schedule Trigger → HTTP Request → Edit 
   - Manual = testy, Schedule = harmonogram/cron, Webhook = reakcja na zdarzenie z zewnątrz.
   - "Execute workflow" uruchamia całość, "Execute step" tylko jeden node - szybsze poprawki.
   - Pinning danych przyspiesza testy i oszczędza limity API, ale działa tylko w edytorze, nie na produkcji.
-  - Webhook ma osobny Test URL i Production URL; produkcyjny wymaga aktywnego workflow.
+  - n8n zapisuje zmiany sam, ale na produkcji działa tylko opublikowana wersja - po każdej poprawce kliknij **Publish** ponownie.
+  - Webhook ma osobny Test URL i Production URL; produkcyjny wymaga opublikowanego workflow.
   - Kilka skrótów robi największą różnicę: `N` (panel node'ów), `Ctrl/Cmd + Enter` (uruchom), `Ctrl/Cmd + K` (Command Bar), `P` (pin), `Shift + S` (notatka).
   - Data Tables to wbudowana "pamięć" workflow - do stanu, deduplikacji i cache'u; dane dla ludzi spoza n8n trzymaj w Google Sheets, duże i relacyjne - w prawdziwej bazie.
   - Porządek od początku: projekty i foldery, opisowe nazwy, tagi, sticky notes i grupy node'ów.
+  - Gdy API odsyła JSON jako `text/plain`, ustaw w HTTP Request _Response Format_ na **JSON** - ćwiczenie z wttr.in pokazuje to w praktyce.
 </Takeaways>

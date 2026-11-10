@@ -157,6 +157,9 @@ export const GLOSSARY_SLUG = 'slownik-pojec';
 /** Strona o kosztach n8n (Cloud, self-hosting, licencje, tokeny AI). */
 export const COSTS_SLUG = 'ile-kosztuje-n8n';
 
+/** Strona-hub z krótkimi odpowiedziami na częste pytania o n8n (long tail). */
+export const FAQ_SLUG = 'czeste-pytania-n8n';
+
 /**
  * Wszystkie slugi traktowane jak artykuły (TechArticle + BreadcrumbList +
  * obraz OG per strona) - klasyfikacja w Head.astro. Odpowiednik po stronie
@@ -170,5 +173,6 @@ export const ARTICLE_SLUGS: ReadonlySet<string> = new Set([
 	TROUBLESHOOTING_SLUG,
 	GLOSSARY_SLUG,
 	COSTS_SLUG,
+	FAQ_SLUG,
 	...QUICK_WINS.map((w) => w.slug),
 ]);

@@ -13,6 +13,7 @@ import {
 	TROUBLESHOOTING_SLUG,
 	GLOSSARY_SLUG,
 	COSTS_SLUG,
+	FAQ_SLUG,
 } from './src/config/modules';
 
 const GITHUB_REPO = 'https://github.com/lukaszpodgorski-pl/kursn8n_pl';
@@ -80,6 +81,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Porównanie hostingów n8n', link: `/${GUIDE_SLUG}` },
 						{ label: 'Ile kosztuje n8n?', link: `/${COSTS_SLUG}` },
+						{ label: 'Częste pytania o n8n', link: `/${FAQ_SLUG}` },
 						{ label: 'Coś nie działa? Troubleshooting', link: `/${TROUBLESHOOTING_SLUG}` },
 						{ label: 'Słownik pojęć n8n', link: `/${GLOSSARY_SLUG}` },
 					],

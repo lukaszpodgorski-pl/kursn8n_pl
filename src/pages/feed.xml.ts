@@ -7,11 +7,13 @@ import {
 	QUICK_WINS_HUB_SLUG,
 	TROUBLESHOOTING_SLUG,
 	GLOSSARY_SLUG,
+	COSTS_SLUG,
+	FAQ_SLUG,
 } from '../config/modules';
 
 /**
  * Kanal RSS 2.0 - odpowiednik dawnego public_html/partials/feed.php.
- * Pozycje (najnowsze na gorze): gotowe workflow (rosna z rejestru QUICK_WINS)
+ * Pozycje (najnowsze na gorze): czeste pytania, strona o kosztach, gotowe workflow (rosna z rejestru QUICK_WINS)
  * + troubleshooting + slownik pojec + hub gotowcow, potem flagowy poradnik
  * hostingowy + moduly kursu - zasilane z jednego rejestru
  * src/config/modules.ts (to samo zrodlo co sidebar i dane strukturalne Course).
@@ -23,13 +25,33 @@ import {
 // Data publikacji przepisana ze starego feed.php (2026-05-21 09:00).
 const PUB_DATE = new Date('2026-05-21T09:00:00Z');
 
+// Data publikacji strony o kosztach n8n.
+const COSTS_PUB_DATE = new Date('2026-11-09T09:00:00Z');
+
 // Data publikacji sekcji gotowcow i troubleshootingu.
 const NEW_CONTENT_PUB_DATE = new Date('2026-07-24T09:00:00Z');
+
+// Data publikacji strony "Czeste pytania o n8n".
+const FAQ_PUB_DATE = new Date('2026-11-09T09:00:00Z');
 
 export async function GET(context: APIContext) {
 	const site = context.site ?? new URL('https://kursn8n.pl');
 
 	const items = [
+		{
+			title: 'Częste pytania o n8n - krótkie odpowiedzi z linkami do kursu',
+			link: new URL(`/${FAQ_SLUG}`, site).href,
+			description:
+				'Czy n8n jest za darmo, n8n czy Zapier albo Make, Cloud czy self-hosting, RODO, AI i n8n 3.0 - krótkie odpowiedzi na częste pytania o n8n, każda z linkiem do modułu, który rozwija temat.',
+			pubDate: FAQ_PUB_DATE,
+		},
+		{
+			title: 'Ile realnie kosztuje n8n? Cloud, self-hosting, licencje i AI',
+			link: new URL(`/${COSTS_SLUG}`, site).href,
+			description:
+				'Ceny n8n Cloud, darmowy self-hosting na licencji Community, koszt serwera i czasu, płatne licencje Business/Enterprise i tokeny AI na realnych przykładach.',
+			pubDate: COSTS_PUB_DATE,
+		},
 		...QUICK_WINS.map((w) => ({
 			title: `Gotowy workflow: ${w.label}`,
 			link: new URL(`/${w.slug}`, site).href,

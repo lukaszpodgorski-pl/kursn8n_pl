@@ -30,3 +30,14 @@
 /scripts/*
   Content-Type: text/plain; charset=utf-8
   Cache-Control: no-cache
+
+# Pliki testu T-02 (poradnik porownania hostingow). .py i .txt jako text/plain,
+# zeby przegladarka pokazala tresc zamiast ja sciagac. benchmark-100-requestow.json
+# zostaje przy domyslnym application/json (import do n8n z URL).
+/tests/locustfile.py
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: no-cache
+
+/tests/requirements.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: no-cache

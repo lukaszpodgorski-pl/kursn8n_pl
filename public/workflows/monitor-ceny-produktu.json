@@ -101,6 +101,15 @@
                 "type": "number",
                 "operation": "lt"
               }
+            },
+            {
+              "id": "warunek-cena-dodatnia",
+              "leftValue": "={{ $json.cena }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
             }
           ]
         },
@@ -117,7 +126,11 @@
         "resource": "message",
         "operation": "sendMessage",
         "chatId": "TWOJ_CHAT_ID",
-        "text": "=Cena spadła poniżej progu!\n\nAktualna cena: {{ $json.cena }} zł\nProdukt: ADRES_PRODUKTU"
+        "text": "=Cena spadła poniżej progu!\n\nAktualna cena: {{ $json.cena }} zł\nProdukt: ADRES_PRODUKTU",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,

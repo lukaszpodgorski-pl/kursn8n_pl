@@ -20,6 +20,7 @@ teaches:
   - Jak podłączyć modele OpenAI, Anthropic i Ollama do workflow
   - "MCP w n8n: MCP Client Tool, MCP Server Trigger i serwer MCP instancji - kiedy który i jak je zabezpieczyć"
   - "Budowę RAG: embeddingi, bazy wektorowe i chatbota na własnych danych"
+  - "Ćwiczenie praktyczne: chatbot z Chat Trigger, AI Agent, lokalnym modelem z Ollamy, pamięcią i narzędziem Calculator"
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -61,7 +62,7 @@ import TwoCol from '../../components/TwoCol.astro';
 
 <ModuleHero
   tag="Moduł 6 · Poziom: zaawansowany"
-  readingTime="~24 min"
+  readingTime="~30 min"
 />
 
 n8n to nie tylko "spinanie API". To także pełnoprawny orkiestrator AI: na bazie LangChain
@@ -160,7 +161,10 @@ jego podstawie napisze odpowiedź. Model bez narzędzi po prostu zmyśliłby pog
 ### Tools Agent - domyślny typ
 
 AI Agent node historycznie oferował kilka typów (Conversational, ReAct, OpenAI Functions, Plan
-and Execute, SQL). Dziś rekomendowany i domyślny jest **Tools Agent** - korzysta z natywnego
+and Execute, SQL). Od n8n 1.82 wybór typu jest przestarzały i każdy AI Agent działa jako
+**Tools Agent**, a n8n 3.0 usuwa starą wersję node'a razem z dawnymi typami
+([docs](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent),
+[zmiany 3.0](https://docs.n8n.io/changelog/v30-breaking-changes)). Tools Agent korzysta z natywnego
 mechanizmu "function/tool calling" nowoczesnych modeli, dzięki czemu wybór narzędzi jest
 bardziej niezawodny niż w starszym podejściu ReAct opartym na parsowaniu tekstu.
 
@@ -239,9 +243,11 @@ tym więcej kontekstu, ale i wyższy koszt.
 
 ### Narzędzia (tools)
 
-Narzędzia to zdolności, które agent może wywołać samodzielnie. Przykłady: `Calculator`, `HTTP
-Request Tool`, `Wikipedia`, `Vector Store QA Tool`, `Code Tool`, a także **inny workflow jako
-narzędzie** (Call n8n Workflow Tool).
+Narzędzia to zdolności, które agent może wywołać samodzielnie. Przykłady: `Calculator`, node `HTTP
+Request` podpięty do portu Tool (nie legacy `HTTP Request Tool`, który n8n 3.0 usuwa -
+[zmiany 3.0](https://docs.n8n.io/changelog/v30-breaking-changes)), `Wikipedia`, `Vector Store QA Tool`,
+`Code Tool`, a także **inny workflow jako narzędzie** (Call n8n Workflow Tool, dawniej Custom n8n
+Workflow Tool).
 
 :::tip[Workflow jako tool - najmocniejszy wzorzec]
 To spina ten moduł z [Modułem 5](/modul-5-kod-sub-workflow): dowolny Twój sub-workflow (np.
@@ -334,7 +340,7 @@ zamówienia" i "dodaj zadanie do CRM", zbudowane w n8n.
 Ten trigger działa inaczej niż wszystkie poznane do tej pory. Nie przekazuje danych do
 następnego node'a - podpinasz do niego **wyłącznie narzędzia**, a klient MCP pobiera ich listę
 i wywołuje je, kiedy uzna za stosowne. Własny workflow wystawisz jako narzędzie przez
-**Custom n8n Workflow Tool** (ten sam wzorzec "workflow jako tool" co wyżej).
+**Call n8n Workflow Tool** (ten sam wzorzec "workflow jako tool" co wyżej).
 
 <Flow
   title="mcp-server-trigger"
@@ -350,7 +356,7 @@ i wywołuje je, kiedy uzna za stosowne. Własny workflow wystawisz jako narzędz
 />
 
 1. Utwórz nowy workflow i dodaj **MCP Server Trigger**.
-2. Podepnij narzędzia: **Custom n8n Workflow Tool** wskazujący Twój sub-workflow, HTTP Request,
+2. Podepnij narzędzia: **Call n8n Workflow Tool** wskazujący Twój sub-workflow, HTTP Request,
    Calculator - cokolwiek ma być dostępne dla klienta. Każdemu narzędziu daj jasny opis, bo to
    on decyduje, czy model go użyje.
 3. **Authentication:** `Bearer Auth` albo `Header Auth`; od wersji 2 node'a także
@@ -497,9 +503,10 @@ czatu i przekazuje wiadomość użytkownika dalej.
    Do agenta podepnij sub-node modelu (np. OpenAI/Anthropic/Ollama) i pamięć (Simple Memory), by
    rozmowa miała kontekst.
 
-4. **Narzędzia (opcjonalnie)**
+4. **Narzędzia**
 
-   Dodaj narzędzia - np. **Vector Store QA Tool** wskazujący na bazę z Twoimi dokumentami, by
+   Dokumentacja AI Agenta wymaga podpięcia co najmniej jednego narzędzia - na start wystarczy
+   Calculator. Potem dodaj kolejne, np. **Vector Store QA Tool** wskazujący na bazę z Twoimi dokumentami, by
    asystent odpowiadał na własnej wiedzy (RAG).
 
 :::tip[Co dalej]
@@ -558,6 +565,125 @@ Ma własny moduł, bo ma własny warunek wstępny i własne pułapki:
 [Moduł 9: n8n Assistant](/modul-9-n8n-assistant).
 :::
 
+## Ćwiczenie: lokalny chatbot z Ollamą
+
+Pora poskładać klocki z tego modułu w działającą całość. Zbudujesz chatbota z charakterem,
+który działa na modelu uruchomionym na Twoim komputerze: Chat Trigger, AI Agent, model z
+Ollamy, pamięć i jedno narzędzie. Bez klucza API i bez płacenia za tokeny.
+
+- **Cel:** chatbot, który odpowiada w nadanej mu roli, pamięta, co mu powiedziałeś, i sam
+  sięga po narzędzie Calculator, gdy dostaje działanie do policzenia.
+- **Czas:** 30-45 minut, plus czas pobierania modelu (kilka GB).
+- **Potrzebujesz:** self-hosted n8n oraz [Ollamy](https://ollama.com/download) na tym samym
+  komputerze albo w tej samej sieci. Na n8n Cloud lokalnej Ollamy nie podepniesz - wybierz
+  wariant z modelem w chmurze poniżej.
+
+<Flow
+  title="cwiczenie-chatbot-ollama"
+  alt="Schemat ćwiczenia: Chat Trigger przekazuje wiadomość do AI Agenta, pod którego od spodu podpięte są Ollama Chat Model, Simple Memory i narzędzie Calculator"
+  caption="Jeden krok w głównym przepływie i trzy zdolności podpięte od spodu: model, pamięć i narzędzie."
+  spec={`
+    Ollama Chat Model (lokalny model):microchip @blue
+    Simple Memory (okno rozmowy):database @green
+    Calculator (narzędzie):calculator @amber
+    Chat Trigger (okno czatu):comments @sky -> AI Agent (root node):robot @pink
+    AI Agent <- Ollama Chat Model, Simple Memory, Calculator
+  `}
+/>
+
+### Kroki
+
+1. **Pobierz model.** W terminalu uruchom `ollama pull llama3.2:3b` (alternatywnie
+   `qwen2.5:3b`). Oba modele mają w bibliotece Ollamy oznaczenie _tools_, czyli obsługują
+   wywoływanie narzędzi - bez tego agent nie użyje Calculatora. Sprawdź listę poleceniem
+   `ollama list`.
+2. **Chat Trigger.** W nowym workflow dodaj trigger _On chat message_ (node **Chat Trigger**).
+   Opcję _Make Chat Publicly Available_ zostaw wyłączoną - na razie rozmawiasz z botem tylko
+   z edytora.
+3. **AI Agent.** Podłącz za triggerem **AI Agent**. W _Options_ → _Add Option_ wybierz
+   **System Message** i nadaj botowi rolę, np. "Jesteś zrzędliwym, ale pomocnym bibliotekarzem.
+   Odpowiadasz po polsku, maksymalnie w trzech zdaniach. Działania matematyczne zawsze liczysz
+   narzędziem Calculator".
+4. **Model.** Do portu _Chat Model_ podepnij **Ollama Chat Model**. Utwórz credential Ollama
+   z _Base URL_ dopasowanym do Twojej instalacji:
+   - n8n i Ollama na tym samym komputerze, bez Dockera: `http://127.0.0.1:11434`,
+   - n8n w Dockerze, Ollama na komputerze-gospodarzu: `http://host.docker.internal:11434`
+     (na Linuksie kontener startujesz z `--add-host=host.docker.internal:host-gateway`, a Ollama
+     musi nasłuchiwać na `0.0.0.0`, nie tylko na `127.0.0.1`),
+   - oba w Dockerze, we wspólnej sieci: `http://ollama:11434` (nazwa kontenera Ollamy).
+
+   Wybierz z listy pobrany model.
+5. **Pamięć i narzędzie.** Do portu _Memory_ podepnij **Simple Memory**, a do portu _Tool_ -
+   **Calculator**. Dokumentacja AI Agenta wymaga co najmniej jednego narzędzia, a Calculator
+   nie potrzebuje żadnych credentials.
+6. **Rozmawiaj.** Kliknij **Open chat** u dołu kanwy i przeprowadź krótką rozmowę: przedstaw się,
+   zadaj pytanie, a potem poproś o działanie, np. "Ile to 1234 razy 5678?".
+
+<details>
+<summary>Sprawdź, czy działa</summary>
+
+- Bot odpowiada w nadanej roli i po polsku, a nie jak domyślny "pomocny asystent".
+- Po dwóch-trzech wiadomościach zapytaj "Jak mam na imię?" - bot pamięta, bo Simple Memory
+  dokleja historię rozmowy do kolejnych zapytań.
+- Na pytanie o 1234 × 5678 pada wynik **7 006 652**, a w logach wykonania pod oknem czatu
+  widać wywołanie Calculatora. Jeśli wynik jest inny i Calculatora w logach nie ma, model
+  "policzył" z pamięci - czyli zgadywał.
+- W zakładce Executions każda Twoja wiadomość to osobne wykonanie workflow.
+
+</details>
+
+### Wariant z modelem w chmurze
+
+Bez karty graficznej model 3B na samym procesorze odpowiada wolno, a na n8n Cloud lokalnej
+Ollamy nie użyjesz wcale. Wtedy zamiast **Ollama Chat Model** podepnij **OpenAI Chat Model**
+albo **Anthropic Chat Model** z kluczem API i wybierz najtańszy model z listy - do tego
+ćwiczenia w zupełności wystarczy. Resztę workflow zostawiasz bez zmian, to właśnie zaleta
+sub-node'ów. Pamiętaj tylko, że tu płacisz za każdy token: zanim zostawisz takiego bota
+włączonego, przeczytaj [ostrzeżenie o kosztach agentów](#agenci-247---wzorce-i-pułapki),
+policz koszt według [wyliczeń tokenów AI](/ile-kosztuje-n8n#ile-kosztują-tokeny-ai-w-workflow)
+i ustaw limit wydatków w panelu dostawcy.
+
+### Wariant dla zaawansowanych
+
+- **Narzędzie z prawdziwymi danymi.** Dodaj drugie narzędzie, node **HTTP Request** podpięty do portu Tool, z URL-em
+  `https://wttr.in/Warszawa?format=j1` i opisem "Pobiera aktualną pogodę dla Warszawy". Zapytaj
+  bota, czy wziąć parasol. To ten sam serwis co w
+  [ćwiczeniu z Modułu 2](/modul-2-interfejs-pierwszy-workflow#ćwiczenie-pogoda-z-wttrin), tyle że
+  teraz o zapytaniu decyduje model.
+- **Czat dla innych.** Włącz w Chat Triggerze _Make Chat Publicly Available_, ustaw
+  _Authentication_ na **Basic Auth** i opublikuj workflow (**Publish**). Dostaniesz adres
+  czatu, który możesz dać znajomemu. Przy _Authentication_ ustawionym na _None_ z czatu może
+  korzystać każdy, kto zna adres - a każda wiadomość obciąża Twój sprzęt albo Twój budżet
+  na tokeny.
+
+### Typowe pułapki
+
+| Objaw | Przyczyna |
+| --- | --- |
+| `ECONNREFUSED ::1:11434` przy teście credentiala | `localhost` rozwiązał się do IPv6, a Ollama słucha na IPv4 - wpisz `http://127.0.0.1:11434` |
+| `ECONNREFUSED` z n8n w Dockerze | `localhost` w kontenerze to sam kontener, nie Twój komputer - użyj `host.docker.internal` albo nazwy kontenera Ollamy |
+| Pusta lista modeli w Ollama Chat Model | Model nie został pobrany - `ollama pull` i odśwież listę |
+| Agent nie startuje i domaga się narzędzia | Do portu _Tool_ nic nie jest podpięte - dodaj choćby Calculator |
+| Błąd _No prompt specified_ | _Prompt_ w AI Agencie ustawiony na _Connected Chat Trigger Node_, a wiadomość nie przychodzi z Chat Triggera - podłącz trigger albo przestaw na _Define below_ |
+| Bot zapomina, co mówiłeś przed chwilą | Simple Memory niepodpięta albo podpięta do złego portu |
+| Wynik działania jest zły, a Calculatora nie ma w logach | Model nie obsługuje wywoływania narzędzi albo jest za mały - wybierz model z oznaczeniem _tools_ |
+| Odpowiedź przychodzi po minucie | Model za duży na Twój sprzęt - zejdź do mniejszego wariantu albo przejdź na model w chmurze |
+
+Źródła do kroków i pułapek (stan na listopad 2026):
+[Chat Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.chattrigger/),
+[AI Agent](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/),
+[Ollama credentials](https://docs.n8n.io/integrations/builtin/credentials/ollama/),
+[typowe problemy Ollama Chat Model](https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatollama/common-issues/)
+i [Simple Memory](https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.memorybufferwindow/)
+w dokumentacji n8n.
+
+:::caution[Simple Memory a tryb kolejki]
+Simple Memory trzyma historię w pamięci procesu. Jeśli Twoja instancja działa w trybie kolejki
+(queue mode, kilka workerów), dokumentacja n8n odradza ten node w opublikowanym workflow -
+kolejne wiadomości mogą trafić do różnych workerów. Do ćwiczenia w edytorze to bez znaczenia,
+na produkcję wybierz pamięć w bazie (Postgres, Redis).
+:::
+
 ## Sprawdź się
 
 Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na kartce.
@@ -578,13 +704,16 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
    do CRM". Którą z trzech funkcji MCP w n8n wybierzesz, jak ją zabezpieczysz - i czym różni się
    od MCP Client Tool? Jeśli nie masz pewności - [MCP - n8n jako klient i jako
    serwer](#mcp---n8n-jako-klient-i-jako-serwer).
+6. Twój n8n działa w Dockerze, a Ollama na tym samym komputerze, poza kontenerem. Dlaczego
+   _Base URL_ `http://localhost:11434` nie zadziała i co wpiszesz zamiast niego? Jeśli nie masz
+   pewności - [Ćwiczenie: lokalny chatbot z Ollamą](#ćwiczenie-lokalny-chatbot-z-ollamą).
 
 <details>
 <summary>Mini-zadanie: sprawdź, czy pamięć agenta naprawdę pamięta</summary>
 
 1. Zbuduj prosty workflow: **Chat Trigger** → **AI Agent** (root) z podpiętym dowolnym Chat
-   Modelem (OpenAI, Anthropic albo lokalna Ollama) i sub-node'em **Simple Memory** - bez żadnych
-   narzędzi.
+   Modelem (OpenAI, Anthropic albo lokalna Ollama), sub-node'em **Simple Memory** i jednym
+   narzędziem **Calculator** (dokumentacja AI Agenta wymaga co najmniej jednego narzędzia).
 2. Otwórz okno czatu i napisz: "Zapamiętaj liczbę 7."
 3. W kolejnej wiadomości, bez przypominania liczby, napisz: "Pomnóż zapamiętaną liczbę przez 3."
 4. Jeśli agent poda 21, pamięć działa - kontekst poprzedniej wiadomości realnie trafił do
@@ -597,11 +726,12 @@ Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
   - Węzły AI w n8n bazują na LangChain i działają jako cluster nodes: root node + sub-node'y (model, memory, tools).
   - Sub-node to "zdolność" podpinana do roota od spodu - wymieniasz dostawcę modelu bez przebudowy workflow.
   - Chain = jednokrokowe, przewidywalne, tańsze. Agent = sam decyduje o użyciu narzędzi, wieloetapowy, droższy.
-  - Tools Agent to dziś domyślny, najbardziej niezawodny typ agenta.
+  - Od n8n 1.82 AI Agent ma jeden tryb, Tools Agent - starsze typy (Conversational, ReAct...) znikają całkiem w 3.0.
   - Modele podpinasz jako Chat Model + credentials; Ollama (lokalnie) = prywatność i stały koszt vs jakość chmury.
   - MCP w n8n w trzech kierunkach: MCP Client Tool (agent korzysta z cudzego serwera), MCP Server Trigger (Twój workflow jako serwer), serwer instancji (klient AI widzi wybrane workflow) - zawsze z uwierzytelnianiem i najmniejszym zestawem narzędzi.
   - RAG = embeddings + vector store + retrieval; przepływ: ingest → embed → store → retrieve → answer.
-  - Chatbota startujesz od Chat Trigger + AI Agent + model + pamięć; narzędzia i RAG dokładasz wedle potrzeb.
+  - Chatbota startujesz od Chat Trigger + AI Agent + model + pamięć + co najmniej jedno narzędzie; kolejne narzędzia i RAG dokładasz wedle potrzeb.
+  - Lokalny chatbot na Ollamie nic nie kosztuje za tokeny, ale wymaga modelu z obsługą narzędzi i poprawnego _Base URL_ (`127.0.0.1`, `host.docker.internal` albo nazwa kontenera).
   - Agenci 24/7: pilnuj kosztów, pętli (max iterations), halucynacji i kontroli nad akcjami - autonomię nadawaj etapami.
   - Assistant z [Modułu 9](/modul-9-n8n-assistant) to co innego niż agent: on buduje workflow, agent w nim pracuje.
 </Takeaways>

@@ -109,9 +109,8 @@ dokumentacji n8n i wciąż je rozbudowuję o nowe poradniki i gotowe workflow.
 Brakowało mi jednego, konkretnego miejsca, w którym znajdę dużo informacji o n8n zebranych
 razem. Wiedza jest porozrzucana po wielu źródłach, a do tego sporo twórców nagrywa 15- czy
 20-minutowe filmy o czymś, co spokojnie da się zapisać w kilku zdaniach. Takie filmy mają
-swoją wartość, ale gdy ktoś szuka miejsca, w którym wszystko jest opisane jasno i czytelnie
-
-- właśnie tego mi brakowało. Dlatego powstała ta wiki.
+swoją wartość, ale gdy ktoś szuka miejsca, w którym wszystko jest opisane jasno i czytelnie -
+właśnie tego mi brakowało. Dlatego powstała ta wiki.
 
 Zdecydowałem się to robić również dlatego, że teraz, w erze sztucznej inteligencji,
 tworzenie tego typu projektów mocno przyspieszyło. Mogę podyktować, co chcę pokazać na
@@ -174,6 +173,38 @@ wiedzę.
   </ConceptCard>
 </CardGrid>
 
+## Gdzie pytać, gdy utkniesz
+
+Zanim napiszesz na forum, zajrzyj na stronę [Coś nie działa](/cos-nie-dziala) - zebrałem
+tam najczęstsze błędy z gotowymi rozwiązaniami, a na końcu listę rzeczy, które warto
+dołączyć do pytania. Jeśli problem nie zniknie, te miejsca naprawdę odpowiadają:
+
+<CardGrid>
+  <ConceptCard icon="fa-life-ring" title="Najpierw: Coś nie działa">
+    Webhook, OAuth, `undefined` w wyrażeniu, zniknięte credentials (dane logowania) - sprawdź, czy Twój błąd nie ma już gotowej odpowiedzi. [Przejdź do rozwiązań →](/cos-nie-dziala)
+  </ConceptCard>
+  <ConceptCard icon="fa-discourse" family="fab" title="Forum n8n (oficjalne)">
+    Najlepsze miejsce na konkretny problem techniczny. Odpowiada społeczność i zespół n8n, a stare wątki łatwo przeszukać (po angielsku). [Otwórz forum →](https://community.n8n.io/)
+  </ConceptCard>
+  <ConceptCard icon="fa-discord" family="fab" title="Discord n8n (oficjalny)">
+    Serwer linkowany ze strony n8n.io - szybka rozmowa, dzielenie się workflow i luźniejsze pytania (po angielsku). [Dołącz do Discorda →](https://discord.gg/n8n)
+  </ConceptCard>
+  <ConceptCard icon="fa-reddit-alien" family="fab" title="r/n8n na Reddicie">
+    Społeczność użytkowników - pokazy workflow, pomysły na automatyzacje i dyskusje o tym, co działa w praktyce (po angielsku). [Otwórz r/n8n →](https://www.reddit.com/r/n8n/)
+  </ConceptCard>
+  <ConceptCard icon="fa-users" title="n8n Poznań (meetupy)">
+    Polska grupa na żywo prowadzona przez ambasadora n8n w Polsce - meetupy i warsztaty, na których możesz zapytać twarzą w twarz. [Zobacz wydarzenia →](https://www.meetup.com/n8n-community-group-poznan/)
+  </ConceptCard>
+</CardGrid>
+
+:::tip[Jak zadać pytanie, żeby dostać odpowiedź]
+Podaj wersję n8n i sposób instalacji (Cloud, Docker, npm), pełny komunikat błędu i fragment
+workflow w JSON. Przed wklejeniem przejrzyj ten JSON: według
+[dokumentacji n8n](https://docs.n8n.io/build/manage-workflows/export-and-import) eksport zawiera nazwy i ID
+credentials, a node HTTP Request zaimportowany z cURL może mieć w sobie nagłówki z tokenem.
+Usuń takie dane i wszystko, co wpisałeś w node'ach ręcznie (klucze API, adresy swoich serwerów).
+:::
+
 ## Od czego zacząć
 
 Nie każdy zaczyna od Modułu 0 - wybierz ścieżkę pod swoją sytuację, a do reszty modułów
@@ -212,8 +243,8 @@ wrócisz w naturalnej kolejności.
 
 To mapa całej wiki - wszystkie 10 modułów jest już dostępnych do czytania. Każdy moduł to
 osobny rozdział oparty na oficjalnej dokumentacji n8n. Kliknij dowolny, żeby przejść do
-pełnej treści; poniżej w każdym module widzisz, co dokładnie obejmuje. Całość to ~3 h
-czytania - w swoim tempie, moduł po module.
+pełnej treści; poniżej w każdym module widzisz, co dokładnie obejmuje. Całość to ok. 4,5 h
+czytania (bez poradnika hostingowego) - w swoim tempie, moduł po module.
 
 **Wszystkie moduły są już dostępne.** Kliknij tytuł modułu lub "Czytaj moduł", aby otworzyć
 rozdział.
@@ -394,8 +425,10 @@ Zbieram tu w jednym miejscu to, czego sam musiałem się douczyć: hosting, bezp
 RODO, backupy, obsługę błędów i wzorce, które naprawdę działają.
 
 :::note[Kontakt i współpraca]
-Masz pytanie, pomysł na materiał albo potrzebujesz pomocy przy wdrożeniu n8n? Napisz -
-chętnie pomogę, a Twoje pytania biorę pod uwagę przy kolejnych rozdziałach.
+Masz pytanie, pomysł na materiał albo potrzebujesz pomocy przy wdrożeniu n8n? Napisz na
+[kontakt@lukaszpodgorski.pl](mailto:kontakt@lukaszpodgorski.pl) - chętnie pomogę, a Twoje
+pytania biorę pod uwagę przy kolejnych rozdziałach. Błąd albo nieaktualny fragment w kursie
+możesz też zgłosić w [GitHub Issues](https://github.com/lukaszpodgorski-pl/kursn8n_pl/issues).
 
 Więcej o mnie: [lukaszpodgorski.pl](https://lukaszpodgorski.pl/) · automatyzacje dla firm:
 [aitomate.pl](https://aitomate.pl/)

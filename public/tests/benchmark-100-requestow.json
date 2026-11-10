@@ -1,0 +1,147 @@
+{
+  "name": "Benchmark - 100 requestów HTTP w pętli",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Benchmark: 100 requestów HTTP w pętli\n\nMierzy, ile czasu zajmuje Twojej instancji n8n wykonanie 100 kolejnych zapytań HTTP w pętli. Uruchom ten sam workflow na każdym porównywanym hostingu i zestaw wyniki.\n\n1. Kliknij **Execute workflow**.\n2. Wynik znajdziesz w węźle **Czas wykonania** (pola `totalTimeSeconds` i `message`).\n3. Powtórz 3-5 razy i weź medianę - pojedynczy przebieg bywa zaszumiony.\n\nLiczbę zapytań zmienisz w węźle **Start - czas i lista iteracji** (stała `count`).\n\nDomyślny adres to publiczne testowe API JSONPlaceholder. Możesz go podmienić na własny endpoint, ale nie strzelaj w cudze serwery produkcyjne.\n\nTest T-02 i pozostałe: https://kursn8n.pl/porownanie-n8n-hostingow",
+        "height": 420,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -520],
+      "id": "notatka-instrukcja",
+      "name": "Instrukcja"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "trigger-reczny",
+      "name": "Uruchom ręcznie"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Zapamiętaj czas startu i przygotuj listę iteracji.\nconst startTime = Date.now();\nconst count = 100;\nconst iterations = Array.from({ length: count }, (_, index) => index);\n\nreturn [{ json: { startTime, count, iterations } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "id": "code-start",
+      "name": "Start - czas i lista iteracji"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "iterations",
+        "options": {
+          "destinationFieldName": "iteration"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [440, 0],
+      "id": "split-iteracje",
+      "name": "Rozbij na iteracje"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [660, 0],
+      "id": "petla-iteracje",
+      "name": "Pętla po iteracjach"
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 120],
+      "id": "http-zapytanie",
+      "name": "Zapytanie HTTP"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Policz czas od startu do zakończenia ostatniej iteracji.\nconst start = $('Start - czas i lista iteracji').first().json;\nconst endTime = Date.now();\nconst totalTimeMs = endTime - start.startTime;\nconst totalTimeSeconds = totalTimeMs / 1000;\n\nreturn [{\n  json: {\n    startTime: start.startTime,\n    endTime,\n    totalTimeMs,\n    totalTimeSeconds,\n    message: `Wykonanie ${start.count} zapytań zajęło ${totalTimeSeconds} s`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -120],
+      "id": "code-czas-wykonania",
+      "name": "Czas wykonania"
+    }
+  ],
+  "connections": {
+    "Uruchom ręcznie": {
+      "main": [
+        [
+          {
+            "node": "Start - czas i lista iteracji",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start - czas i lista iteracji": {
+      "main": [
+        [
+          {
+            "node": "Rozbij na iteracje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rozbij na iteracje": {
+      "main": [
+        [
+          {
+            "node": "Pętla po iteracjach",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pętla po iteracjach": {
+      "main": [
+        [
+          {
+            "node": "Czas wykonania",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zapytanie HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zapytanie HTTP": {
+      "main": [
+        [
+          {
+            "node": "Pętla po iteracjach",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

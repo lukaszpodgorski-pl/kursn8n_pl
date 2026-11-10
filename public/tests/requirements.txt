@@ -1,0 +1,4 @@
+# Test T-02 z https://kursn8n.pl/porownanie-n8n-hostingow
+# Locust 2.47.0 wymaga Pythona 3.11+ i sam dociąga requests.
+# Wersja sprawdzona na PyPI w listopadzie 2026.
+locust==2.47.0

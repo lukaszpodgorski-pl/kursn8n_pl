@@ -21,6 +21,7 @@ teaches:
   - Odbieranie i wysyłanie zdarzeń przez webhooki
   - "Weryfikacja podpisu webhooka (HMAC): Raw Body, node Crypto i porównanie odporne na timing w Code node"
   - Obsługa paginacji, rate limitów (429) i ponawiania zapytań
+  - "Ćwiczenie praktyczne: wysłanie wiadomości JSON z jednego workflow do opublikowanego webhooka drugiego"
 about:
   - name: n8n
     sameAs: https://en.wikipedia.org/wiki/N8n
@@ -45,11 +46,11 @@ faq:
   - q: "Co zrobić, gdy usługa nie ma gotowego node'a w n8n?"
     a: "Użyj node'a HTTP Request. Jeśli usługa ma dokumentację API, niemal zawsze obsłużysz ją ręcznie: ustawiasz metodę, URL, nagłówki i body, a autoryzację podpinasz przez \"Generic Credential Type\". Najszybciej zacząć od opcji \"Import cURL\" i wklejenia gotowego polecenia z dokumentacji."
   - q: "API key czy OAuth2 - co wybrać?"
-    a: "Jeśli usługa daje wybór: OAuth2 jest bezpieczniejszy, bo ma ograniczony zakres i łatwo cofnąć dostęp, ale wymaga publicznego HTTPS i callbacku. API key jest prostszy do skonfigurowania i dobry do własnych/wewnętrznych API oraz szybkich testów. Często usługa narzuca jeden typ - wtedy decyzji nie ma."
+    a: "Jeśli usługa daje wybór: OAuth2 jest bezpieczniejszy, bo ma ograniczony zakres i łatwo cofnąć dostęp, ale wymaga adresu callback (część dostawców chce HTTPS, Google dopuszcza http://localhost). API key jest prostszy do skonfigurowania i dobry do własnych/wewnętrznych API oraz szybkich testów. Często usługa narzuca jeden typ - wtedy decyzji nie ma."
   - q: "Mój webhook nie reaguje - dlaczego?"
-    a: "Najczęstsze przyczyny: użyłeś Test URL zamiast Production URL, workflow nie jest aktywny (przełącznik \"Active\"), niezgodna metoda HTTP (np. wysyłasz GET, a node nasłuchuje POST) albo blokuje Cię uwierzytelnianie webhooka. Przy self-hostingu sprawdź też, czy instancja jest publicznie dostępna pod HTTPS."
+    a: "Najczęstsze przyczyny: użyłeś Test URL zamiast Production URL, workflow nie jest opublikowany (przycisk \"Publish\"; w n8n 1.x przełącznik \"Active\") albo nie opublikowałeś ponownie ostatnich zmian, niezgodna metoda HTTP (np. wysyłasz GET, a node nasłuchuje POST) albo blokuje Cię uwierzytelnianie webhooka. Przy self-hostingu sprawdź też, czy instancja jest publicznie dostępna pod HTTPS."
   - q: "Jak sprawdzić, że webhook naprawdę przyszedł od Stripe albo GitHuba?"
-    a: "Zweryfikuj podpis HMAC. Dostawca liczy HMAC-SHA256 z surowego body żądania wspólnym sekretem i wysyła wynik w nagłówku (GitHub: X-Hub-Signature-256, Stripe: Stripe-Signature). W n8n włącz w node Webhook opcję Raw Body, policz HMAC node'em Crypto (sekret w credentialu Crypto) i porównaj oba podpisy w Code node funkcją crypto.timingSafeEqual, sprawdzając najpierw długość. Żądanie z błędnym podpisem odrzuć kodem 401, a przed powtórkami chroń się znacznikiem czasu i odsiewaniem ID zdarzeń."
+    a: "Zweryfikuj podpis HMAC. Dostawca liczy HMAC-SHA256 wspólnym sekretem i wysyła wynik w nagłówku: GitHub z samego surowego body (X-Hub-Signature-256), Stripe z tekstu \"znacznik czasu, kropka, surowe body\" (Stripe-Signature w formacie t=...,v1=...). W n8n włącz w node Webhook opcję Raw Body, policz HMAC node'em Crypto (sekret w credentialu Crypto) i porównaj oba podpisy w Code node funkcją crypto.timingSafeEqual, sprawdzając najpierw długość. Żądanie z błędnym podpisem odrzuć kodem 401, a przed powtórkami chroń się znacznikiem czasu i odsiewaniem ID zdarzeń."
   - q: "Dostaję błąd HTTP 429 - co to znaczy i jak to naprawić?"
     a: "To \"Too Many Requests\" - przekroczyłeś rate limit API. Zmniejsz tempo: podziel dane node'em Loop Over Items, dodaj node Wait między partiami, a w ustawieniach node'a włącz Retry On Fail z odstępem. Sprawdź też w dokumentacji API, jaki jest limit zapytań na minutę."
   - q: "Jak pobrać wszystkie wyniki, a nie tylko pierwszą stronę?"
@@ -64,7 +65,7 @@ import Takeaways from '../../components/Takeaways.astro';
 
 <ModuleHero
   tag="Moduł 4 · Poziom: średnio zaawansowany"
-  readingTime="~25 min"
+  readingTime="~30 min"
   note="Wymaga: Moduły 0-3"
 />
 
@@ -174,7 +175,7 @@ _scope'ów_ i można go cofnąć po stronie usługi.
 | Konfiguracja | Wklej klucz - szybko | Klik "Connect", zgoda w przeglądarce |
 | Zakres uprawnień | Zwykle pełny (jak konto) | Ograniczony do wybranych scope'ów |
 | Wygasanie | Działa do odwołania | Access token krótkożyciowy, odświeżany refresh tokenem |
-| Callback / HTTPS | Niepotrzebny | Wymaga publicznego adresu callback (HTTPS) |
+| Callback / HTTPS | Niepotrzebny | Wymaga adresu callback; część dostawców chce HTTPS, Google dopuszcza `http://localhost` |
 | Wycofanie dostępu | Trzeba unieważnić klucz w usłudze | Cofasz zgodę w panelu usługi |
 | Typowo używane przez | Notion, Airtable, wiele prostych API | Google, Microsoft, Slack, GitHub |
 | Najlepsze do… | Szybki start, własne / wewnętrzne API | Konta użytkowników, ograniczony i odwoływalny dostęp |
@@ -187,12 +188,27 @@ Poświadczenia są przechowywane w bazie n8n w postaci **zaszyfrowanej**. Do szy
 self-hostingu musisz go zachować i mieć w backupie - inaczej po migracji stracisz dostęp do
 wszystkich połączeń.
 
-:::caution[OAuth2 wymaga publicznego HTTPS]
-Przepływ OAuth2 odsyła użytkownika na adres callback Twojej instancji n8n, a usługi (Google,
-Microsoft, Slack) akceptują tylko publiczne adresy `https://`. Na `localhost` bez tunelu OAuth
-zwykle nie zadziała. Jeśli self-hostujesz, zadbaj o domenę, certyfikat i poprawnie ustawiony
-`WEBHOOK_URL` - zasady konfiguracji rozkładam w
+:::caution[OAuth2 a publiczny adres]
+Przepływ OAuth2 odsyła Twoją przeglądarkę na adres callback instancji n8n. Skoro przekierowanie
+idzie przez przeglądarkę, `localhost` często wystarczy: Google wymaga `https://` w callbacku, ale
+adresy `localhost` są z tej zasady wyłączone
+([Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2/web-server), stan na
+listopad 2026). Część dostawców wymaga jednak HTTPS bez wyjątków - sprawdź w ich dokumentacji.
+Publiczny adres HTTPS jest konieczny dla webhooków i triggerów (usługa musi do Ciebie
+zadzwonić) oraz dla dostępu z innych urządzeń. Jeśli self-hostujesz, zadbaj o domenę,
+certyfikat i poprawnie ustawiony `N8N_WEBHOOK_URL` - zasady konfiguracji rozkładam w
 [Module 1: Instalacja i hosting](/modul-1-instalacja-hosting).
+:::
+
+:::caution[Google w trybie Testing: zgoda wygasa po 7 dniach]
+Zakładając własny projekt w Google Cloud pod credentials OAuth2, ekran zgody (OAuth consent
+screen) ustawiasz zwykle jako _External_, a projekt startuje w statusie publikacji **Testing**.
+W tym stanie Google wydaje refresh token ważny tylko **7 dni** (wyjątek: same zakresy profilu,
+czyli e-mail, imię i `openid`). Po tygodniu workflow z Gmailem, Drive czy Sheets zacznie
+zwracać błąd autoryzacji, choć nic nie zmieniłeś. Wyjście: opublikuj aplikację (status
+_In production_) albo licz się z ponownym połączeniem credentials co tydzień
+([Google: wygasanie refresh tokenów](https://developers.google.com/identity/protocols/oauth2#expiration),
+stan na listopad 2026).
 :::
 
 :::tip[Dobre praktyki dla credentials]
@@ -288,8 +304,10 @@ URL i uruchamia workflow. Najważniejsze ustawienia:
 :::caution[Test URL vs Production URL]
 Webhook ma **dwa adresy**. **Test URL** działa tylko gdy klikniesz "Listen for test event" w
 edytorze - służy do budowania i podglądu danych. **Production URL** działa stale, ale dopiero gdy
-workflow jest **aktywny** (przełącznik "Active"). Częsty błąd początkujących: wpisanie zewnętrznej
-usłudze adresu testowego albo zapomnienie o aktywacji workflow w produkcji.
+workflow jest **opublikowany** (przycisk **Publish** w prawym górnym rogu edytora; w n8n 1.x
+był to przełącznik "Active"). Częsty błąd początkujących: wpisanie zewnętrznej usłudze adresu
+testowego albo zapomnienie o publikacji workflow. Pamiętaj też, że zmiany wprowadzone po
+publikacji trafiają na Production URL dopiero po ponownym kliknięciu **Publish**.
 :::
 
 #### Odpowiadanie: node Respond to Webhook
@@ -330,7 +348,8 @@ webhooka w ich panelu. Różnica jest zasadnicza:
 
 **HMAC** (Hash-based Message Authentication Code) to skrót kryptograficzny liczony z dwóch
 składników naraz: treści wiadomości i sekretu. Nadawca liczy HMAC z **surowego body** żądania
-(dokładnie tych bajtów, które wysyła) i dokleja wynik w nagłówku. Ty liczysz to samo po swojej
+(dokładnie tych bajtów, które wysyła; niektórzy, jak Stripe, doklejają przed nim znacznik
+czasu) i dokleja wynik w nagłówku. Ty liczysz to samo po swojej
 stronie tym samym sekretem i porównujesz. Zgodność oznacza, że nadawca zna sekret i że body
 dotarło bez zmian.
 
@@ -340,7 +359,9 @@ w zapisie szesnastkowym (hex) z prefiksem `sha256=`
 stan na listopad 2026). Stripe używa nagłówka `Stripe-Signature` w formacie `t=...,v1=...`, czyli
 podpis plus znacznik czasu
 ([dokumentacja Stripe o błędach weryfikacji podpisu](https://docs.stripe.com/webhooks/signature),
-stan na listopad 2026). Nazwa nagłówka i format zmieniają się między dostawcami - zasada zostaje ta sama.
+stan na listopad 2026). Nazwa nagłówka, format i to, co dokładnie jest podpisane, zmieniają się
+między dostawcami - zasada zostaje ta sama. Przepis niżej jest dla GitHuba, wariant dla Stripe
+znajdziesz zaraz po nim.
 
 :::caution[Podpisane jest surowe body, nie JSON po parsowaniu]
 Node Webhook domyślnie parsuje JSON do `$json.body`. Jeśli zamienisz go z powrotem na tekst
@@ -403,12 +424,73 @@ Dlaczego nie zwykłe `received === expected`? Porównanie tekstów kończy się 
 różniącym się znaku, więc czas odpowiedzi zdradza, ile początkowych znaków atakujący trafił.
 `crypto.timingSafeEqual` sprawdza zawsze wszystkie bajty - tego wymaga też dokumentacja GitHuba.
 
+#### Wariant dla Stripe: podpis ze znacznikiem czasu
+
+Przepis wyżej jest dla GitHuba, który podpisuje samo body. **Stripe podpisuje coś innego:**
+znacznik czasu, kropkę i dopiero body (`t + "." + body`), a nagłówek `Stripe-Signature` ma postać
+`t=1731150000,v1=<hex>`. Policzony samym Crypto z body podpis nigdy się nie zgodzi i każde
+prawdziwe zdarzenie dostanie 401 ([Stripe - ręczna weryfikacja podpisu](https://docs.stripe.com/webhooks#verify-manually),
+stan na listopad 2026). Układ zostaje ten sam, dochodzi jeden Code przed Crypto:
+
+1. **Code "Przygotuj podpis"** (tryb _Run Once for All Items_) - rozbiera nagłówek na `t` i `v1`
+   i składa tekst do podpisania z surowego body (kod niżej).
+2. **Crypto** - akcja **Hmac**, ale tym razem _Binary File_ wyłączone, _Value_
+   `{{ $json.signedPayload }}`, _Type_ `SHA256`, _Encoding_ `HEX`, _Property Name_ `expected`.
+   Sekret (`whsec_...`) dalej w credentialu Crypto.
+3. **Code "Porównaj"** - jak dla GitHuba, ale porównujesz `expected` z `v1` (bez prefiksu)
+   i dodatkowo odrzucasz zdarzenia starsze niż 5 minut - tyle domyślnie toleruje Stripe.
+
+```js
+// Code "Przygotuj podpis", tryb "Run Once for All Items"
+const out = [];
+for (let i = 0; i < $input.all().length; i++) {
+  const item = $input.all()[i];
+  // "t=1731150000,v1=abc...,v0=..." -> { t: "1731150000", v1: "abc..." }
+  const parts = Object.fromEntries(
+    String(item.json.headers['stripe-signature'] || '')
+      .split(',')
+      .map((p) => p.split('='))
+  );
+  // Surowe bajty body z opcji Raw Body (binarne "data")
+  const raw = await this.helpers.getBinaryDataBuffer(i, 'data');
+  out.push({
+    json: {
+      ...item.json,
+      t: parts.t || '',
+      v1: parts.v1 || '',
+      signedPayload: `${parts.t}.${raw.toString('utf8')}`,
+    },
+  });
+}
+return out;
+```
+
+```js
+// Code "Porównaj" (Stripe), tryb "Run Once for Each Item"
+const crypto = require('crypto');
+const a = Buffer.from(String($json.v1), 'utf8');
+const b = Buffer.from(String($json.expected), 'utf8');
+const podpisOk = a.length === b.length && crypto.timingSafeEqual(a, b);
+// Znacznik czasu w sekundach; starsze niż 300 s odrzucamy (ochrona przed powtórką)
+const wiek = Math.abs(Date.now() / 1000 - Number($json.t));
+return { json: { ...$json, signatureValid: podpisOk && wiek <= 300 } };
+```
+
+`getBinaryDataBuffer` to oficjalny sposób na dostęp do danych binarnych w Code node
+([Get the binary data buffer](https://docs.n8n.io/build/code-in-n8n/cookbook/code-node/get-the-binary-data-buffer)). Z tego samego powodu co wcześniej nie składaj
+`signedPayload` z `JSON.stringify($json.body)`.
+
 :::note[Moduł crypto w Code node]
 W n8n Cloud moduł `crypto` jest dostępny w Code node od ręki
 ([dokumentacja Code node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/),
 stan na listopad 2026). Na self-hostingu import modułów jest domyślnie wyłączony - dopuść go
-zmienną `NODE_FUNCTION_ALLOW_BUILTIN=crypto`, a przy task runnerach ustaw ją na runnerach, nie na
-głównym procesie n8n ([włączanie modułów w Code node](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/enable-modules-in-code-node)).
+zmienną `NODE_FUNCTION_ALLOW_BUILTIN=crypto`
+([włączanie modułów w Code node](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/enable-modules-in-code-node)).
+Gdzie ją wpisać, zależy od trybu task runnerów. W trybie internal ustawiasz ją jako zmienną
+środowiskową kontenera n8n. W trybie external (osobny kontener `n8nio/runners`) wpisujesz ją
+jako `env-override` w pliku `/etc/n8n-task-runners.json` - dopisana do `environment:` kontenera
+nie zadziała i `require('crypto')` dalej będzie odrzucany
+([Task runners environment variables](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/task-runners)).
 Więcej o modułach w [Module 5: Kod i sub-workflow](/modul-5-kod-sub-workflow).
 :::
 
@@ -507,15 +589,104 @@ zgubi danych po drodze. Obsługę błędów na poważnie (Error Trigger, Stop an
 [Module 7: Produkcja](/modul-7-produkcja).
 :::
 
+## Ćwiczenie: berek na webhookach
+
+Webhooki najlepiej zrozumieć, kiedy jeden workflow "klepie" drugi. Zbudujesz dwa: **Odbiornik**,
+który czeka na wiadomość pod Production URL, i **Nadajnik**, który ją wysyła node'em HTTP
+Request. Najlepiej gra się w parze - Twój Nadajnik klepie Odbiornik kolegi na jego instancji,
+a jego Nadajnik Twój. Jeśli masz jedną instancję i nikogo pod ręką, oba workflow postawisz
+u siebie - wariant poniżej.
+
+- **Cel:** wysłać wiadomość JSON z jednego workflow i odebrać ją w drugim przez Production URL
+  opublikowanego webhooka.
+- **Czas:** 25-35 minut.
+- **Potrzebujesz:** jednej instancji n8n (wariant solo) albo dwóch instancji osiągalnych przez
+  sieć (wariant w parze). Instancja na `localhost` wystarczy do gry solo, ale do gry w parze
+  musi mieć publiczny adres HTTPS i ustawione `N8N_WEBHOOK_URL` - patrz
+  [HTTPS, domena, reverse proxy i Cloudflare Tunnel](/modul-1-instalacja-hosting#https-domena-reverse-proxy-i-cloudflare-tunnel).
+  n8n Cloud ma publiczny adres od razu.
+
+<Flow
+  title="cwiczenie-berek"
+  alt="Schemat ćwiczenia: Manual Trigger w workflow Nadajnik uruchamia HTTP Request, który wysyła POST na Production URL webhooka w workflow Odbiornik, a ten zapisuje wiadomość w Edit Fields"
+  caption="Dwa osobne workflow: Nadajnik wysyła POST, Odbiornik go przyjmuje. Strzałka między nimi to zwykłe żądanie HTTP przez sieć."
+  spec={`
+    Manual Trigger (Nadajnik):hand-pointer @green -> HTTP Request (POST JSON):paper-plane @blue
+    HTTP Request -sieć-> Webhook (Odbiornik, POST):satellite-dish @pink
+    Webhook -> Edit Fields (kto i co):pen-to-square @amber
+  `}
+/>
+
+### Kroki
+
+1. **Odbiornik: webhook.** Utwórz workflow "Berek - Odbiornik" z node'em **Webhook**:
+   _HTTP Method_ `POST`, _Path_ `berek-twoje-imie` (bez polskich znaków), _Respond_
+   _Immediately_. Authentication na razie zostaw na _None_.
+2. **Odbiornik: co przyszło.** Za Webhookiem dodaj **Edit Fields** z polami `od` =
+   `{{ $json.body.from }}`, `wiadomosc` = `{{ $json.body.message }}` i `odebrano` =
+   `{{ $now.toISO() }}`. Webhook podaje treść żądania w polu `body`, obok `headers` i `query` -
+   stąd `$json.body.from`, a nie samo `$json.from`.
+3. **Odbiornik: publikacja.** Kliknij **Publish** (`Shift + P`). Otwórz node Webhook, przełącz
+   widok adresu na **Production URL** i skopiuj go. Gracie w parze - wyślij adres koledze.
+4. **Nadajnik: wiadomość.** Utwórz drugi workflow "Berek - Nadajnik": **Manual Trigger** →
+   **HTTP Request** z metodą `POST` i URL-em Odbiornika (Twojego w wariancie solo, kolegi
+   w wariancie w parze). Włącz _Send Body_, _Body Content Type_ ustaw na **JSON**, a w
+   _Specify Body_ wybierz _Using Fields Below_ i dodaj trzy pola: `from` (Twoje imię),
+   `message` (dowolne zaczepienie, np. "Berek! Gonisz") i `sent_at` = `{{ $now.toISO() }}`.
+5. **Klep.** Uruchom Nadajnik (**Execute workflow**). Nadajnik możesz zostawić
+   nieopublikowany - Manual Trigger i tak działa tylko z edytora.
+6. **Sprawdź u odbiorcy.** Otwórz Odbiornik, zakładkę **Executions**, i kliknij najnowsze
+   wykonanie.
+
+<details>
+<summary>Sprawdź, czy działa</summary>
+
+- Output HTTP Request w Nadajniku to krótki komunikat w stylu
+  `{ "message": "Workflow was started" }` - tak od razu odpowiada webhook ustawiony na
+  _Respond Immediately_ (dokładne brzmienie bywa różne w zależności od wersji n8n).
+- W Executions Odbiornika jest nowe wykonanie ze statusem **Success**, uruchomione
+  produkcyjnie (nie z edytora) - nie klikałeś niczego w Odbiorniku, a jednak ruszył.
+- Edit Fields w tym wykonaniu pokazuje `od`, `wiadomosc` i `odebrano` z danymi, które wysłał
+  Nadajnik. W wariancie w parze: wiadomość, której sam nie pisałeś.
+- W danych node'a Webhook widzisz też `headers` - m.in. `user-agent` i adres hosta. Tak
+  wygląda każde żądanie, które przychodzi do n8n z zewnątrz.
+
+</details>
+
+### Wariant dla zaawansowanych
+
+- **Zabezpiecz Odbiornik.** W node Webhook ustaw _Authentication_ na **Header Auth** i utwórz
+  credential z nagłówkiem, np. `X-Berek-Token`, i długim losowym sekretem. Nadajnik bez tego
+  nagłówka powinien dostać odmowę - dopiero gdy w HTTP Request ustawisz _Authentication_ →
+  _Generic Credential Type_ → **Header Auth** z tym samym sekretem, berek wraca do gry. Pamiętaj
+  o ponownym **Publish** Odbiornika po zmianie. Kiedy Header Auth to za mało, przeczytasz
+  w sekcji o [podpisie HMAC](#czy-to-naprawdę-stripe-weryfikacja-podpisu-hmac).
+- **Odbij piłeczkę.** Przestaw _Respond_ na _Using 'Respond to Webhook' Node_, dodaj na końcu
+  Odbiornika **Respond to Webhook** z JSON-em `{ "odpowiedz": "Mam Cię! Teraz Ty gonisz" }`
+  i opublikuj ponownie. Nadajnik zobaczy w Output tę odpowiedź zamiast domyślnego komunikatu o starcie workflow.
+
+### Typowe pułapki
+
+| Objaw | Przyczyna |
+| --- | --- |
+| 404 z komunikatem, że webhook _is not registered_ | Odbiornik nie jest opublikowany albo Nadajnik używa Test URL zamiast Production URL |
+| 404 z podpowiedzią _Did you mean to make a … request?_ | Niezgodna metoda - Webhook nasłuchuje na `POST`, a HTTP Request wysyła `GET` (albo odwrotnie) |
+| W Odbiorniku pola `od` i `wiadomosc` są puste | Wyrażenie bez `body` - dane leżą w `$json.body.from`, a nie w `$json.from` |
+| Kolega dostaje `ECONNREFUSED` albo timeout | Wysłałeś mu adres z `localhost` - Twoja instancja nie ma publicznego adresu albo brakuje `N8N_WEBHOOK_URL` |
+| Publikacja Odbiornika kończy się błędem o zajętej ścieżce | Inny opublikowany workflow ma już ten sam _Path_ i metodę - zmień ścieżkę |
+| Odbiornik po poprawkach dalej działa po staremu | Produkcja używa opublikowanej wersji - po każdej zmianie kliknij **Publish** ponownie |
+| Odmowa (401 lub 403) po włączeniu Header Auth | Nazwa albo wartość nagłówka w Nadajniku różni się od tej w credentialu Odbiornika |
+
 ## Sprawdź się
 
 Zanim ruszysz dalej, odpowiedz sobie na te pytania - na głos albo w dwóch zdaniach na
 kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
 
 1. Twoje self-hostowane n8n działa na `localhost` bez żadnego publicznego adresu. Dlaczego
-   uwierzytelnianie API key skonfigurujesz bez problemu, a OAuth2 do Google czy Slacka - nie?
-   Jeśli nie masz pewności -
-   [Uwierzytelnianie: API key vs OAuth2](#uwierzytelnianie-api-key-vs-oauth2).
+   zapytanie HTTP Request z API key wyślesz bez problemu, a webhook ze Stripe czy GitHuba do
+   Ciebie nie dotrze? Jeśli nie masz pewności -
+   [Uwierzytelnianie: API key vs OAuth2](#uwierzytelnianie-api-key-vs-oauth2) i
+   [Odbieranie: node Webhook](#odbieranie-node-webhook).
 2. Jaka jest różnica między "n8n odbiera webhook" a "n8n wysyła dane do cudzego webhooka" -
    jakiego node'a użyjesz w każdym z tych dwóch kierunków? Jeśli nie masz pewności -
    [Webhooki: odbieranie i wysyłanie](#webhooki-odbieranie-i-wysyłanie).
@@ -530,6 +701,9 @@ kartce. Jeśli przy którymś się zawahasz, wróć do podlinkowanej sekcji.
    dopisać własnego nagłówka - co zrobisz zamiast tego i dlaczego nie wystarczy policzyć HMAC
    z `$json.body` zamienionego z powrotem na tekst? Jeśli nie masz pewności -
    [Czy to naprawdę Stripe? Weryfikacja podpisu (HMAC)](#czy-to-naprawdę-stripe-weryfikacja-podpisu-hmac).
+6. Wysyłasz `POST` z polem `from` na swój webhook, a w Edit Fields za nim wyrażenie
+   `{{ $json.from }}` zwraca pustkę. Gdzie naprawdę leży to pole i dlaczego? Jeśli nie masz
+   pewności - [Ćwiczenie: berek na webhookach](#ćwiczenie-berek-na-webhookach).
 
 <details>
 <summary>Mini-zadanie: zbuduj mały endpoint webhookiem</summary>
@@ -542,7 +716,7 @@ Potrzebujesz działającej instancji n8n i kilkunastu minut.
    `{ "status": "ok" }`.
 3. Kliknij **Listen for test event** i otwórz Test URL w przeglądarce - powinieneś zobaczyć
    swoją odpowiedź JSON.
-4. Aktywuj workflow (**Active**) i otwórz tym razem **Production URL** - efekt powinien być
+4. Opublikuj workflow (**Publish**) i otwórz tym razem **Production URL** - efekt powinien być
    identyczny, ale bez klikania "Listen".
 5. Dorzuć w ustawieniach node'a Webhook prostą **Authentication** (np. Header Auth), żeby
    nie każdy mógł wywołać Twój endpoint.
@@ -552,9 +726,10 @@ Potrzebujesz działającej instancji n8n i kilkunastu minut.
 <Takeaways>
   - Node'y aplikacji działają według schematu **Resource → Operation** - opanuj go raz i obsłużysz każdy nowy node.
   - Credentials tworzysz raz i podpinasz wielokrotnie; n8n trzyma je zaszyfrowane (encryption key).
-  - **API key** = szybki sekret o pełnym zakresie; **OAuth2** = ograniczona, odwoływalna zgoda wymagająca publicznego HTTPS i callbacku.
+  - **API key** = szybki sekret o pełnym zakresie; **OAuth2** = ograniczona, odwoływalna zgoda przez adres callback. Publiczny HTTPS jest konieczny dla webhooków i triggerów.
   - **HTTP Request** obsłuży każde API, gdy brakuje gotowego node'a - z metodami, nagłówkami, body i autoryzacją przez credentials.
   - Webhook node odbiera zdarzenia (test vs production URL, odpowiedź przez Respond to Webhook); HTTP Request wysyła zdarzenia do cudzych webhooków.
   - Webhook od zewnętrznego dostawcy weryfikuj **podpisem HMAC**: Raw Body, node Crypto z sekretem w credentialu i porównanie przez `crypto.timingSafeEqual` z kontrolą długości; przed powtórkami chroni znacznik czasu i odsiewanie ID zdarzeń.
   - Na produkcji obsłuż **paginację**, **rate limity (429)** i błędy - łącząc Pagination, Loop Over Items, Wait oraz Retry On Fail.
+  - Dane z webhooka czytasz z `$json.body`, a działający berek między dwoma workflow to najszybszy test, że Production URL, publikacja i metoda HTTP są ustawione dobrze.
 </Takeaways>

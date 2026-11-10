@@ -24,7 +24,7 @@ teaches:
     na puste pola (Moduł 5)
   - Zapis nowego zgłoszenia do Google Sheets operacją Append z ręcznym mapowaniem kolumn
   - Wysyłkę powiadomienia na Telegram o każdym nowym zgłoszeniu
-  - Rozpoznawanie i naprawę typowych awarii - nieaktywny formularz, niezgodne nazwy kolumn w
+  - Rozpoznawanie i naprawę typowych awarii - nieopublikowany formularz, niezgodne nazwy kolumn w
     arkuszu, limit zapytań Google Sheets
 about:
   - name: n8n
@@ -40,7 +40,7 @@ faq:
   - q: "Czy do zbierania zgłoszeń potrzebuję osobnego narzędzia formularzowego, np. Typeform albo Google Forms?"
     a: "Nie - n8n ma własny n8n Form Trigger, który sam generuje i hostuje stronę formularza pod adresem Twojej instancji, bez rejestracji w kolejnym serwisie. Ten gotowiec korzysta wyłącznie z niego."
   - q: "Dlaczego mój formularz nie przyjmuje zgłoszeń, mimo że w edytorze n8n działał bez zarzutu?"
-    a: "Najczęściej dlatego, że ktoś dostał Test URL zamiast Production URL, albo workflow nie jest aktywny. Formularz - podobnie jak webhook - ma dwa różne adresy, a produkcyjny działa dopiero po włączeniu przełącznika Active."
+    a: "Najczęściej dlatego, że ktoś dostał Test URL zamiast Production URL, albo workflow nie jest opublikowany. Formularz - podobnie jak webhook - ma dwa różne adresy, a produkcyjny działa dopiero po kliknięciu Publish (w n8n 1.x przełącznik Active)."
   - q: "Co się stanie, jeśli ktoś spróbuje wysłać formularz bez wypełnienia imienia albo e-maila?"
     a: "Formularz ma oba pola oznaczone jako Required Field, więc przeglądarka nie pozwoli wysłać pustego formularza. Dodatkowo Code Node ma własny guard (\"throw new Error\"), który zatrzyma workflow, gdyby mimo to dotarły puste dane - np. przy ręcznym wywołaniu adresu formularza z pominięciem przeglądarki."
   - q: "Czy mogę zamiast Google Sheets zapisywać zgłoszenia bezpośrednio do CRM?"
@@ -48,7 +48,7 @@ faq:
   - q: "Co zrobić, gdy przy nagłym ruchu Google Sheets zwraca błąd limitu zapytań?"
     a: "Google Sheets API domyślnie ogranicza zapisy do 300 żądań na minutę na projekt i 60 na minutę na użytkownika. Włącz w node'cie Google Sheets Retry On Fail z odstępem między próbami - dla ruchu z jednego formularza to zwykle w zupełności wystarcza."
   - q: "Czy mogę dodać do formularza więcej pól, niż jest w gotowcu?"
-    a: "Tak - dodaj kolejne pole w Form Elements node'a n8n Form Trigger, obsłuż je w Code Node tak samo jak pozostałe (odwołanie po dokładnej nazwie Field Name) i dodaj odpowiadającą kolumnę w arkuszu oraz w mapowaniu node'a Google Sheets."
+    a: "Tak - dodaj kolejne pole w Form Elements node'a n8n Form Trigger, obsłuż je w Code Node tak samo jak pozostałe (odwołanie po dokładnej nazwie z Field Label) i dodaj odpowiadającą kolumnę w arkuszu oraz w mapowaniu node'a Google Sheets."
 ---
 
 import { Steps } from '@astrojs/starlight/components';
@@ -124,8 +124,8 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 <Steps>
 
 1. Pobierz plik `formularz-arkusz-powiadomienie.json` (link wyżej).
-2. W n8n otwórz listę workflow i wybierz **Import from File** (albo przeciągnij plik na kanwę
-   nowego, pustego workflow).
+2. W n8n utwórz nowy, pusty workflow, kliknij menu trzech kropek (**...**) w prawym górnym
+   rogu i wybierz **Import from File** (albo przeciągnij plik na kanwę tego pustego workflow).
 3. W arkuszu Google Sheets, który chcesz podpiąć, utwórz kartę (tab) o nazwie **Zgłoszenia** z
    nagłówkami w pierwszym wierszu dokładnie: `Imię`, `Email`, `Wiadomość`, `Data zgłoszenia`.
 4. Uzupełnij dwa placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
@@ -151,7 +151,7 @@ Google Forms ani JotForm
 W polu **Form Title** wpisz tytuł widoczny na stronie formularza (np. "Zapisz się"), a w
 **Form Elements** dodaj trzy pola:
 
-| Pole (Field Name) | Element Type | Required Field |
+| Pole (Field Label) | Element Type | Required Field |
 | --- | --- | --- |
 | `Imię` | Text Input | tak |
 | `Email` | Email | tak |
@@ -159,17 +159,21 @@ W polu **Form Title** wpisz tytuł widoczny na stronie formularza (np. "Zapisz s
 
 W sekcji **Options** dodaj opcję **Form Path**, żeby ustawić czytelny fragment adresu - w
 gotowcu to `formularz-zgloszenia`. Tak jak przy webhookach, formularz ma dwa adresy: **Test
-URL** (aktywny po kliknięciu **Execute step** albo **Execute workflow** na nieaktywnym workflow -
-dokładnie ten sam mechanizm, który znasz z
+URL** (aktywny po kliknięciu **Execute step** albo **Execute workflow** na nieopublikowanym
+workflow - dokładnie ten sam mechanizm, który znasz z
 [Modułu 2: Interfejs i 1. workflow](/modul-2-interfejs-pierwszy-workflow) i
 [Modułu 4: Integracje i API](/modul-4-integracje-api)) i **Production URL** (działa dopiero po
-**aktywacji** workflow). Zanim wyślesz link do prawdziwych odbiorców, przełącz **Active**.
+**publikacji** workflow). Zanim wyślesz link do prawdziwych odbiorców, kliknij **Publish** w
+prawym górnym rogu edytora (w n8n 1.x był to przełącznik **Active**).
 
 :::note[Skąd biorą się nazwy pól w danych]
-Klucz, pod jakim pole trafia do `$json`, to dokładnie tekst wpisany w **Field Name** - bez zmian,
-łącznie z polskimi znakami. Potwierdza to
+Klucz, pod jakim pole trafia do `$json`, to dokładnie tekst wpisany w **Field Label** - bez zmian,
+łącznie z polskimi znakami. Od wersji 2.4 node'a (gotowiec używa 2.2) pole ma też opcjonalne
+**Field Name**, które ma pierwszeństwo przed etykietą - budując formularz od zera w nowszej
+wersji, zostaw je puste albo wpisz w nim dokładnie `Imię`, `Email` i `Wiadomość`, inaczej kod
+z kroku 2 nie trafi w klucze. Potwierdza to
 [kod node'a Form Trigger na GitHubie](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Form/utils/utils.ts) -
-funkcja `getFieldIdentifier` używa etykiety pola wprost jako nazwy właściwości w danych
+funkcja `getFieldIdentifier` używa Field Name (od v2.4, jeśli jest ustawione) albo etykiety pola wprost jako nazwy właściwości w danych
 wyjściowych, a `addFormResponseDataToReturnItem` zapisuje pod nią wartość bez zmian. Pola typu
 Text i Email dodatkowo same przycinają białe znaki z brzegów wpisanej wartości - Textarea już nie,
 stąd `.trim()` w kolejnym kroku wciąż ma sens. Ten sam kod dokłada też do każdego zgłoszenia
@@ -267,10 +271,26 @@ weźmiesz też swój Chat ID, jeśli jeszcze go nie znasz), wpisz **Chat ID** (p
 ```text
 Nowe zgłoszenie z formularza!
 
-Imię: {{ $json.imie }}
-E-mail: {{ $json.email }}
-Wiadomość: {{ $json.wiadomosc || '(brak)' }}
+Imię: {{ $('Waliduj i oczyść dane').item.json.imie.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}
+E-mail: {{ $('Waliduj i oczyść dane').item.json.email.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}
+Wiadomość: {{ ($('Waliduj i oczyść dane').item.json.wiadomosc || '(brak)').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}
 ```
+
+Łańcuch `.replace(...)` przy każdym polu nie jest ozdobnikiem. Plik ma w **Additional Fields**
+ustawione **Parse Mode** = _HTML_ i wyłączone **Append n8n Attribution** (dlaczego - patrz
+[krok 6 porannego briefu](/workflow-poranny-brief-telegram#6-telegram---wyślij-wiadomość)),
+a w trybie HTML znak `<`, `>` albo `&` wpisany w formularz zepsułby całą wiadomość. Zamiana na
+encje (`&lt;`, `&gt;`, `&amp;`) to
+[wymóg Telegram Bot API](https://core.telegram.org/bots/api#html-style). Do arkusza trafia
+oryginalny tekst, encje powstają tylko w treści powiadomienia.
+
+:::caution[Dlaczego nie `$json.imie`?]
+Telegram stoi za Google Sheets, a Sheets w trybie mapowania kolumn oddaje dalej zapisany wiersz
+pod nazwami **kolumn** (`Imię`, `Email`, `Wiadomość`), nie pola z wejścia. `$json.imie` byłoby
+puste i powiadomienie przyszłoby bez danych. Dlatego sięgasz po dane wprost do node'a
+**Waliduj i oczyść dane** wyrażeniem `$('Waliduj i oczyść dane').item.json` - więcej o odwołaniach do
+wcześniejszych node'ów w [Module 3](/modul-3-praca-z-danymi).
+:::
 
 Zweryfikowane pola:
 [dokumentacja node'a Telegram](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/).
@@ -282,12 +302,13 @@ Zweryfikowane pola:
 - **Objaw:** link do formularza, który wysyłasz realnym odbiorcom, zwraca błąd albo w ogóle się
   nie otwiera, mimo że w edytorze n8n wszystko działało.
 - **Przyczyna:** tak jak webhook, formularz ma dwa różne adresy - **Test URL** (aktywny tylko po
-  kliknięciu **Execute step**/**Execute workflow** na nieaktywnym workflow) i **Production URL**
-  (działa stale, ale dopiero gdy workflow jest **aktywny**) - dokładnie ten sam mechanizm, co przy
+  kliknięciu **Execute step**/**Execute workflow** na nieopublikowanym workflow) i **Production
+  URL** (działa stale, ale dopiero gdy workflow jest **opublikowany**) - dokładnie ten sam mechanizm, co przy
   zwykłym Webhooku, opisany w [Moduł 2](/modul-2-interfejs-pierwszy-workflow) i
   [Moduł 4](/modul-4-integracje-api).
-- **Naprawa:** skopiuj **Production URL** z node'a Form Trigger (nie Test URL) i włącz przełącznik
-  **Active** w prawym górnym rogu edytora, zanim wyślesz link dalej.
+- **Naprawa:** skopiuj **Production URL** z node'a Form Trigger (nie Test URL) i kliknij
+  **Publish** w prawym górnym rogu edytora, zanim wyślesz link dalej. Jeśli zmieniałeś pola
+  formularza po publikacji, opublikuj workflow ponownie - inaczej odbiorcy zobaczą starą wersję.
 
 ### Krzywe nazwy kolumn w arkuszu - dane trafiają w złe miejsce
 
@@ -310,7 +331,7 @@ Zweryfikowane pola:
   poprawienia kodu. Pełne rozpoznawanie tego błędu opisuję w
   [Coś nie działa? Typowe problemy z n8n](/cos-nie-dziala).
 - **Naprawa:** sprawdź w panelu danych node'a Formularz zgłoszeniowy dokładne nazwy kluczy
-  (dokładnie takie, jak **Field Name** w formularzu) i porównaj z tym, czego szuka kod.
+  (dokładnie takie, jak **Field Label** w formularzu) i porównaj z tym, czego szuka kod.
 
 ### Google Sheets zwraca błąd limitu zapytań przy nagłym ruchu
 
@@ -347,7 +368,7 @@ Zweryfikowane pola:
 <Takeaways title="Co warto zapamiętać">
   - n8n Form Trigger sam hostuje formularz pod adresem instancji - bez zewnętrznego narzędzia
     formularzowego, z tymi samymi zasadami Test URL/Production URL co przy webhookach.
-  - Klucz pola w danych to dokładnie **Field Name** z formularza - trzymaj się jednej pisowni w
+  - Klucz pola w danych to dokładnie **Field Label** z formularza (w node od v2.4: Field Name, jeśli je wpiszesz) - trzymaj się jednej pisowni w
     Form Trigger, Code Node i mapowaniu kolumn arkusza.
   - Walidacja w Code Node (`throw new Error(...)`) to ta sama zasada co dedykowany node Stop And
     Error z Modułu 5 - nie ufaj wyłącznie wymaganym polom w interfejsie formularza.

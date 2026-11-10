@@ -16,7 +16,7 @@ datePublished: 2026-07-24
 educationalLevel: Beginner
 teaches:
   - Rozpoznawanie typowych awarii n8n po objawach, zanim sięgniesz po support
-  - Naprawianie problemów z webhookami - Test URL kontra Production URL i aktywacja workflow
+  - Naprawianie problemów z webhookami - Test URL kontra Production URL i publikacja workflow
   - Rozwiązywanie błędu OAuth "redirect_uri_mismatch" i wymagań publicznego HTTPS
   - Debugowanie wyrażeń zwracających undefined oraz błędów w Code Node
   - Odzyskiwanie po utracie klucza N8N_ENCRYPTION_KEY i stabilizowanie n8n za reverse proxy oraz na słabym sprzęcie
@@ -36,15 +36,15 @@ faq:
   - q: "Czy mogę odzyskać poświadczenia bez oryginalnego klucza N8N_ENCRYPTION_KEY?"
     a: "Nie wprost - to szyfrowanie symetryczne, więc bez tego samego klucza n8n nie ma jak odszyfrować zapisanych poświadczeń i trzeba wprowadzić je od nowa. Jedyny ratunek to znalezienie kopii tego samego klucza, np. w backupie wolumenu danych, i podanie go tej samej instancji przed uruchomieniem."
   - q: "Dlaczego mój workflow nie uruchamia się sam, mimo że w teście działał?"
-    a: "Najczęściej workflow nie jest aktywny (przełącznik Active) albo korzysta z Manual Trigger, który nigdy nie startuje sam z siebie. Do samodzielnego uruchamiania służą aktywowany Schedule Trigger albo aktywowany Webhook."
+    a: "Najczęściej workflow nie jest opublikowany (przycisk Publish w prawym górnym rogu edytora, w n8n 1.x przełącznik Active) albo korzysta z Manual Trigger, który nigdy nie startuje sam z siebie. Do samodzielnego uruchamiania służą Schedule Trigger albo Webhook w opublikowanym workflow. Jeśli poprawiałeś workflow po publikacji, opublikuj go ponownie - produkcja używa ostatniej opublikowanej wersji."
   - q: "Jak sprawdzić, co dokładnie poszło nie tak w konkretnym uruchomieniu?"
     a: "Otwórz zakładkę Executions, znajdź wykonanie ze statusem Error i kliknij je - n8n pokaże kopię workflow z dokładnymi danymi z tamtego momentu, node po nodzie."
   - q: "Czy testowego URL-a webhooka można używać na produkcji?"
-    a: "Nie na dłuższą metę. Test URL zaczyna nasłuchiwać dopiero po kliknięciu \"Listen for test event\" albo po \"Execute workflow\" na nieaktywnym workflow - to nie jest stały adres. Do integracji zewnętrznej zawsze potrzebujesz Production URL i aktywnego workflow."
+    a: "Nie na dłuższą metę. Test URL zaczyna nasłuchiwać dopiero po kliknięciu \"Listen for test event\" albo po \"Execute workflow\" na nieopublikowanym workflow - to nie jest stały adres. Do integracji zewnętrznej zawsze potrzebujesz Production URL i opublikowanego workflow."
   - q: "Ile pamięci RAM potrzebuje n8n, żeby nie zwalniać?"
     a: "Nie ma jednej uniwersalnej liczby - zależy od liczby i wielkości executions oraz obciążenia workflow. Na słabszym sprzęcie, jak Raspberry Pi, najbardziej pomaga włączony pruning historii wykonań i pilnowanie rozmiaru danych przechodzących przez workflow."
   - q: "Nie znalazłem swojego problemu na tej liście - co teraz?"
-    a: "Ta strona rośnie razem z kursem. Opisz dokładny objaw i to, co już sprawdziłeś, przez sekcję kontaktu na stronie głównej - dopiszę tu rozwiązanie."
+    a: "Ta strona rośnie razem z kursem. Opisz dokładny objaw i to, co już sprawdziłeś, mailem na kontakt@lukaszpodgorski.pl (adres jest też w sekcji O autorze na stronie głównej) - dopiszę tu rozwiązanie."
 ---
 
 import ModuleHero from '../../components/ModuleHero.astro';
@@ -69,15 +69,15 @@ nowego wykonania w zakładce Executions.
 
 **Przyczyna:** Webhook ma dwa różne adresy. Test URL zaczyna nasłuchiwać dopiero, gdy w
 edytorze klikniesz "Listen for test event" albo uruchomisz workflow przez "Execute
-workflow" na nieaktywnym workflow, a Production URL zaczyna działać dopiero, gdy workflow
-jest **aktywny** - potwierdza to
+workflow" na nieopublikowanym workflow, a Production URL zaczyna działać dopiero, gdy
+workflow jest **opublikowany** - potwierdza to
 [dokumentacja node'a Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/).
 To najczęstsza pułapka początkujących: zewnętrznej usłudze wpisano adres testowy albo
-zapomniano aktywować workflow.
+zapomniano opublikować workflow (przycisk **Publish**; w n8n 1.x był to przełącznik Active).
 
 **Naprawa:**
 1. Otwórz node Webhook i skopiuj **Production URL** (nie Test URL).
-2. Włącz przełącznik **Active** w prawym górnym rogu edytora.
+2. Kliknij **Publish** w prawym górnym rogu edytora.
 3. Wklej production URL w panelu usługi zewnętrznej, zastępując poprzedni testowy adres.
 4. Wyślij testowe zdarzenie z zewnątrz i sprawdź zakładkę Executions, czy przyszło.
 
@@ -85,6 +85,27 @@ zapomniano aktywować workflow.
 produkcyjny](/modul-2-interfejs-pierwszy-workflow#webhook-tryb-testowy-vs-produkcyjny) i
 [Moduł 4 - Webhooki: odbieranie i
 wysyłanie](/modul-4-integracje-api#webhooki-odbieranie-i-wysyłanie).
+
+## Poprawiłem workflow, a produkcja dalej robi po staremu
+
+**Objaw:** Zmieniłeś node w opublikowanym workflow, ręczny test w edytorze pokazuje nowy
+wynik, ale wykonania z triggera (Schedule, webhook, formularz) w zakładce Executions dalej
+działają według starej logiki.
+
+**Przyczyna:** n8n zapisuje Twoje edycje automatycznie, ale jako **szkic**. Produkcja
+zawsze używa ostatniej **opublikowanej wersji**, a nie bieżących zmian w edytorze - potwierdza
+to [dokumentacja n8n o zapisywaniu i publikowaniu](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows/).
+Przycisk w prawym górnym rogu pokazuje wtedy stan "Published, has changes".
+
+**Naprawa:**
+1. Otwórz workflow i spójrz na przycisk **Publish** - jeśli jest aktywny, czekają
+   nieopublikowane zmiany.
+2. Kliknij **Publish** (albo `Shift + P`) i potwierdź w oknie publikacji.
+3. Poczekaj, aż n8n zarejestruje triggery, i sprawdź, czy przycisk nie zgłasza błędu
+   częściowej publikacji.
+4. Uruchom zdarzenie produkcyjne jeszcze raz i porównaj wynik w zakładce Executions.
+
+**Głębiej:** [Moduł 2 - Toolbar nad kanwą](/modul-2-interfejs-pierwszy-workflow#toolbar-nad-kanwą).
 
 ## OAuth zwraca "redirect_uri_mismatch"
 
@@ -128,7 +149,8 @@ rekordów).
    naprawdę tam jest i jak dokładnie się nazywa.
 2. Zamiast wpisywać nazwę pola ręcznie, przeciągnij je z panelu danych wprost do pola - n8n
    samo wstawi poprawną składnię.
-3. Jeśli odwołujesz się do konkretnego node'a po nazwie (`$node["..."]`), sprawdź, czy nie
+3. Jeśli odwołujesz się do konkretnego node'a po nazwie (`$('Nazwa')`, zalecana składnia według
+   [dokumentacji n8n](https://docs.n8n.io/build/work-with-data/reference-data/reference-previous-nodes)), sprawdź, czy nie
    zmienił się jego tytuł po ostatniej edycji.
 4. Zabezpiecz się na wypadek brakującego pola, np. `{{ $json.pole || 'brak' }}`, żeby
    kolejne node'y nie dostawały undefined.
@@ -181,7 +203,7 @@ konfiguracji, opisanej w
 **Naprawa:**
 1. Sprawdź w logach proxy, czy ruch w ogóle dobija do n8n - docelowy host/port zgodny z
    tym, na czym faktycznie nasłuchuje n8n.
-2. Ustaw w n8n zmienną `WEBHOOK_URL` na pełny publiczny adres (np.
+2. Ustaw w n8n zmienną `N8N_WEBHOOK_URL` na pełny publiczny adres (np.
    `https://n8n.twojadomena.pl/`) oraz `N8N_PROXY_HOPS=1`, gdy stoisz za jednym reverse
    proxy.
 3. Upewnij się, że proxy przekazuje nagłówki `X-Forwarded-For`, `X-Forwarded-Host` i
@@ -275,16 +297,18 @@ większości przypadków sam znajdziesz odpowiedź szybciej, niż ktoś zdąży 
   tej samej sekcji Modułu 2 o podglądzie danych.
 
 <Takeaways title="Co warto zapamiętać">
-- Test URL i Production URL webhooka to różne adresy - produkcja wymaga też aktywacji
+- Test URL i Production URL webhooka to różne adresy - produkcja wymaga też publikacji
   workflow, nie tylko poprawnego linku.
+- Produkcja działa na ostatniej opublikowanej wersji - każdą poprawkę trzeba opublikować
+  ponownie, inaczej zostaje szkicem w edytorze.
 - OAuth i webhooki potrzebują publicznego adresu zgodnego co do znaku (redirect URI,
-  `WEBHOOK_URL`) - literówka albo brak HTTPS wystarczą, żeby wszystko się posypało.
+  `N8N_WEBHOOK_URL`) - literówka albo brak HTTPS wystarczą, żeby wszystko się posypało.
 - `undefined` w wyrażeniu prawie zawsze znaczy: sprawdź prawdziwą strukturę danych w panelu
   Input, zamiast zgadywać nazwę pola z pamięci.
 - `N8N_ENCRYPTION_KEY` to jak hasło do wszystkich Twoich poświadczeń - zgubiony klucz
   oznacza utratę dostępu do nich na zawsze.
 - Reverse proxy i słaby sprzęt (Raspberry Pi) najczęściej psują się przez brakującą
-  konfigurację (`WEBHOOK_URL`, `N8N_PROXY_HOPS`, pruning executions), nie przez samego n8n.
+  konfigurację (`N8N_WEBHOOK_URL`, `N8N_PROXY_HOPS`, pruning executions), nie przez samego n8n.
 - Zanim zgłosisz błąd - zajrzyj w Executions, wyizoluj node przez Execute step i zobacz dane
   na własne oczy.
 </Takeaways>

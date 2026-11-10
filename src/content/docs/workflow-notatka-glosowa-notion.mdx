@@ -103,15 +103,16 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 <Steps>
 
 1. Pobierz plik `notatka-glosowa-notion.json` (link wyżej).
-2. W n8n otwórz listę workflow i wybierz **Import from File** (albo przeciągnij plik na kanwę
-   nowego, pustego workflow).
+2. W n8n utwórz nowy, pusty workflow, kliknij menu trzech kropek (**...**) w prawym górnym
+   rogu i wybierz **Import from File** (albo przeciągnij plik na kanwę tego pustego workflow).
 3. Uzupełnij placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
 
 </Steps>
 
 | Placeholder | Gdzie | Co wpisać |
 | --- | --- | --- |
-| `ID_BAZY_NOTION` | node Zapisz w Notion (pole Database ID) | ID bazy Notion, do której mają trafiać notatki - jak je znaleźć, patrz krok 6 niżej |
+| `TWOJ_USER_ID` | node Nowa wiadomość Telegram (Additional Fields → Restrict to User IDs) | Twój numeryczny identyfikator w Telegramie - jak go znaleźć, patrz krok 1 niżej |
+| `ID_BAZY_NOTION` | node Zapisz w Notion (pole Database ID) | ID bazy Notion, do której mają trafiać notatki - jak je znaleźć, patrz krok 5 niżej (punkt 5) |
 | `NAZWA_KOLUMNY_TYTULOWEJ` | node Zapisz w Notion (klucz właściwości w `propertiesUi`) | dokładna nazwa tytułowej kolumny Twojej bazy Notion (często "Name" albo "Nazwa") |
 | `NAZWA_KOLUMNY_TRANSKRYPCJI` | node Zapisz w Notion (klucz właściwości w `propertiesUi`) | dokładna nazwa kolumny typu Text (rich text), do której trafi pełna transkrypcja |
 
@@ -157,6 +158,32 @@ i `mime_type` - to właśnie `file_id` posłuży w kolejnym kroku do pobrania sa
 Gdy przyjdzie zwykła wiadomość tekstowa, pola `message.voice` po prostu nie ma - stąd potrzebny
 jest kolejny node.
 
+:::danger[Ogranicz bota do siebie]
+Bot w Telegramie jest publiczny: każdy, kto znajdzie jego nazwę, może wysłać mu nagranie, a Twój
+workflow zapłaci za transkrypcję Twoim kluczem OpenAI i zapisze ją w Twojej bazie Notion.
+Dlatego w **Additional Fields** triggera dodaj **Restrict to User IDs** i wpisz swój
+identyfikator (placeholder `TWOJ_USER_ID`). W prywatnej rozmowie z botem Twoje User ID to ta
+sama liczba co Chat ID, który znajdziesz jak w
+[kroku 5 porannego briefu](/workflow-poranny-brief-telegram#5-znajdź-swój-chat-id) - zrób to,
+zanim pierwszy raz uruchomisz ten trigger, bo potem `getUpdates` przestaje działać. Wiadomości
+od innych osób trigger po prostu pominie
+([opcje Telegram Trigger](https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.telegramtrigger/),
+stan na listopad 2026).
+:::
+
+Telegram Trigger działa na webhooku, więc ma dwa wymagania, których nie ma trigger czasowy
+([typowe problemy Telegram Trigger](https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.telegramtrigger/common-issues)):
+
+- **Publiczny adres HTTPS.** Telegram wysyła wiadomości tylko na adres HTTPS osiągalny
+  z internetu. n8n Cloud ma go od razu, a na self-hostingu instancja musi stać za reverse proxy
+  z certyfikatem i znać swój publiczny adres (konfiguracja w
+  [Module 1](/modul-1-instalacja-hosting)). Instancja dostępna tylko w sieci domowej nie
+  dostanie żadnej notatki.
+- **Jeden webhook na bota.** Telegram pamięta dla bota jeden adres, więc **Test URL**
+  i **Production URL** nie działają naraz: kliknięcie testu w edytorze przestawia bota na adres
+  testowy, a opublikowany workflow przestaje dostawać wiadomości. Po testach opublikuj workflow
+  ponownie albo testuj na osobnym bocie.
+
 ### 2. To wiadomość głosowa? - Guard IF
 
 Dodaj node **IF** i nadaj mu nazwę **To wiadomość głosowa?** - dokładnie tak, jak ten sam node
@@ -189,7 +216,10 @@ Telegram domyślnie koduje notatki głosowe w formacie OGG/Opus.
 
 Dodaj node **OpenAI** i nadaj mu nazwę **Transkrybuj notatkę** - tak samo jak w gotowym pliku
 JSON, żeby zgadzało się z dalszymi odwołaniami w sekcji "Co może pójść nie tak" i FAQ. Podłącz
-credentials z kluczem API (patrz krok 5 niżej), ustaw
+credentials z kluczem API: na [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+utwórz klucz (**Create new secret key**), a w n8n załóż credentials typu **OpenAI** i wklej go
+w pole **API Key** ([credentials OpenAI w n8n](https://docs.n8n.io/integrations/builtin/credentials/openai/)).
+Potem ustaw
 **Resource** na **Audio** i **Operation** na **Transcribe a Recording**. Pole **Input Data Field
 Name** zostaw domyślne `data` - to dokładnie ta sama nazwa, pod którą poprzedni node zapisał plik
 binarny. W sekcji opcji możesz dodatkowo ustawić **Language of the Audio File** na `pl` (kod
