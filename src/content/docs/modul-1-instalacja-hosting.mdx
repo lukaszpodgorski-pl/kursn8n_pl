@@ -105,7 +105,7 @@ realnego minimum produkcyjnego - bo to dwa różne światy.
 | Wskaźnik | Wartość |
 | --- | --- |
 | RAM (nauka) | ~512 MB - 1 GB |
-| RAM (produkcja) | 2 GB+ |
+| RAM (produkcja) | minimum 2 GB, komfortowo 4 GB |
 | CPU | 1-2 rdzenie |
 | Dysk | kilka GB+ |
 
@@ -967,7 +967,7 @@ Potrzebujesz Dockera i kilkunastu minut.
   - Przejście na 3.x jest jednokierunkowe: najpierw najnowsza 2.x i Migration Report, potem backup i test na kopii, a produkcja na końcu.
   - Widzisz gdzieś poradnik z npm? Jest starszy niż decyzja n8n - nie idź tą drogą.
   - Masz instalację z npm? Przenieś zawartość `~/.n8n` do wolumenu `n8n_data` - razem z plikiem `config`, bo w nim jest klucz szyfrowania.
-  - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj 2 GB+ RAM i PostgreSQL.
+  - Do nauki wystarczy mało zasobów i SQLite; do produkcji planuj minimum 2 GB RAM (komfortowo 4 GB) i PostgreSQL.
   - n8n Cloud = najszybszy start bez administracji; self-host = kontrola i niższy koszt długofalowy.
   - Docker to jedyny wspierany self-host: pamiętaj o wolumenie `n8n_data` - bez niego tracisz dane.
   - Webhooki z zewnątrz i OAuth na serwerze potrzebują publicznego HTTPS: VPS + domena + Let's Encrypt albo Cloudflare Tunnel. Lokalnie Google przyjmuje callback na `http://localhost`.
