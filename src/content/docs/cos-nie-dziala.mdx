@@ -44,7 +44,7 @@ faq:
   - q: "Ile pamięci RAM potrzebuje n8n, żeby nie zwalniać?"
     a: "Nie ma jednej uniwersalnej liczby - zależy od liczby i wielkości executions oraz obciążenia workflow. Na słabszym sprzęcie, jak Raspberry Pi, najbardziej pomaga włączony pruning historii wykonań i pilnowanie rozmiaru danych przechodzących przez workflow."
   - q: "Nie znalazłem swojego problemu na tej liście - co teraz?"
-    a: "Ta strona rośnie razem z kursem. Opisz dokładny objaw i to, co już sprawdziłeś, przez sekcję kontaktu na stronie głównej - dopiszę tu rozwiązanie."
+    a: "Ta strona rośnie razem z kursem. Opisz dokładny objaw i to, co już sprawdziłeś, mailem na kontakt@lukaszpodgorski.pl (adres jest też w sekcji O autorze na stronie głównej) - dopiszę tu rozwiązanie."
 ---
 
 import ModuleHero from '../../components/ModuleHero.astro';
@@ -149,7 +149,8 @@ rekordów).
    naprawdę tam jest i jak dokładnie się nazywa.
 2. Zamiast wpisywać nazwę pola ręcznie, przeciągnij je z panelu danych wprost do pola - n8n
    samo wstawi poprawną składnię.
-3. Jeśli odwołujesz się do konkretnego node'a po nazwie (`$node["..."]`), sprawdź, czy nie
+3. Jeśli odwołujesz się do konkretnego node'a po nazwie (`$('Nazwa')`, zalecana składnia według
+   [dokumentacji n8n](https://docs.n8n.io/build/work-with-data/reference-data/reference-previous-nodes)), sprawdź, czy nie
    zmienił się jego tytuł po ostatniej edycji.
 4. Zabezpiecz się na wypadek brakującego pola, np. `{{ $json.pole || 'brak' }}`, żeby
    kolejne node'y nie dostawały undefined.

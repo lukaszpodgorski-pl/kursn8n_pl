@@ -254,7 +254,9 @@ konkretnym przykładzie.
   i ograniczone narzędzia zmniejszają to ryzyko. Kontekst - [Moduł 6](/modul-6-ai-agenci#rag-bazy-wektorowe-i-embeddingi).
 - **Tool calling (wywoływanie narzędzi)** - natywny mechanizm nowoczesnych modeli, w którym
   model sam zwraca, które narzędzie wywołać i z jakimi parametrami. Na nim opiera się
-  domyślny Tools Agent w n8n, a lokalny model bez obsługi narzędzi nie użyje żadnego toola.
+  Tools Agent - od n8n 1.82 jedyny tryb node'a AI Agent
+  ([dokumentacja](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/)),
+  a lokalny model bez obsługi narzędzi nie użyje żadnego toola.
   Wyjaśnienie - [Moduł 6](/modul-6-ai-agenci#tools-agent---domyślny-typ).
 - **Simple Memory (pamięć okna)** - najprostszy sub-node pamięci agenta: trzyma ostatnie N
   wiadomości rozmowy w pamięci instancji i dokleja je do kolejnych zapytań. Znika po
