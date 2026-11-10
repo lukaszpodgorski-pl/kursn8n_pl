@@ -105,15 +105,16 @@ Cały workflow w formacie JSON, gotowy do zaimportowania:
 <Steps>
 
 1. Pobierz plik `monitor-ceny-produktu.json` (link wyżej).
-2. W n8n otwórz listę workflow i wybierz **Import from File** (albo po prostu przeciągnij plik
-   na kanwę nowego, pustego workflow).
+2. W n8n utwórz nowy, pusty workflow, kliknij menu trzech kropek (**...**) w prawym górnym
+   rogu i wybierz **Import from File** (albo po prostu przeciągnij plik na kanwę tego pustego
+   workflow).
 3. Uzupełnij cztery placeholdery, zanim uruchomisz workflow - patrz tabela niżej.
 
 </Steps>
 
 | Placeholder | Gdzie | Co wpisać |
 | --- | --- | --- |
-| `ADRES_PRODUKTU` | node HTTP Request (pole URL) i node Wyślij alert Telegram (treść wiadomości) | pełny adres karty produktu, który monitorujesz - podmień w obu miejscach |
+| `ADRES_PRODUKTU` | node HTTP Request (pole URL) i node Wyślij alert Telegram (treść wiadomości) | pełny adres karty produktu, który monitorujesz - podmień w obu miejscach; w treści wiadomości zamień każdy znak `&` w adresie na `&amp;` (patrz krok 7) |
 | `SELEKTOR_CSS_CENY` | node Wyciągnij cenę (pole CSS Selector) | selektor CSS wskazujący element z ceną - jak go znaleźć, patrz niżej |
 | `TWOJ_PROG` | node Cena poniżej progu? (prawa strona warunku) | próg cenowy jako liczba, np. `99.90` |
 | `TWOJ_CHAT_ID` | node Wyślij alert Telegram (pole Chat ID) | ID czatu, na który ma trafić alert |
@@ -195,11 +196,22 @@ Czytając je krok po kroku:
 Bez tego ostatniego kroku IF porównywałby ze sobą teksty, a nie liczby - a to prosta droga do
 błędów opisanych niżej.
 
+:::caution[Wyrażenie zna tylko format "1 299,99 zł"]
+Gdy sklep pisze cenę jako `1.299,99 zł` (kropka jako separator tysięcy) albo z dopiskiem `PLN`,
+po czyszczeniu zostaje np. `1.299.99` i `Number()` zwraca `NaN`. IF z `NaN` po cichu wybiera
+gałąź false, więc alert nie przyjdzie nigdy. Przy takim sklepie usuń wszystko poza cyframi
+i przecinkiem: `$json.cena_tekst.replace(/[^\d,]/g, '').replace(',', '.')`. Nie używaj tego
+wariantu dla cen z kropką dziesiętną (`99.90`), bo zrobi z nich `9990`.
+:::
+
 ### 6. Konfiguracja IF - cena poniżej progu
 
 Node **IF** dostaje warunek: lewa strona to `{{ $json.cena }}`, typ danych **Number**, operator
 **is less than**, prawa strona to Twój próg cenowy (placeholder `TWOJ_PROG`) - również jako liczba,
-nie tekst. Pełną listę typów danych i operatorów dostępnych w IF znajdziesz w
+nie tekst. Drugi warunek, połączony przez **AND**: ta sama lewa strona, operator **is greater
+than**, prawa strona `0`. Chroni przed fałszywym alertem, gdy selektor przestanie pasować - wtedy
+node HTML zwraca pusty tekst, `Number('')` daje `0`, a `0` jest przecież poniżej każdego progu.
+Pełną listę typów danych i operatorów dostępnych w IF znajdziesz w
 [dokumentacji node'a IF](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/).
 
 :::caution[Typowy błąd - porównywanie stringów]
@@ -219,12 +231,20 @@ do czatu wskazanego w polu **Chat ID**. Credentials (token bota) skonfigurujesz 
 opisuję w gotowcu [Poranny brief na Telegram](/workflow-poranny-brief-telegram) - stamtąd też
 weźmiesz swój Chat ID, jeśli jeszcze go nie znasz.
 
+W **Additional Fields** plik ma ustawione **Parse Mode** = _HTML_ i wyłączone **Append n8n
+Attribution** - dlaczego, wyjaśniam w
+[kroku 6 porannego briefu](/workflow-poranny-brief-telegram#6-telegram---wyślij-wiadomość).
+W trybie HTML Telegram odrzuca wiadomość z gołym znakiem `&`, a adresy produktów często go mają
+(`?id=12&kolor=czarny`). Wpisując adres do treści wiadomości, zamień każde `&` na `&amp;`.
+
 ## Co może pójść nie tak
 
 ### Sklep zmienił HTML - selektor przestał działać
 
-- **Objaw:** node Wyciągnij cenę zwraca pusty tekst albo `undefined` zamiast ceny, mimo że strona
-  w przeglądarce wygląda normalnie.
+- **Objaw:** node Wyciągnij cenę zwraca pusty tekst zamiast ceny (w starszych wersjach node'a,
+  do 1.1, `undefined`), mimo że strona w przeglądarce wygląda normalnie. Pusty tekst
+  zamienia się w kroku Oczyść cenę w `0`, więc bez drugiego warunku w IF (`cena > 0`, patrz
+  krok 6) dostałbyś fałszywy alert "Aktualna cena: 0 zł".
 - **Przyczyna:** sklepy regularnie zmieniają wygląd strony (redesign, nowy szablon), a wraz z nim
   zmieniają się klasy CSS elementów - Twój zapisany selektor przestaje pasować.
 - **Naprawa:** powtórz krok "Znajdź selektor CSS ceny w DevTools" na aktualnej wersji strony i
